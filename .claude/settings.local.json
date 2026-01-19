@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(tree /L 3)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:britakee-studios.gitbook.io)",
+      "WebFetch(domain:hytale-docs.pages.dev)",
+      "Bash(tree:*)",
+      "Bash(./gradlew:*)",
+      "Bash(java -version:*)",
+      "Bash(unzip:*)",
+      "Bash(findstr:*)",
+      "Bash(jar -tf:*)",
+      "Bash(jar:*)",
+      "Bash(javap:*)",
+      "Bash(powershell -Command \"Expand-Archive -Path ''libs\\\\HytaleServer.jar'' -DestinationPath ''hytale-server'' -Force\")",
+      "Bash(curl:*)",
+      "Bash(java -jar cfr.jar:*)",
+      "Bash(test:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

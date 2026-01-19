@@ -1,0 +1,379 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.9.22'
+    id 'java'
+}
+
+group = 'com.hydowned'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    // KTale repository (optional - uncomment when available)
+    // maven {
+    //     name = 'ModLabs'
+    //     url = 'https://nexus.modlabs.cc/repository/maven-public/'
+    // }
+}
+
+dependencies {
+    // Kotlin standard library
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+
+    // KTale - Kotlin helpers for Hytale (optional - uncomment when repository is accessible)
+    // implementation "cc.modlabs:ktale:2026.1.15.2109"
+
+    // Hytale Server API (provided at runtime)
+    compileOnly files('libs/HytaleServer.jar')
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+        vendor = JvmVendorSpec.AZUL  // Use Azul Zulu builds
+    }
+}
+
+kotlin {
+    jvmToolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+        vendor = JvmVendorSpec.AZUL
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = "21"
+    }
+}
+
+// Custom task to import Hytale Server JAR from AppData
+task importHytaleServer {
+    description = 'Imports the Hytale Server JAR from AppData if it has changed'
+    group = 'hytale'
+
+    doLast {
+        // Get AppData path
+        def appData = System.getenv('APPDATA')
+        if (appData == null) {
+            logger.warn('APPDATA environment variable not found, skipping Hytale Server import')
+            return
+        }
+
+        // Source: Hytale installation directory
+        def sourceDir = file("${appData}/Hytale/install/release/package/game/latest/Server")
+        def sourceJar = null
+
+        // Find the JAR file in the Server directory
+        if (sourceDir.exists() && sourceDir.isDirectory()) {
+            sourceDir.listFiles().each { file ->
+                if (file.name.endsWith('.jar') && !file.name.contains('sources')) {
+                    sourceJar = file
+                }
+            }
+        }
+
+        if (sourceJar == null || !sourceJar.exists()) {
+            logger.warn("Hytale Server JAR not found in: ${sourceDir}")
+            logger.warn('Please ensure Hytale is installed and the server JAR is available')
+            return
+        }
+
+        // Destination: libs directory in project
+        def libsDir = file('libs')
+        def destJar = file('libs/HytaleServer.jar')
+
+        // Create libs directory if it doesn't exist
+        if (!libsDir.exists()) {
+            libsDir.mkdirs()
+            logger.lifecycle('Created libs directory')
+        }
+
+        // Check if we need to copy (file doesn't exist or has changed)
+        def needsCopy = false
+        if (!destJar.exists()) {
+            needsCopy = true
+            logger.lifecycle('Hytale Server JAR not found in libs, copying...')
+        } else if (sourceJar.lastModified() > destJar.lastModified()) {
+            needsCopy = true
+            logger.lifecycle('Hytale Server JAR has been updated, copying new version...')
+        } else if (sourceJar.length() != destJar.length()) {
+            needsCopy = true
+            logger.lifecycle('Hytale Server JAR size differs, copying...')
+        } else {
+            logger.lifecycle('Hytale Server JAR is up to date')
+        }
+
+        if (needsCopy) {
+            // Copy the file
+            destJar.delete()
+            java.nio.file.Files.copy(sourceJar.toPath(), destJar.toPath())
+            logger.lifecycle("Successfully imported: ${sourceJar.name}")
+            logger.lifecycle("  Source: ${sourceJar}")
+            logger.lifecycle("  Destination: ${destJar}")
+            logger.lifecycle("  Size: ${String.format('%.2f MB', destJar.length() / 1024.0 / 1024.0)}")
+        }
+    }
+}
+
+// Run importHytaleServer before compiling
+tasks.withType(JavaCompile) {
+    dependsOn importHytaleServer
+}
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+    dependsOn importHytaleServer
+}
+
+jar {
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Custom task to deploy mod to Hytale mods folder
+task deployToHytale {
+    description = 'Copies the built mod JAR to Hytale UserData/Mods folder'
+    group = 'hytale'
+    dependsOn jar
+
+    doLast {
+        // Get AppData path
+        def appData = System.getenv('APPDATA')
+        if (appData == null) {
+            logger.warn('APPDATA environment variable not found, cannot deploy mod')
+            return
+        }
+
+        // Source: Built JAR file
+        def sourceJar = file("${buildDir}/libs/${project.name}-${project.version}.jar")
+
+        if (!sourceJar.exists()) {
+            logger.error("Built JAR not found: ${sourceJar}")
+            logger.error('Please run ./gradlew build first')
+            return
+        }
+
+        // Destination: Hytale UserData/Mods directory
+        def modsDir = file("${appData}/Hytale/UserData/Mods")
+        def destJar = file("${modsDir}/${project.name}-${project.version}.jar")
+
+        // Create mods directory if it doesn't exist
+        if (!modsDir.exists()) {
+            modsDir.mkdirs()
+            logger.lifecycle("Created Hytale mods directory: ${modsDir}")
+        }
+
+        // Copy the JAR
+        try {
+            // Delete old version if exists
+            if (destJar.exists()) {
+                destJar.delete()
+                logger.lifecycle('Removed old version')
+            }
+
+            // Copy new version
+            java.nio.file.Files.copy(sourceJar.toPath(), destJar.toPath())
+
+            logger.lifecycle('=' * 60)
+            logger.lifecycle('✓ Mod deployed successfully!')
+            logger.lifecycle('=' * 60)
+            logger.lifecycle("  Source: ${sourceJar}")
+            logger.lifecycle("  Destination: ${destJar}")
+            logger.lifecycle("  Size: ${String.format('%.2f MB', destJar.length() / 1024.0 / 1024.0)}")
+            logger.lifecycle('=' * 60)
+            logger.lifecycle('  Ready to use in Hytale!')
+            logger.lifecycle('  Location: %APPDATA%\\Hytale\\UserData\\Mods')
+            logger.lifecycle('=' * 60)
+        } catch (Exception e) {
+            logger.error("Failed to deploy mod: ${e.message}")
+            throw e
+        }
+    }
+}
+
+// Automatically deploy after successful build
+build.finalizedBy deployToHytale
+
+// Custom task to check Hytale logs for errors and debug info
+task checkLogs {
+    description = 'Reads the latest Hytale log file and shows errors, warnings, and mod-related messages'
+    group = 'hytale'
+
+    doLast {
+        // Get AppData path
+        def appData = System.getenv('APPDATA')
+        if (appData == null) {
+            logger.warn('APPDATA environment variable not found')
+            return
+        }
+
+        // Check both client logs and server logs
+        def clientLogsDir = file("${appData}/Hytale/UserData/Logs")
+        def serverLogsDir = file("${appData}/Hytale/UserData/Saves/New World/logs")
+
+        def latestLog = null
+        def latestTime = 0
+
+        // Check client logs
+        if (clientLogsDir.exists() && clientLogsDir.isDirectory()) {
+            clientLogsDir.listFiles().each { file ->
+                if (file.name.endsWith('.log') && file.lastModified() > latestTime) {
+                    latestLog = file
+                    latestTime = file.lastModified()
+                }
+            }
+        }
+
+        // Check server logs (higher priority for mod development)
+        if (serverLogsDir.exists() && serverLogsDir.isDirectory()) {
+            serverLogsDir.listFiles().each { file ->
+                if (file.name.endsWith('.log') && file.lastModified() > latestTime) {
+                    latestLog = file
+                    latestTime = file.lastModified()
+                }
+            }
+        }
+
+        if (latestLog == null) {
+            logger.warn('No log files found in Hytale directories')
+            logger.warn("Checked: ${clientLogsDir}")
+            logger.warn("Checked: ${serverLogsDir}")
+            return
+        }
+
+        logger.lifecycle('=' * 80)
+        logger.lifecycle('📋 HYTALE LOG ANALYSIS')
+        logger.lifecycle('=' * 80)
+        logger.lifecycle("Log File: ${latestLog.name}")
+        logger.lifecycle("Modified: ${new Date(latestLog.lastModified())}")
+        logger.lifecycle("Size: ${String.format('%.2f KB', latestLog.length() / 1024.0)}")
+        logger.lifecycle('=' * 80)
+
+        // Read and analyze the log
+        def logContent = latestLog.text
+        def lines = logContent.split('\n')
+
+        def errors = []
+        def warnings = []
+        def modMessages = []
+        def exceptions = []
+
+        def inException = false
+        def exceptionBuffer = []
+
+        lines.each { line ->
+            def lowerLine = line.toLowerCase()
+
+            // Check for exceptions
+            if (line.contains('Exception') || line.contains('Error:') || line.contains('Caused by:')) {
+                inException = true
+                exceptionBuffer = [line]
+            } else if (inException) {
+                if (line.trim().startsWith('at ') || line.trim().startsWith('...') || line.trim().startsWith('Caused by:')) {
+                    exceptionBuffer << line
+                } else if (line.trim().isEmpty() || !line.startsWith('\t')) {
+                    if (!exceptionBuffer.isEmpty()) {
+                        exceptions << exceptionBuffer.join('\n')
+                        exceptionBuffer = []
+                    }
+                    inException = false
+                }
+            }
+
+            // Check for errors
+            if (lowerLine.contains('[error]') || lowerLine.contains('error:') ||
+                (lowerLine.contains('failed') && !lowerLine.contains('failed to find'))) {
+                errors << line
+            }
+
+            // Check for warnings
+            if (lowerLine.contains('[warn]') || lowerLine.contains('warning:')) {
+                warnings << line
+            }
+
+            // Check for mod-related messages
+            if (lowerLine.contains('hydowned') || lowerLine.contains('plugin') ||
+                lowerLine.contains('mod loaded') || lowerLine.contains('enabling')) {
+                modMessages << line
+            }
+        }
+
+        // Add any remaining exception
+        if (!exceptionBuffer.isEmpty()) {
+            exceptions << exceptionBuffer.join('\n')
+        }
+
+        // Display results
+        logger.lifecycle('')
+        logger.lifecycle('🔴 ERRORS (${errors.size()}):')
+        logger.lifecycle('-' * 80)
+        if (errors.isEmpty()) {
+            logger.lifecycle('  ✓ No errors found')
+        } else {
+            errors.take(20).each { error ->
+                logger.lifecycle("  ${error}")
+            }
+            if (errors.size() > 20) {
+                logger.lifecycle("  ... and ${errors.size() - 20} more errors")
+            }
+        }
+
+        logger.lifecycle('')
+        logger.lifecycle('⚠️  WARNINGS (${warnings.size()}):')
+        logger.lifecycle('-' * 80)
+        if (warnings.isEmpty()) {
+            logger.lifecycle('  ✓ No warnings found')
+        } else {
+            warnings.take(10).each { warning ->
+                logger.lifecycle("  ${warning}")
+            }
+            if (warnings.size() > 10) {
+                logger.lifecycle("  ... and ${warnings.size() - 10} more warnings")
+            }
+        }
+
+        logger.lifecycle('')
+        logger.lifecycle('💥 EXCEPTIONS (${exceptions.size()}):')
+        logger.lifecycle('-' * 80)
+        if (exceptions.isEmpty()) {
+            logger.lifecycle('  ✓ No exceptions found')
+        } else {
+            exceptions.take(3).each { exception ->
+                logger.lifecycle("  ${exception}")
+                logger.lifecycle('')
+            }
+            if (exceptions.size() > 3) {
+                logger.lifecycle("  ... and ${exceptions.size() - 3} more exceptions")
+            }
+        }
+
+        logger.lifecycle('')
+        logger.lifecycle('🔧 MOD MESSAGES (${modMessages.size()}):')
+        logger.lifecycle('-' * 80)
+        if (modMessages.isEmpty()) {
+            logger.lifecycle('  ℹ️  No HyDowned-specific messages found')
+            logger.lifecycle('  (This is normal if the mod hasn\'t been loaded yet)')
+        } else {
+            modMessages.each { msg ->
+                logger.lifecycle("  ${msg}")
+            }
+        }
+
+        logger.lifecycle('')
+        logger.lifecycle('=' * 80)
+        logger.lifecycle('📊 SUMMARY')
+        logger.lifecycle('=' * 80)
+        logger.lifecycle("Total Lines: ${lines.size()}")
+        logger.lifecycle("Errors: ${errors.size()}")
+        logger.lifecycle("Warnings: ${warnings.size()}")
+        logger.lifecycle("Exceptions: ${exceptions.size()}")
+        logger.lifecycle("Mod Messages: ${modMessages.size()}")
+        logger.lifecycle('=' * 80)
+        logger.lifecycle('')
+        logger.lifecycle("💡 TIP: To see the full log, open:")
+        logger.lifecycle("   ${latestLog}")
+        logger.lifecycle('=' * 80)
+    }
+}
