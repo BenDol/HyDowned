@@ -9,5 +9,6 @@
   "reviveSpeedupPerPlayer": 0.5,
   "enableParticles": true,
   "enableSounds": true,
-  "enableActionBar": true
+  "enableActionBar": true,
+  "invisibilityMode": "SCALE"
 }

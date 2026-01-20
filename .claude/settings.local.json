@@ -47,7 +47,14 @@
       "Bash(xargs:*)",
       "Bash(cmd /c \"gradlew.bat build\")",
       "Bash(./gradlew.bat build:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebFetch(domain:hytalemodding.dev)",
+      "Bash(Get-ChildItem \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Roaming\\\\Hytale\\\\UserData\\\\Saves\\\\New World\\\\logs\")",
+      "Bash(Sort-Object LastWriteTime -Descending)",
+      "Bash(Select-Object -First 1)",
+      "Bash(ForEach-Object { $_FullName })",
+      "Bash(gradlew build:*)",
+      "Bash(cmd /c gradlew.bat build)"
     ]
   }
 }

@@ -11,6 +11,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.listeners.PlayerInteractListener
+import com.hydowned.commands.GiveUpCommand
 import com.hydowned.util.DownedCleanupHelper
 
 /**
@@ -39,6 +40,23 @@ class DownedTimerSystem(
         val ref = archetypeChunk.getReferenceTo(index)
         val downedComponent = archetypeChunk.getComponent(index, DownedComponent.getComponentType())
             ?: return
+
+        // Process any pending give-up commands for this entity
+        val pendingGiveUp = GiveUpCommand.pendingGiveUps.remove(ref)
+        if (pendingGiveUp != null && pendingGiveUp) {
+            println("[HyDowned] [TimerSystem] Processing pending give-up command")
+
+            // Execute death immediately
+            DownedCleanupHelper.executeDeath(
+                ref,
+                commandBuffer,
+                downedComponent,
+                reason = "gave up"
+            )
+
+            println("[HyDowned] [TimerSystem] ✓ Give-up processed, death executed")
+            return // Exit early - player gave up
+        }
 
         // Process any pending revive interactions for this entity
         val pendingReviverUUID = PlayerInteractListener.pendingRevives.remove(ref)

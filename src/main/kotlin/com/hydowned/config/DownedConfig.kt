@@ -17,7 +17,8 @@ data class DownedConfig(
     val reviveSpeedupPerPlayer: Double = 0.5,
     val enableParticles: Boolean = true,
     val enableSounds: Boolean = true,
-    val enableActionBar: Boolean = true
+    val enableActionBar: Boolean = true,
+    val invisibilityMode: String = "SCALE" // SCALE or INVISIBLE
 ) {
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
@@ -62,4 +63,10 @@ data class DownedConfig(
 
     val isLayingAnimation: Boolean
         get() = downedAnimationType.equals("LAYING", ignoreCase = true)
+
+    val useScaleMode: Boolean
+        get() = invisibilityMode.equals("SCALE", ignoreCase = true)
+
+    val useInvisibleMode: Boolean
+        get() = invisibilityMode.equals("INVISIBLE", ignoreCase = true)
 }

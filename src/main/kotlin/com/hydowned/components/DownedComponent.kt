@@ -3,6 +3,7 @@ package com.hydowned.components
 import com.hypixel.hytale.component.Component
 import com.hypixel.hytale.component.ComponentType
 import com.hypixel.hytale.math.vector.Vector3d
+import com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageCause
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
@@ -23,7 +24,11 @@ class DownedComponent(
     var originalDamageCause: DamageCause? = null,
     var originalDamage: Damage? = null,
     var phantomBodyRef: com.hypixel.hytale.component.Ref<EntityStore>? = null, // Reference to phantom body NPC
-    var equipmentData: com.hypixel.hytale.protocol.Equipment? = null // Player's equipment for phantom body display
+    var equipmentData: com.hypixel.hytale.protocol.Equipment? = null, // Player's equipment for phantom body display
+    var originalScale: Float = 1.0f, // Store original scale for restoration (SCALE mode)
+    var originalDisplayName: DisplayNameComponent? = null, // Store original display name for restoration
+    var wasVisibleBefore: Boolean = true, // Store original visibility state (INVISIBLE mode)
+    var hadCollisionEnabled: Boolean = true // Store original collision state
 ) : Component<EntityStore> {
 
     companion object {
@@ -42,7 +47,11 @@ class DownedComponent(
             originalDamageCause,
             originalDamage,
             phantomBodyRef, // Shallow copy - refs are safe to share
-            equipmentData?.clone() // Clone equipment data
+            equipmentData?.clone(), // Clone equipment data
+            originalScale, // Copy original scale
+            originalDisplayName?.clone() as? DisplayNameComponent, // Clone display name
+            wasVisibleBefore, // Copy visibility state
+            hadCollisionEnabled // Copy collision state
         )
     }
 }

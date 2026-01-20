@@ -92,6 +92,8 @@ class DownedDeathInterceptor(
             damage.amount = modifiedDamage
 
             println("[HyDowned] Modified damage to: $modifiedDamage (leaves player at 1 HP)")
+            println("[HyDowned]   Calculated final health: ${currentHealth - modifiedDamage} HP")
+            println("[HyDowned]   Current damage.amount after modification: ${damage.amount}")
 
             // Get location for downed state
             val transform = archetypeChunk.getComponent(index, TransformComponent.getComponentType())

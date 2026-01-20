@@ -1,31 +1,33 @@
 package com.hydowned
 
-import com.hypixel.hytale.component.ComponentType
-import com.hypixel.hytale.server.core.plugin.JavaPlugin
-import com.hypixel.hytale.server.core.plugin.JavaPluginInit
-import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
+import com.hydowned.commands.GiveUpCommand
 import com.hydowned.components.DownedComponent
 import com.hydowned.components.PhantomBodyMarker
 import com.hydowned.config.DownedConfig
-import com.hydowned.systems.DownedDeathInterceptor
-import com.hydowned.systems.DownedTimerSystem
-import com.hydowned.systems.ReviveInteractionSystem
-import com.hydowned.systems.DownedMovementSuppressionSystem
-import com.hydowned.systems.DownedTeleportLockSystem
-import com.hydowned.systems.DownedDamageImmunitySystem
-import com.hydowned.systems.DownedRemoveInteractionsSystem
-import com.hydowned.systems.DownedHealingSuppressionSystem
+import com.hydowned.listeners.PlayerReadyEventListener
 import com.hydowned.systems.DownedClearEffectsSystem
-import com.hydowned.systems.DownedPacketInterceptorSystem
-import com.hydowned.systems.DownedAnimationSystem
-import com.hydowned.systems.DownedInteractionBlockingSystem
-import com.hydowned.systems.DownedMovementStateSystem
-import com.hydowned.systems.DownedPhantomBodySystem
-import com.hydowned.systems.DownedRadiusConstraintSystem
-import com.hydowned.systems.PhantomBodyAnimationSystem
-import com.hydowned.systems.DownedPlayerVisibilitySystem
-import com.hydowned.systems.DownedLogoutHandlerSystem
+import com.hydowned.systems.DownedCollisionDisableSystem
+import com.hydowned.systems.DownedDamageImmunitySystem
+import com.hydowned.systems.DownedDeathInterceptor
 import com.hydowned.systems.DownedDisableItemsSystem
+import com.hydowned.systems.DownedHealingSuppressionSystem
+import com.hydowned.systems.DownedInteractionBlockingSystem
+import com.hydowned.systems.DownedInvisibilitySystem
+import com.hydowned.systems.DownedLoginCleanupSystem
+import com.hydowned.systems.DownedLogoutHandlerSystem
+import com.hydowned.systems.DownedPacketInterceptorSystem
+import com.hydowned.systems.DownedPhantomBodySystem
+import com.hydowned.systems.DownedPlayerScaleSystem
+import com.hydowned.systems.DownedRadiusConstraintSystem
+import com.hydowned.systems.DownedRemoveInteractionsSystem
+import com.hydowned.systems.DownedTimerSystem
+import com.hydowned.systems.PhantomBodyAnimationSystem
+import com.hydowned.systems.ReviveInteractionSystem
+import com.hypixel.hytale.component.ComponentType
+import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent
+import com.hypixel.hytale.server.core.plugin.JavaPlugin
+import com.hypixel.hytale.server.core.plugin.JavaPluginInit
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 
 /**
  * HyDowned - Downed State Mod for Hytale
@@ -86,34 +88,38 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         ) { PhantomBodyMarker(null, null, null) }
         println("[HyDowned] ✓ PhantomBodyMarker component registered")
 
+        // Register login cleanup system (runs sanity checks when player logs in)
+        entityStoreRegistry.registerSystem(DownedLoginCleanupSystem(config))
+        println("[HyDowned] ✓ Login cleanup system registered (sanity checks on login)")
+
         // Register death interception system
         entityStoreRegistry.registerSystem(DownedDeathInterceptor(config))
         println("[HyDowned] ✓ Death interception system registered")
 
         // ========== PHANTOM BODY APPROACH ==========
-        // Register phantom body system (spawns NPC body at downed location)
+        // Phantom body system (testing if this causes skin issues)
         entityStoreRegistry.registerSystem(DownedPhantomBodySystem(config))
-        println("[HyDowned] ✓ Phantom body system registered (spawns NPC at downed location)")
+        println("[HyDowned] ✓ Phantom body system DISABLED (testing)")
 
-        // Register phantom body animation system (plays death animation after spawn)
+        // Phantom body animation system (testing if this causes skin issues)
         entityStoreRegistry.registerSystem(PhantomBodyAnimationSystem(config))
-        println("[HyDowned] ✓ Phantom body animation system registered")
+        println("[HyDowned] ✓ Phantom body animation system")
 
-        // Register player visibility system (hides downed player, shows phantom body)
-        entityStoreRegistry.registerSystem(DownedPlayerVisibilitySystem(config))
-        println("[HyDowned] ✓ Player visibility system registered (hides downed player)")
+        // Register player scale system (makes player tiny - SCALE mode only)
+        entityStoreRegistry.registerSystem(DownedPlayerScaleSystem(config))
+        println("[HyDowned] ✓ Player scale system registered (SCALE mode: 0.01% size + hides nameplate)")
+
+        // Register invisibility system (pure invisible - INVISIBLE mode only)
+        entityStoreRegistry.registerSystem(DownedInvisibilitySystem(config))
+        println("[HyDowned] ✓ Invisibility system registered (INVISIBLE mode: HiddenFromAdventurePlayers + hides nameplate)")
+
+        // Register collision disable system (disables player-to-player collision, keeps wall collision)
+        entityStoreRegistry.registerSystem(DownedCollisionDisableSystem(config))
+        println("[HyDowned] ✓ Collision disable system registered (character collisions disabled, block collisions active)")
 
         // Register radius constraint system (keeps player within 10 blocks of body)
         entityStoreRegistry.registerSystem(DownedRadiusConstraintSystem(config))
         println("[HyDowned] ✓ Radius constraint system registered (10 block radius)")
-
-        // OLD: Animation system - DISABLED (phantom body shows animation instead)
-        // entityStoreRegistry.registerSystem(DownedAnimationSystem(config))
-        println("[HyDowned] ✗ Animation system DISABLED (phantom body shows animation)")
-
-        // OLD: Movement state system - DISABLED (player can move freely)
-        // entityStoreRegistry.registerSystem(DownedMovementStateSystem(config))
-        println("[HyDowned] ✗ Movement state system DISABLED (phantom body approach)")
 
         // Register damage immunity system for downed players
         entityStoreRegistry.registerSystem(DownedDamageImmunitySystem(config))
@@ -163,6 +169,19 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         entityStoreRegistry.registerSystem(DownedLogoutHandlerSystem(config))
         println("[HyDowned] ✓ Logout handler system registered (cleans up visibility + executes death on disconnect)")
 
+        // Register commandsaa
+        commandRegistry.registerCommand(GiveUpCommand(config))
+        println("[HyDowned] ✓ /giveup command registered (allows downed players to immediately die)")
+
+        // Register event listeners
+        val playerReadyListener = PlayerReadyEventListener(config)
+        eventRegistry.registerGlobal(PlayerReadyEvent::class.java, playerReadyListener::onPlayerReady)
+        println("[HyDowned] ✓ PlayerReadyEvent listener registered (queues login cleanup)")
+
+        /*val playerInteractListener = PlayerInteractListener(config)
+        eventRegistry.registerGlobal(PlayerInteractEvent::class.java, playerInteractListener::onPlayerInteract)
+        println("[HyDowned] ✓ PlayerInteractEvent listener registered (handles revive interactions)")*/
+
         println("[HyDowned] ============================================")
     }
 
@@ -174,11 +193,20 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         println("[HyDowned] ============================================")
         println("[HyDowned] ✓ HyDowned plugin started successfully!")
         println("[HyDowned] Status: PHANTOM BODY APPROACH ACTIVE")
+        println("[HyDowned] Invisibility Mode: ${config.invisibilityMode}")
         println("[HyDowned] ============================================")
         println("[HyDowned] FEATURES:")
         println("[HyDowned]   ✓ Phantom body spawned at downed location (visible to all)")
         println("[HyDowned]   ✓ Death animation plays on phantom body")
-        println("[HyDowned]   ✓ Downed player is invisible (can move freely)")
+
+        if (config.useScaleMode) {
+            println("[HyDowned]   ✓ Downed player: SCALE mode (0.01% size, nameplate hidden)")
+        } else if (config.useInvisibleMode) {
+            println("[HyDowned]   ✓ Downed player: INVISIBLE mode (VisibilityComponent, nameplate hidden)")
+        }
+
+        println("[HyDowned]   ✓ Character collision disabled (no pushing/attacking players)")
+        println("[HyDowned]   ✓ Block collision enabled (can't walk through walls)")
         println("[HyDowned]   ✓ 10 block movement radius from phantom body")
         println("[HyDowned]   ✓ Interactions blocked while downed")
         println("[HyDowned]   ✓ Immune to damage while downed")
@@ -188,6 +216,7 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         println("[HyDowned]   ✓ Revive: CROUCH near phantom body (${config.reviveRange} blocks)")
         println("[HyDowned]   ✓ Player teleports back to body on revive")
         println("[HyDowned]   ✓ Logout while downed: auto-death + visibility restoration")
+        println("[HyDowned]   ✓ Command: /giveup to instantly die while downed")
         println("[HyDowned] ============================================")
     }
 

@@ -6,7 +6,6 @@ import com.hypixel.hytale.server.core.entity.entities.Player
 import com.hypixel.hytale.server.core.event.events.player.PlayerInteractEvent
 import com.hypixel.hytale.component.Ref
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import java.util.concurrent.ConcurrentHashMap
 

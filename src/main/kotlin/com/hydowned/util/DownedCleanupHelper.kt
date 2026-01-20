@@ -7,6 +7,7 @@ import com.hypixel.hytale.protocol.AnimationSlot
 import com.hypixel.hytale.server.core.entity.AnimationUtils
 import com.hypixel.hytale.server.core.entity.UUIDComponent
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent
+import com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage
@@ -62,9 +63,11 @@ object DownedCleanupHelper {
         // This makes the damage immunity system allow the killing damage through
         downedComponent.downedTimeRemaining = 0
 
+        // COMMENTED OUT: This was causing animations to break after respawn
+        // The damage/death system handles death animation automatically
         // Set player to death animation/sleeping state before death
         // This ensures they're in the proper state when they die/respawn
-        setDeathAnimationState(ref, commandBuffer)
+        // setDeathAnimationState(ref, commandBuffer)
 
         // Teleport player back to downed location before death
         teleportToDownedLocation(ref, commandBuffer, downedComponent)
@@ -199,32 +202,6 @@ object DownedCleanupHelper {
         downedComponent: DownedComponent,
         isLogout: Boolean = false
     ) {
-        // ALWAYS restore visibility before cleanup, even on death
-        // When player dies and respawns as new entity, the old visibility state persists
-        // and the new entity starts invisible
-        val playerUuidComponent = commandBuffer.getComponent(ref, UUIDComponent.getComponentType())
-        if (playerUuidComponent != null) {
-            val playerUuid = playerUuidComponent.uuid
-            println("[HyDowned] [Cleanup] Restoring visibility for player: $playerUuid")
-
-            // Show this player to all other players
-            val allPlayers = Universe.get().players
-            for (otherPlayer in allPlayers) {
-                val otherPlayerEntityRef = otherPlayer.reference ?: continue
-
-                // Get the PlayerRef component which has the HiddenPlayersManager
-                val otherPlayerRefComponent = commandBuffer.getComponent(otherPlayerEntityRef, PlayerRef.getComponentType())
-                    ?: continue
-
-                // Show the player
-                otherPlayerRefComponent.getHiddenPlayersManager().showPlayer(playerUuid)
-            }
-
-            println("[HyDowned] [Cleanup] ✓ Visibility restored to ${allPlayers.size} players")
-        } else {
-            println("[HyDowned] [Cleanup] ⚠ UUIDComponent not found, cannot restore visibility")
-        }
-
         // If this is a logout, do additional cleanup
         // (Component callbacks don't fire during entity removal)
         if (isLogout) {
@@ -237,7 +214,72 @@ object DownedCleanupHelper {
                 println("[HyDowned] [Cleanup] ⚠ Phantom body ref is null or invalid")
             }
 
-            // 2. Restore Interactable component
+            // 2. Restore player scale (CRITICAL: onComponentRemoved doesn't fire during logout)
+            try {
+                val scaleComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.EntityScaleComponent.getComponentType())
+                if (scaleComponent != null) {
+                    scaleComponent.scale = downedComponent.originalScale
+                    println("[HyDowned] [Cleanup] ✓ Restored scale to ${downedComponent.originalScale} (logout scenario)")
+                } else {
+                    println("[HyDowned] [Cleanup] ⚠ EntityScaleComponent not found, cannot restore scale")
+                }
+            } catch (e: Exception) {
+                println("[HyDowned] [Cleanup] ⚠ Failed to restore scale: ${e.message}")
+                e.printStackTrace()
+            }
+
+            // 3. Restore original DisplayNameComponent (logout scenario)
+            // Replace empty DisplayNameComponent with original
+            try {
+                val originalDisplayName = downedComponent.originalDisplayName
+                if (originalDisplayName != null) {
+                    commandBuffer.removeComponent(ref, DisplayNameComponent.getComponentType())
+                    commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), originalDisplayName)
+                    println("[HyDowned] [Cleanup] ✓ Restored original DisplayNameComponent (logout scenario)")
+                } else {
+                    // No original stored - ensure component exists
+                    commandBuffer.ensureComponent(ref, DisplayNameComponent.getComponentType())
+                    println("[HyDowned] [Cleanup] ⚠ No original DisplayNameComponent, ensured one exists")
+                }
+            } catch (e: Exception) {
+                println("[HyDowned] [Cleanup] ⚠ Failed to restore DisplayNameComponent: ${e.message}")
+                e.printStackTrace()
+            }
+
+            // 4. Restore visibility (INVISIBLE mode - remove HiddenFromAdventurePlayers)
+            // onComponentRemoved doesn't fire during logout, so we must manually restore
+            try {
+                if (downedComponent.wasVisibleBefore) {
+                    commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
+                    println("[HyDowned] [Cleanup] ✓ Removed HiddenFromAdventurePlayers (logout scenario)")
+                }
+            } catch (e: Exception) {
+                println("[HyDowned] [Cleanup] ⚠ Failed to remove HiddenFromAdventurePlayers: ${e.message}")
+                e.printStackTrace()
+            }
+
+            // 5. Restore collision (re-enable character collisions)
+            // onComponentRemoved doesn't fire during logout, so we must manually restore
+            try {
+                val collisionResult = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.CollisionResultComponent.getComponentType())
+                if (collisionResult != null && downedComponent.hadCollisionEnabled) {
+                    // Note: API method has typo - "Collsions" instead of "Collisions"
+                    collisionResult.collisionResult.enableCharacterCollsions()
+                    println("[HyDowned] [Cleanup] ✓ Re-enabled character collisions (logout scenario)")
+                }
+            } catch (e: Exception) {
+                println("[HyDowned] [Cleanup] ⚠ Failed to re-enable character collisions: ${e.message}")
+                e.printStackTrace()
+            }
+
+            // 5b. Remove any lingering Intangible component (defensive cleanup for old versions)
+            try {
+                commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType())
+            } catch (e: Exception) {
+                // Ignore - component may not exist
+            }
+
+            // 6. Restore Interactable component
             // DownedRemoveInteractionsSystem removes this when downed, but won't restore it during logout
             // Ensuring it exists allows the player to interact after respawn
             commandBuffer.ensureComponent(ref, Interactable.getComponentType())

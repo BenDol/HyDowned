@@ -81,11 +81,13 @@ class DownedDamageImmunitySystem(
         println("[HyDowned] ============================================")
         println("[HyDowned] DAMAGE BLOCKED - Player is downed")
         println("[HyDowned]   Player: ${playerComponent?.displayName}")
-        println("[HyDowned]   Incoming damage: ${damage.amount}")
+        println("[HyDowned]   Incoming damage BEFORE block: ${damage.amount}")
         println("[HyDowned]   Damage source: ${damage.cause?.id ?: "unknown"}")
         println("[HyDowned] ============================================")
 
         // Cancel all damage by setting amount to 0
+        val originalDamage = damage.amount
         damage.amount = 0.0f
+        println("[HyDowned] ⚠ Damage set to 0 (was $originalDamage)")
     }
 }

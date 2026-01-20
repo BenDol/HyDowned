@@ -38,6 +38,8 @@ class DownedHealingSuppressionSystem(
     
     override fun getQuery(): Query<EntityStore> = query
 
+    private var lastLogTime = 0L
+
     override fun tick(
         dt: Float,
         index: Int,
@@ -54,6 +56,14 @@ class DownedHealingSuppressionSystem(
             ?: return
 
         val currentHealth = healthStat.get()
+
+        // Log actual health every 5 seconds (for debugging)
+        val now = System.currentTimeMillis()
+        if (now - lastLogTime > 5000) {
+            val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
+            println("[HyDowned] [HealingSuppression] Current server-side health: $currentHealth HP (player: ${playerComponent?.displayName})")
+            lastLogTime = now
+        }
 
         // If health exceeds 1 HP, something tried to heal the player
         if (currentHealth > 1.0f) {
