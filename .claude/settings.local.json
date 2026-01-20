@@ -44,7 +44,10 @@
       "Bash(.\\\\gradlew.bat build:*)",
       "Bash(gradlew.bat build:*)",
       "Bash(C:/Projects/games/Hytale/mods/HyDowned/gradlew.bat build)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(cmd /c \"gradlew.bat build\")",
+      "Bash(./gradlew.bat build:*)",
+      "Bash(grep:*)"
     ]
   }
 }

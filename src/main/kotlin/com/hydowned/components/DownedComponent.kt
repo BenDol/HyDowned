@@ -11,6 +11,8 @@ import com.hydowned.HyDownedPlugin
 /**
  * Component that marks an entity as being in a "downed" state
  * This replaces death - player stays alive at 1 HP and can be revived
+ *
+ * Phantom body approach: Spawn fake NPC body at downed location, let player move within 10 block radius
  */
 class DownedComponent(
     var downedTimeRemaining: Int,
@@ -19,7 +21,9 @@ class DownedComponent(
     val downedAt: Long = System.currentTimeMillis(),
     var downedLocation: Vector3d? = null,
     var originalDamageCause: DamageCause? = null,
-    var originalDamage: Damage? = null
+    var originalDamage: Damage? = null,
+    var phantomBodyRef: com.hypixel.hytale.component.Ref<EntityStore>? = null, // Reference to phantom body NPC
+    var equipmentData: com.hypixel.hytale.protocol.Equipment? = null // Player's equipment for phantom body display
 ) : Component<EntityStore> {
 
     companion object {
@@ -36,7 +40,9 @@ class DownedComponent(
             downedAt,
             downedLocation?.clone(),
             originalDamageCause,
-            originalDamage
+            originalDamage,
+            phantomBodyRef, // Shallow copy - refs are safe to share
+            equipmentData?.clone() // Clone equipment data
         )
     }
 }

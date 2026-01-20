@@ -103,30 +103,14 @@ class DownedPacketInterceptorSystem(
                 }
             }
 
-            // 2. WRAP OUTGOING PACKET HANDLER (replace PacketHandler in PlayerRef)
-            val outgoingInterceptor = DownedPacketInterceptor(
-                ref,
-                java.util.function.Consumer { }, // dummy, already wrapped
-                packetHandler
-            )
-            val wrappedPacketHandler = outgoingInterceptor.createOutgoingWrapper()
-
-            // Use reflection to replace the PacketHandler in PlayerRef
-            val packetHandlerField = PlayerRef::class.java.getDeclaredField("packetHandler")
-            packetHandlerField.isAccessible = true
-            // Remove final modifier
-            val modifiersField = java.lang.reflect.Field::class.java.getDeclaredField("modifiers")
-            modifiersField.isAccessible = true
-            modifiersField.setInt(packetHandlerField, packetHandlerField.modifiers and java.lang.reflect.Modifier.FINAL.inv())
-            // Replace with wrapped handler
-            packetHandlerField.set(playerRefComponent, wrappedPacketHandler)
-
-            // Store the interceptor for cleanup
-            installedInterceptors[ref] = outgoingInterceptor
+            // 2. OUTGOING PACKET HANDLER WRAPPING - DISABLED
+            // NOTE: Java 17+ doesn't allow modifying Field.modifiers, so we can't replace
+            // the final packetHandler field in PlayerRef. The incoming packet wrapping
+            // should be sufficient for blocking interactions.
 
             println("[HyDowned] ✓ Installed packet interceptors for player:")
             println("[HyDowned]   - Wrapped $wrappedCount incoming handlers")
-            println("[HyDowned]   - Wrapped outgoing PacketHandler")
+            println("[HyDowned]   - Outgoing handler wrapping DISABLED (Java 17+ limitation)")
             println("[HyDowned]   - NetworkId=$playerNetworkId stored in tracker")
 
         } catch (e: Exception) {

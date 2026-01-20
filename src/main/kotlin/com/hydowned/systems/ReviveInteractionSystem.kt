@@ -60,9 +60,10 @@ class ReviveInteractionSystem(
             ?: return
         val downedComponent = archetypeChunk.getComponent(index, DownedComponent.getComponentType())
             ?: return
-        val downedTransform = archetypeChunk.getComponent(index, TransformComponent.getComponentType())
-            ?: return
-        val downedPos = downedTransform.position
+
+        // CRITICAL: Use phantom body position (downed location), NOT the player's current position
+        // The player can move within 10 blocks, but revival happens at the body location
+        val downedPos = downedComponent.downedLocation ?: return
 
         // Get all players from Universe (high-level API)
         val allPlayers = Universe.get().players

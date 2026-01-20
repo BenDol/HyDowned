@@ -7,15 +7,11 @@ import com.hypixel.hytale.component.query.Query
 import com.hypixel.hytale.component.system.tick.DelayedEntitySystem
 import com.hypixel.hytale.server.core.Message
 import com.hypixel.hytale.server.core.entity.entities.Player
-import com.hypixel.hytale.server.core.modules.entity.damage.Damage
-import com.hypixel.hytale.server.core.modules.entity.damage.DamageSystems
-import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap
-import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.listeners.PlayerInteractListener
-import com.hydowned.network.DownedStateTracker
+import com.hydowned.util.DownedCleanupHelper
 
 /**
  * System that ticks down the downed timer and executes death when it expires
@@ -124,65 +120,40 @@ class DownedTimerSystem(
                 println("[HyDowned] Revive complete!")
                 println("[HyDowned] ============================================")
 
-                // Remove downed component
-                commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
+                // Use centralized cleanup helper to handle revive
+                val reviveSuccess = DownedCleanupHelper.executeRevive(
+                    ref,
+                    commandBuffer,
+                    downedComponent,
+                    config.reviveHealthPercent
+                )
 
-                // Clear downed state tracking
-                DownedStateTracker.setNotDowned(ref)
+                if (reviveSuccess) {
+                    // Send success messages
+                    playerComponent?.sendMessage(Message.raw("REVIVED! YOU'RE BACK! ✚✚✚"))
 
-                // Restore health
-                val entityStatMap = archetypeChunk.getComponent(index, EntityStatMap.getComponentType())
-                if (entityStatMap != null) {
-                    val healthStat = entityStatMap.get(DefaultEntityStatTypes.getHealth())
-                    if (healthStat != null) {
-                        val restoreAmount = healthStat.max * config.reviveHealthPercent.toFloat()
-                        entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), restoreAmount)
-                        println("[HyDowned] Restored health to ${restoreAmount} (${config.reviveHealthPercent * 100}%)")
-                    }
+                    // TODO: Notify revivers of success
+                    println("[HyDowned] ✓ Player revived successfully")
+                } else {
+                    println("[HyDowned] ⚠ Revive completed but health restoration failed")
                 }
 
-                // Send success messages
-                playerComponent?.sendMessage(Message.raw("REVIVED! YOU'RE BACK! ✚✚✚"))
-
-                // TODO: Notify revivers of success
-                println("[HyDowned] ✓ Player revived successfully")
                 return // Exit early - player is revived
             }
         }
 
         // Check if timer expired
         if (timeRemaining <= 0) {
-            println("[HyDowned] ============================================")
-            println("[HyDowned] Downed timer expired!")
-            println("[HyDowned] Executing death...")
-            println("[HyDowned] ============================================")
-
             // Send final message
             playerComponent?.sendMessage(Message.raw("Time's up! Executing death..."))
 
-            // Remove downed component first
-            commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
-
-            // Clear downed state tracking
-            DownedStateTracker.setNotDowned(ref)
-
-            // Create fatal damage with original cause (if available)
-            // Use the damage cause index to avoid ambiguity
-            val damageCauseIndex = if (downedComponent.originalDamageCause != null) {
-                // Get the index from the asset map
-                downedComponent.originalDamage?.damageCauseIndex ?: 0
-            } else {
-                0 // Default fallback
-            }
-
-            val killDamage = Damage(
-                downedComponent.originalDamage?.source ?: Damage.NULL_SOURCE,
-                damageCauseIndex,
-                999999.0f // Massive damage to ensure death
+            // Use centralized cleanup helper to handle death
+            DownedCleanupHelper.executeDeath(
+                ref,
+                commandBuffer,
+                downedComponent,
+                "Timer expired"
             )
-
-            // Execute death - this will add DeathComponent and trigger normal death flow
-            DamageSystems.executeDamage(ref, commandBuffer, killDamage)
 
             println("[HyDowned] ✓ Death executed, normal respawn flow will proceed")
         }
