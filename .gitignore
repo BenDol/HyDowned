@@ -7,6 +7,9 @@
 # Hytale Server JAR (auto-downloaded by Gradle task)
 /libs/HytaleServer.jar
 
+# Dev server directory (created by gradle startDevServer task)
+/dev-server/
+
 # Plugin runtime data
 /plugins/
 /data/
@@ -128,3 +131,5 @@ logs/
 .env
 .env.local
 .env.*.local
+
+nul

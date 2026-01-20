@@ -9,6 +9,7 @@ import com.hypixel.hytale.component.dependency.Dependency
 import com.hypixel.hytale.component.dependency.Order
 import com.hypixel.hytale.component.dependency.SystemDependency
 import com.hypixel.hytale.component.query.Query
+import com.hypixel.hytale.server.core.Message
 import com.hypixel.hytale.server.core.entity.entities.Player
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage
@@ -20,8 +21,7 @@ import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntitySta
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
-import javax.annotation.Nonnull
-import javax.annotation.Nullable
+import com.hydowned.network.DownedStateTracker
 
 /**
  * Intercepts damage that would kill a player and puts them in downed state instead
@@ -46,23 +46,20 @@ class DownedDeathInterceptor(
         SystemDependency<EntityStore, DamageSystems.ApplyDamage>(Order.BEFORE, DamageSystems.ApplyDamage::class.java)
     )
 
-    @Nonnull
     override fun getQuery(): Query<EntityStore> = query
 
-    @Nullable
-    override fun getGroup(): SystemGroup<EntityStore> {
+    override fun getGroup(): SystemGroup<EntityStore>? {
         return DamageModule.get().filterDamageGroup
     }
 
-    @Nonnull
     override fun getDependencies(): Set<Dependency<EntityStore>> = dependencies
 
     override fun handle(
         index: Int,
-        @Nonnull archetypeChunk: ArchetypeChunk<EntityStore>,
-        @Nonnull store: Store<EntityStore>,
-        @Nonnull commandBuffer: CommandBuffer<EntityStore>,
-        @Nonnull damage: Damage
+        archetypeChunk: ArchetypeChunk<EntityStore>,
+        store: Store<EntityStore>,
+        commandBuffer: CommandBuffer<EntityStore>,
+        damage: Damage
     ) {
         val ref = archetypeChunk.getReferenceTo(index)
 
@@ -112,6 +109,9 @@ class DownedDeathInterceptor(
             )
 
             commandBuffer.addComponent(ref, DownedComponent.getComponentType(), downedComponent)
+
+            // Track downed state for network threads
+            DownedStateTracker.setDowned(ref)
 
             println("[HyDowned] ✓ Player entered downed state")
             println("[HyDowned]   Timer: ${config.downedTimerSeconds} seconds")

@@ -11,7 +11,7 @@ data class DownedConfig(
     val reviveTimerSeconds: Int = 10,
     val downedSpeedMultiplier: Double = 0.1,
     val reviveHealthPercent: Double = 0.2,
-    val reviveRange: Double = 3.0,
+    val reviveRange: Double = 2.0,
     val downedAnimationType: String = "LAYING",
     val multipleReviversMode: String = "SPEEDUP",
     val reviveSpeedupPerPlayer: Double = 0.5,

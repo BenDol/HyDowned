@@ -19,7 +19,32 @@
       "Bash(curl:*)",
       "Bash(java -jar cfr.jar:*)",
       "Bash(test:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(ipconfig:*)",
+      "Bash(powershell -Command \"Enable-WindowsOptionalFeature -Online -FeatureName TelnetClient\")",
+      "Bash(netstat:*)",
+      "Bash(read:*)",
+      "Bash(SERVER_IP=\"192.168.0.XXX\":*)",
+      "Bash(xargs -I {} bash -c \"echo ''Checking: {}'' && grep -i ''HyDowned\\\\|plugin.*enabled\\\\|plugin.*loaded'' ''{}'' | head -20\")",
+      "WebFetch(domain:www.curseforge.com)",
+      "Bash(java -jar HytaleServer-*.jar --help:*)",
+      "Bash(java -jar:*)",
+      "Bash(if [ -f .gitignore ])",
+      "Bash(then cat .gitignore)",
+      "Bash(else echo \"No .gitignore found\")",
+      "Bash(fi)",
+      "Bash(\"/c/Program Files/Zulu/zulu-21/bin/java.exe\" -jar \"$APPDATA/Hytale/install/release/package/game/latest/Server/HytaleServer.jar\" --help)",
+      "Bash(\"/c/Program Files/Zulu/zulu-21/bin/java.exe\" -jar \"/c/Users/dolb9/AppData/Roaming/Hytale/install/release/package/game/latest/Server/HytaleServer.jar\" --help)",
+      "Bash(tail:*)",
+      "Bash(tee:*)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "Bash(find:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 23684 -Force\")",
+      "Bash(.\\\\gradlew.bat build:*)",
+      "Bash(gradlew.bat build:*)",
+      "Bash(C:/Projects/games/Hytale/mods/HyDowned/gradlew.bat build)",
+      "Bash(xargs:*)"
     ]
   }
 }

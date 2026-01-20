@@ -3,7 +3,7 @@
   "reviveTimerSeconds": 10,
   "downedSpeedMultiplier": 0.1,
   "reviveHealthPercent": 0.2,
-  "reviveRange": 3.0,
+  "reviveRange": 2.0,
   "downedAnimationType": "LAYING",
   "multipleReviversMode": "SPEEDUP",
   "reviveSpeedupPerPlayer": 0.5,
