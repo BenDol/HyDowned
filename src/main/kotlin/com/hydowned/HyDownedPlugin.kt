@@ -125,8 +125,8 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         println("[HyDowned] ✓ Movement suppression system registered (blocks PlayerInput processing)")
 
         // Register teleport lock system (sends ClientTeleport packets to force client position)
-        //entityStoreRegistry.registerSystem(DownedTeleportLockSystem(config))
-        println("[HyDowned] ✓ Teleport lock system registered (sends ClientTeleport packets every 0.5s)")
+        entityStoreRegistry.registerSystem(DownedTeleportLockSystem(config))
+        println("[HyDowned] ✓ Teleport lock system registered (locks position every 0.5s)")
 
         // Register interaction removal system (removes Interactions component completely)
         entityStoreRegistry.registerSystem(DownedRemoveInteractionsSystem(config))
