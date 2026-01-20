@@ -215,6 +215,21 @@ class DownedLoginCleanupSystem(
             issuesFound = true
         }
 
+        // 8. Reset camera tracking (in case player logged out with camera active in PLAYER mode)
+        try {
+            val playerRefComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.universe.PlayerRef.getComponentType())
+            if (playerRefComponent != null) {
+                val cameraSystem = com.hydowned.HyDownedPlugin.instance?.getCameraSystem()
+                if (cameraSystem != null) {
+                    // Remove from tracking set (don't call full reset since camera should already be normal)
+                    cameraSystem.clearCameraTracking(playerRefComponent)
+                    Log.verbose("LoginCleanup", "Cleared camera tracking state")
+                }
+            }
+        } catch (e: Exception) {
+            Log.warning("LoginCleanup", "Failed to clear camera tracking: ${e.message}")
+        }
+
         if (issuesFound) {
             Log.verbose("LoginCleanup", "Fixed player state issues on login")
         } else {

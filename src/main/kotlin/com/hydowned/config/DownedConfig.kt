@@ -19,6 +19,7 @@ data class DownedConfig(
     val enableSounds: Boolean = true,
     val enableActionBar: Boolean = true,
     val invisibilityMode: String = "SCALE", // SCALE or INVISIBLE
+    val downedMode: String = "PHANTOM", // PHANTOM or PLAYER
     val logLevel: String = "VERBOSE" // ERROR, WARNING, INFO, VERBOSE, DEBUG
 ) {
     companion object {
@@ -70,4 +71,10 @@ data class DownedConfig(
 
     val useInvisibleMode: Boolean
         get() = invisibilityMode.equals("INVISIBLE", ignoreCase = true)
+
+    val usePhantomMode: Boolean
+        get() = downedMode.equals("PHANTOM", ignoreCase = true)
+
+    val usePlayerMode: Boolean
+        get() = downedMode.equals("PLAYER", ignoreCase = true)
 }

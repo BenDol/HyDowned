@@ -293,6 +293,25 @@ object DownedCleanupHelper {
             Log.verbose("CleanupHelper", "Ensured Interactable component exists (logout scenario)")
         }
 
+        // Reset camera to normal view
+        try {
+            val playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
+            if (playerRef != null) {
+                val cameraSystem = com.hydowned.HyDownedPlugin.instance?.getCameraSystem()
+                if (cameraSystem != null) {
+                    cameraSystem.resetCameraForPlayer(playerRef, commandBuffer)
+                    Log.verbose("CleanupHelper", "Reset camera to normal view")
+                } else {
+                    Log.warning("CleanupHelper", "Camera system not available")
+                }
+            } else {
+                Log.warning("CleanupHelper", "PlayerRef not found, cannot reset camera")
+            }
+        } catch (e: Exception) {
+            Log.warning("CleanupHelper", "Failed to reset camera: ${e.message}")
+            e.printStackTrace()
+        }
+
         // Remove downed component (triggers visibility restoration + phantom body removal for non-logout)
         commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
 

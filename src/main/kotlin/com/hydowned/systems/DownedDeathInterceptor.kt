@@ -71,10 +71,18 @@ class DownedDeathInterceptor(
 
         // Check if player already downed (or being downed in this tick's command buffer)
         if (commandBuffer.getArchetype(ref).contains(DownedComponent.getComponentType())) {
+            // Get the DownedComponent to check timer status
+            val downedComponent = commandBuffer.getComponent(ref, DownedComponent.getComponentType())
+
+            // Check if timer has expired - allow timeout/giveup kill damage through
+            if (downedComponent != null && downedComponent.downedTimeRemaining <= 0) {
+                Log.warning("DeathInterceptor", "TIMEOUT/GIVEUP KILL DAMAGE - Allowing through for ${playerComponent?.displayName}, damage: ${damage.amount}")
+                return // Don't block this damage - player should die
+            }
+
             // CRITICAL: Player is already downed (or will be after command buffer applies)
             // We MUST block all damage, not just return early!
             // If we return early without blocking, damage passes through and kills them
-            val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
             Log.warning("DeathInterceptor", "DAMAGE BLOCKED - Player already downed/being downed: ${playerComponent?.displayName}, damage blocked: ${damage.amount}")
 
             // Block ALL damage to already-downed players

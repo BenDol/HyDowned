@@ -10,5 +10,7 @@
   "enableParticles": true,
   "enableSounds": true,
   "enableActionBar": true,
-  "invisibilityMode": "SCALE"
+  "invisibilityMode": "SCALE",
+  "downedMode": "PHANTOM",
+  "logLevel": "VERBOSE"
 }

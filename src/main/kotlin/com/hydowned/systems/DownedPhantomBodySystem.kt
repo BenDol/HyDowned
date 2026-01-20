@@ -71,9 +71,14 @@ class DownedPhantomBodySystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
+        // PHANTOM mode only - in PLAYER mode, the player's body stays in place
+        if (!config.usePhantomMode) {
+            return
+        }
+
         val downedLocation = component.downedLocation ?: return
 
-        Log.verbose("PhantomBody", "Player downed, spawning phantom body at $downedLocation")
+        Log.verbose("PhantomBody", "PHANTOM MODE: Player downed, spawning phantom body at $downedLocation")
 
         // Get player's model and transform to replicate for the phantom body
         val playerModelComponent = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
@@ -287,7 +292,12 @@ class DownedPhantomBodySystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        Log.verbose("PhantomBody", "DownedComponent removed - cleaning up")
+        // PHANTOM mode only
+        if (!config.usePhantomMode) {
+            return
+        }
+
+        Log.verbose("PhantomBody", "DownedComponent removed - cleaning up phantom body")
 
         // Check if player entity is still valid (not being removed/logged out)
         val isPlayerValid = ref.isValid

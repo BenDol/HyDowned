@@ -40,9 +40,9 @@ class DownedInvisibilitySystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        // Only run if INVISIBLE mode is enabled
-        if (!config.useInvisibleMode) {
-            Log.verbose("Invisibility", "Skipping - invisibilityMode is not INVISIBLE")
+        // Only run in PHANTOM mode with INVISIBLE invisibility
+        if (!config.usePhantomMode || !config.useInvisibleMode) {
+            Log.verbose("Invisibility", "Skipping - not PHANTOM mode or not INVISIBLE invisibility")
             return
         }
 
@@ -103,8 +103,8 @@ class DownedInvisibilitySystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        // Only run if INVISIBLE mode is enabled
-        if (!config.useInvisibleMode) {
+        // Only run in PHANTOM mode with INVISIBLE invisibility
+        if (!config.usePhantomMode || !config.useInvisibleMode) {
             return
         }
 

@@ -182,7 +182,21 @@ class DownedLogoutHandlerSystem(
         commandBuffer.ensureComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Interactable.getComponentType())
         Log.verbose("LogoutHandler", "Ensured Interactable component exists")
 
-        // 7. Remove DownedComponent and clear state tracker
+        // 7. Reset camera for PLAYER mode
+        try {
+            val playerRefComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.universe.PlayerRef.getComponentType())
+            if (playerRefComponent != null) {
+                val cameraSystem = com.hydowned.HyDownedPlugin.instance?.getCameraSystem()
+                if (cameraSystem != null) {
+                    cameraSystem.resetCameraForPlayer(playerRefComponent, commandBuffer)
+                    Log.verbose("LogoutHandler", "Reset camera to normal view")
+                }
+            }
+        } catch (e: Exception) {
+            Log.warning("LogoutHandler", "Failed to reset camera: ${e.message}")
+        }
+
+        // 8. Remove DownedComponent and clear state tracker
         // (Restoration is handled by file-based PendingDeathTracker, not in-memory component)
         commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
         com.hydowned.network.DownedStateTracker.setNotDowned(ref)

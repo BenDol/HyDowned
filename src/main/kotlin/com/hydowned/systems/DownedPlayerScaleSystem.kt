@@ -38,9 +38,9 @@ class DownedPlayerScaleSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        // Only run if SCALE mode is enabled
-        if (!config.useScaleMode) {
-            Log.verbose("PlayerScale", "Skipping - invisibilityMode is not SCALE")
+        // Only run in PHANTOM mode with SCALE invisibility
+        if (!config.usePhantomMode || !config.useScaleMode) {
+            Log.verbose("PlayerScale", "Skipping - not PHANTOM mode or not SCALE invisibility")
             return
         }
 
@@ -113,8 +113,8 @@ class DownedPlayerScaleSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        // Only run if SCALE mode is enabled
-        if (!config.useScaleMode) {
+        // Only run in PHANTOM mode with SCALE invisibility
+        if (!config.usePhantomMode || !config.useScaleMode) {
             return
         }
 

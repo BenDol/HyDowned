@@ -27,20 +27,21 @@ import com.hydowned.util.Log
  * packets for players in the downed state.
  *
  * INCOMING (Client -> Server):
- * - ClientMovement: Filters out position changes, allows head/body rotation
+ * - ClientMovement: PLAYER mode only - Filters out position changes, allows head/body rotation
  * - MouseInteraction: Blocks all mouse interactions
  * - SyncInteractionChains: Blocks interaction chains (block breaking, etc.)
  * - ClientPlaceBlock: Blocks block placement
  *
  * OUTGOING (Server -> Client):
- * - PlayAnimation: Blocks any non-death animations in Movement and Status slots
- * - EntityUpdates: Forces MovementStates.sleeping = true for downed player
+ * - PlayAnimation: PLAYER mode only - Blocks any non-death animations in Movement and Status slots
+ * - EntityUpdates: PLAYER mode only - Forces MovementStates.sleeping = true for downed player
  * - Any packets that would override downed state: Blocked or modified
  */
 class DownedPacketInterceptor(
     private val playerRef: Ref<EntityStore>,
     private val originalHandler: Consumer<Packet>,
-    private val originalPacketHandler: PacketHandler
+    private val originalPacketHandler: PacketHandler,
+    private val usePlayerMode: Boolean
 ) {
 
     /**
@@ -52,11 +53,16 @@ class DownedPacketInterceptor(
 
             if (isDowned) {
                 when (packet) {
-                    // COMMENTED OUT - Using phantom body approach, let player move freely
-                    // is ClientMovement -> {
-                    //     // Allow head/body rotation, but block position changes
-                    //     handleClientMovement(packet, originalHandler)
-                    // }
+                    is ClientMovement -> {
+                        if (usePlayerMode) {
+                            // PLAYER mode - MODIFY ClientMovement (allow rotation, block position, force sleeping)
+                            // This is critical! The server needs to process movement packets with sleeping=true
+                            handleClientMovement(packet, originalHandler)
+                        } else {
+                            // PHANTOM mode - allow movement freely
+                            originalHandler.accept(packet)
+                        }
+                    }
                     is MouseInteraction -> {
                         // Block all mouse interactions while downed
                         Log.verbose("PacketInterceptor", "BLOCKED MouseInteraction")
@@ -73,7 +79,7 @@ class DownedPacketInterceptor(
                         // Don't call original handler - packet is blocked
                     }
                     else -> {
-                        // Allow other packets through (including ClientMovement for phantom body approach)
+                        // Allow other packets through
                         originalHandler.accept(packet)
                     }
                 }
@@ -88,7 +94,7 @@ class DownedPacketInterceptor(
      * Creates a wrapped PacketHandler for outgoing packets
      */
     fun createOutgoingWrapper(): PacketHandlerWrapper {
-        return PacketHandlerWrapper(originalPacketHandler, playerRef)
+        return PacketHandlerWrapper(originalPacketHandler, playerRef, usePlayerMode)
     }
 
     /**
@@ -164,7 +170,8 @@ class DownedPacketInterceptor(
      */
     class PacketHandlerWrapper(
         private val delegate: PacketHandler,
-        private val playerRef: Ref<EntityStore>
+        private val playerRef: Ref<EntityStore>,
+        private val usePlayerMode: Boolean
     ) : PacketHandler(delegate.channel, delegate.protocolVersion) {
 
         override fun getIdentifier(): String {
@@ -177,52 +184,51 @@ class DownedPacketInterceptor(
         }
 
         override fun write(packet: Packet) {
-            // COMMENTED OUT - Using phantom body approach, don't intercept animations/EntityUpdates
-            // Player is invisible, phantom body shows the animation instead
-            // if (isPlayerDowned()) {
-            //     when (packet) {
-            //         is PlayAnimation -> {
-            //             // Block any animations that aren't Death in Movement or Status slots
-            //             if (packet.slot == AnimationSlot.Movement || packet.slot == AnimationSlot.Status) {
-            //                 val animationId = packet.animationId
-            //                 if (animationId != null && !animationId.contains("Death", ignoreCase = true)) {
-            //                     // Block non-death animations
-            //                     Log.verbose("PacketInterceptor", "Blocked non-death animation in ${packet.slot} slot: $animationId")
-            //                     return // Don't send packet
-            //                 }
-            //             }
-            //         }
-            //         is EntityUpdates -> {
-            //             // Intercept EntityUpdates to force sleeping movement state
-            //             handleEntityUpdates(packet)
-            //         }
-            //     }
-            // }
+            // PLAYER mode only - intercept animations and EntityUpdates
+            if (usePlayerMode && isPlayerDowned()) {
+                when (packet) {
+                    is PlayAnimation -> {
+                        // Block any animations that aren't Death in Movement or Status slots
+                        if (packet.slot == AnimationSlot.Movement || packet.slot == AnimationSlot.Status) {
+                            val animationId = packet.animationId
+                            if (animationId != null && !animationId.contains("Death", ignoreCase = true)) {
+                                // Block non-death animations
+                                Log.verbose("PacketInterceptor", "Blocked non-death animation in ${packet.slot} slot: $animationId")
+                                return // Don't send packet
+                            }
+                        }
+                    }
+                    is EntityUpdates -> {
+                        // Intercept EntityUpdates to force sleeping movement state
+                        handleEntityUpdates(packet)
+                    }
+                }
+            }
 
             // Send packet normally
             delegate.write(packet)
         }
 
         override fun writeNoCache(packet: Packet) {
-            // COMMENTED OUT - Using phantom body approach, don't intercept animations/EntityUpdates
-            // if (isPlayerDowned()) {
-            //     when (packet) {
-            //         is PlayAnimation -> {
-            //             // Block any animations that aren't Death in Movement or Status slots
-            //             if (packet.slot == AnimationSlot.Movement || packet.slot == AnimationSlot.Status) {
-            //                 val animationId = packet.animationId
-            //                 if (animationId != null && !animationId.contains("Death", ignoreCase = true)) {
-            //                     Log.verbose("PacketInterceptor", "Blocked non-death animation in ${packet.slot} slot: $animationId")
-            //                     return
-            //                 }
-            //             }
-            //         }
-            //         is EntityUpdates -> {
-            //             // Intercept EntityUpdates to force sleeping movement state
-            //             handleEntityUpdates(packet)
-            //         }
-            //     }
-            // }
+            // PLAYER mode only - intercept animations and EntityUpdates
+            if (usePlayerMode && isPlayerDowned()) {
+                when (packet) {
+                    is PlayAnimation -> {
+                        // Block any animations that aren't Death in Movement or Status slots
+                        if (packet.slot == AnimationSlot.Movement || packet.slot == AnimationSlot.Status) {
+                            val animationId = packet.animationId
+                            if (animationId != null && !animationId.contains("Death", ignoreCase = true)) {
+                                Log.verbose("PacketInterceptor", "Blocked non-death animation in ${packet.slot} slot: $animationId")
+                                return
+                            }
+                        }
+                    }
+                    is EntityUpdates -> {
+                        // Intercept EntityUpdates to force sleeping movement state
+                        handleEntityUpdates(packet)
+                    }
+                }
+            }
 
             delegate.writeNoCache(packet)
         }

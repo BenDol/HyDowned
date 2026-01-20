@@ -96,7 +96,8 @@ class DownedPacketInterceptorSystem(
                     val interceptor = DownedPacketInterceptor(
                         ref,
                         originalHandler as java.util.function.Consumer<com.hypixel.hytale.protocol.Packet>,
-                        packetHandler
+                        packetHandler,
+                        config.usePlayerMode
                     )
 
                     // Replace with wrapped handler
@@ -106,13 +107,13 @@ class DownedPacketInterceptorSystem(
             }
 
             // 2. OUTGOING PACKET HANDLER WRAPPING - DISABLED
-            // NOTE: Java 17+ doesn't allow modifying Field.modifiers, so we can't replace
-            // the final packetHandler field in PlayerRef. The incoming packet wrapping
-            // should be sufficient for blocking interactions.
+            // ClassCastException: Game code expects GamePacketHandler specifically but our wrapper
+            // extends PacketHandler, causing classloader incompatibility issues
+            // The incoming packet wrapping + movement state system should be sufficient
 
             Log.verbose("PacketInterceptor", "Installed packet interceptors for player:")
             Log.verbose("PacketInterceptor", "  - Wrapped $wrappedCount incoming handlers")
-            Log.verbose("PacketInterceptor", "  - Outgoing handler wrapping DISABLED (Java 17+ limitation)")
+            Log.verbose("PacketInterceptor", "  - Outgoing wrapper disabled (ClassLoader limitations)")
             Log.verbose("PacketInterceptor", "  - NetworkId=$playerNetworkId stored in tracker")
 
         } catch (e: Exception) {

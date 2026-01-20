@@ -5,6 +5,7 @@ import com.hydowned.components.DownedComponent
 import com.hydowned.components.PhantomBodyMarker
 import com.hydowned.config.DownedConfig
 import com.hydowned.listeners.PlayerReadyEventListener
+import com.hydowned.systems.DownedCameraSystem
 import com.hydowned.systems.DownedClearEffectsSystem
 import com.hydowned.systems.DownedCollisionDisableSystem
 import com.hydowned.systems.DownedDamageImmunitySystem
@@ -17,9 +18,12 @@ import com.hydowned.systems.DownedLoginCleanupSystem
 import com.hydowned.systems.DownedLogoutHandlerSystem
 import com.hydowned.systems.DownedPacketInterceptorSystem
 import com.hydowned.systems.DownedPhantomBodySystem
+import com.hydowned.systems.DownedPlayerModeSystem
+import com.hydowned.systems.DownedPlayerModeSyncSystem
 import com.hydowned.systems.DownedPlayerScaleSystem
 import com.hydowned.systems.DownedRadiusConstraintSystem
 import com.hydowned.systems.DownedRemoveInteractionsSystem
+import com.hydowned.systems.DownedScreenEffectsSystem
 import com.hydowned.systems.DownedTimerSystem
 import com.hydowned.systems.PhantomBodyAnimationSystem
 import com.hydowned.systems.ReviveInteractionSystem
@@ -29,7 +33,6 @@ import com.hypixel.hytale.server.core.plugin.JavaPlugin
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.util.Log
-
 
 /**
  * HyDowned - Downed State Mod for Hytale
@@ -48,6 +51,7 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
     private lateinit var config: DownedConfig
     private lateinit var downedComponentType: ComponentType<EntityStore, DownedComponent>
     private lateinit var phantomBodyMarkerComponentType: ComponentType<EntityStore, PhantomBodyMarker>
+    private lateinit var cameraSystem: DownedCameraSystem
 
     fun getDownedComponentType(): ComponentType<EntityStore, DownedComponent> {
         return downedComponentType
@@ -55,6 +59,10 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
     fun getPhantomBodyMarkerComponentType(): ComponentType<EntityStore, PhantomBodyMarker> {
         return phantomBodyMarkerComponentType
+    }
+
+    fun getCameraSystem(): DownedCameraSystem {
+        return cameraSystem
     }
 
     override fun setup() {
@@ -70,7 +78,7 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
             config = DownedConfig.load(pluginDataFolder)
 
             // Initialize logger with configured log level
-            com.hydowned.util.Log.setLogLevel(config.logLevel)
+            Log.setLogLevel(config.logLevel)
 
             Log.verbose("Plugin", "Configuration loaded")
             Log.verbose("Plugin", "  - Downed Timer: ${config.downedTimerSeconds}s")
@@ -112,17 +120,36 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         entityStoreRegistry.registerSystem(PhantomBodyAnimationSystem(config))
         Log.verbose("Plugin", "Phantom body animation system")
 
-        // Register player scale system (makes player tiny - SCALE mode only)
-        entityStoreRegistry.registerSystem(DownedPlayerScaleSystem(config))
-        Log.verbose("Plugin", "Player scale system registered (SCALE mode: 0.01% size + hides nameplate)")
+        // ========== PLAYER MODE (Player lays down at body location) ==========
+        // Register player mode system (puts player into sleep/laying state - PLAYER mode only)
+        entityStoreRegistry.registerSystem(DownedPlayerModeSystem(config))
+        Log.verbose("Plugin", "Player mode system registered (PLAYER mode: player lays down, plays death animation)")
 
-        // Register invisibility system (pure invisible - INVISIBLE mode only)
+        // Register player mode sync system (keeps player in sleep state - PLAYER mode only)
+        entityStoreRegistry.registerSystem(DownedPlayerModeSyncSystem(config))
+        Log.verbose("Plugin", "Player mode sync system registered (PLAYER mode: prevents client from overriding sleep state)")
+
+        // ========== PHANTOM MODE (Player goes invisible, phantom body spawned) ==========
+        // Register player scale system (makes player tiny - PHANTOM mode with SCALE only)
+        entityStoreRegistry.registerSystem(DownedPlayerScaleSystem(config))
+        Log.verbose("Plugin", "Player scale system registered (PHANTOM+SCALE mode: 0.01% size + hides nameplate)")
+
+        // Register invisibility system (pure invisible - PHANTOM mode with INVISIBLE only)
         entityStoreRegistry.registerSystem(DownedInvisibilitySystem(config))
-        Log.verbose("Plugin", "Invisibility system registered (INVISIBLE mode: HiddenFromAdventurePlayers + hides nameplate)")
+        Log.verbose("Plugin", "Invisibility system registered (PHANTOM+INVISIBLE mode: HiddenFromAdventurePlayers + hides nameplate)")
 
         // Register collision disable system (disables player-to-player collision, keeps wall collision)
         entityStoreRegistry.registerSystem(DownedCollisionDisableSystem(config))
         Log.verbose("Plugin", "Collision disable system registered (character collisions disabled, block collisions active)")
+
+        // Register camera system (attaches to phantom body, looks down from above)
+        cameraSystem = DownedCameraSystem(config)
+        entityStoreRegistry.registerSystem(cameraSystem)
+        Log.verbose("Plugin", "Camera system registered (camera attached to phantom body, top-down view)")
+
+        // Register screen effects system (applies blur/distortion to downed player's screen)
+        entityStoreRegistry.registerSystem(DownedScreenEffectsSystem(config))
+        Log.verbose("Plugin", "Screen effects system registered (blur/distortion applied while downed)")
 
         // Register radius constraint system (keeps player within 10 blocks of body)
         entityStoreRegistry.registerSystem(DownedRadiusConstraintSystem(config))
@@ -151,14 +178,6 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         // Register packet interceptor system (PARTIALLY ACTIVE - interactions blocked, ClientMovement commented out)
         entityStoreRegistry.registerSystem(DownedPacketInterceptorSystem(config))
         Log.verbose("Plugin", "Packet interceptor system registered (interactions blocked, movement allowed)")
-
-        // Movement suppression system - DISABLED (phantom body approach allows free movement)
-        // entityStoreRegistry.registerSystem(DownedMovementSuppressionSystem(config))
-        Log.error("Plugin", "Movement suppression system DISABLED (player can move freely within radius)")
-
-        // Teleport lock system - DISABLED (replaced by radius constraint)
-        // entityStoreRegistry.registerSystem(DownedTeleportLockSystem(config))
-        Log.error("Plugin", "Teleport lock system DISABLED (replaced by radius constraint)")
 
         // Register interaction removal system (removes Interactions component completely)
         entityStoreRegistry.registerSystem(DownedRemoveInteractionsSystem(config))
@@ -199,29 +218,43 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
         Log.separator("Plugin")
         Log.verbose("Plugin", "HyDowned plugin started successfully!")
-        Log.verbose("Plugin", "Status: PHANTOM BODY APPROACH ACTIVE")
+        Log.verbose("Plugin", "Downed Mode: ${config.downedMode}")
         Log.verbose("Plugin", "Invisibility Mode: ${config.invisibilityMode}")
         Log.separator("Plugin")
         Log.verbose("Plugin", "FEATURES:")
-        Log.verbose("Plugin", "  ✓ Phantom body spawned at downed location (visible to all)")
-        Log.verbose("Plugin", "  ✓ Death animation plays on phantom body")
 
-        if (config.useScaleMode) {
-            Log.verbose("Plugin", "  ✓ Downed player: SCALE mode (0.01% size, nameplate hidden)")
-        } else if (config.useInvisibleMode) {
-            Log.verbose("Plugin", "  ✓ Downed player: INVISIBLE mode (VisibilityComponent, nameplate hidden)")
+        if (config.usePlayerMode) {
+            Log.verbose("Plugin", "PLAYER MODE:")
+            Log.verbose("Plugin", "  ✓ Player body stays in place (lays down)")
+            Log.verbose("Plugin", "  ✓ Death animation plays on player")
+            Log.verbose("Plugin", "  ✓ Camera looks down from above")
+            Log.verbose("Plugin", "  ✓ Screen effects: camera shake + darkened vision")
+            Log.verbose("Plugin", "  ✓ Movement locked (player in sleep state)")
+        } else if (config.usePhantomMode) {
+            Log.verbose("Plugin", "PHANTOM MODE:")
+            Log.verbose("Plugin", "  ✓ Phantom body spawned at downed location (visible to all)")
+            Log.verbose("Plugin", "  ✓ Death animation plays on phantom body")
+
+            if (config.useScaleMode) {
+                Log.verbose("Plugin", "  ✓ Downed player: SCALE mode (0.01% size, nameplate hidden)")
+            } else if (config.useInvisibleMode) {
+                Log.verbose("Plugin", "  ✓ Downed player: INVISIBLE mode (VisibilityComponent, nameplate hidden)")
+            }
+
+            Log.verbose("Plugin", "  ✓ Character collision disabled (no pushing/attacking players)")
+            Log.verbose("Plugin", "  ✓ Block collision enabled (can't walk through walls)")
+            Log.verbose("Plugin", "  ✓ 10 block movement radius from phantom body")
+            Log.verbose("Plugin", "  ✓ Player teleports back to body on revive")
         }
 
-        Log.verbose("Plugin", "  ✓ Character collision disabled (no pushing/attacking players)")
-        Log.verbose("Plugin", "  ✓ Block collision enabled (can't walk through walls)")
-        Log.verbose("Plugin", "  ✓ 10 block movement radius from phantom body")
+        Log.verbose("Plugin", "")
+        Log.verbose("Plugin", "GENERAL:")
         Log.verbose("Plugin", "  ✓ Interactions blocked while downed")
         Log.verbose("Plugin", "  ✓ Immune to damage while downed")
         Log.verbose("Plugin", "  ✓ Healing blocked while downed")
         Log.verbose("Plugin", "  ✓ All active effects cleared when downed")
         Log.verbose("Plugin", "  ✓ Timer: ${config.downedTimerSeconds}s until death")
-        Log.verbose("Plugin", "  ✓ Revive: CROUCH near phantom body (${config.reviveRange} blocks)")
-        Log.verbose("Plugin", "  ✓ Player teleports back to body on revive")
+        Log.verbose("Plugin", "  ✓ Revive: CROUCH near body (${config.reviveRange} blocks)")
         Log.verbose("Plugin", "  ✓ Logout while downed: auto-death + visibility restoration")
         Log.verbose("Plugin", "  ✓ Command: /giveup to instantly die while downed")
         Log.separator("Plugin")

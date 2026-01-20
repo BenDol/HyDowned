@@ -55,7 +55,9 @@
       "Bash(ForEach-Object { $_FullName })",
       "Bash(gradlew build:*)",
       "Bash(cmd /c gradlew.bat build)",
-      "Bash(sort:*)"
+      "Bash(sort:*)",
+      "WebFetch(domain:hytale-docs.com)",
+      "Bash(git ls-tree:*)"
     ]
   }
 }
