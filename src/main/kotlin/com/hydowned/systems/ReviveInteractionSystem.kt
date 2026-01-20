@@ -14,6 +14,8 @@ import com.hypixel.hytale.server.core.universe.Universe
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * System-based approach to revive interactions
@@ -108,13 +110,13 @@ class ReviveInteractionSystem(
                 // Check if this reviver is already reviving
                 if (!downedComponent.reviverPlayerIds.contains(reviverUUID)) {
                     val downedPlayerName = downedPlayer.displayName ?: "Player"
-                    println("[HyDowned] ============================================")
+                    Log.separator("ReviveInteraction")
                     println("[HyDowned] CROUCH REVIVE DETECTED!")
                     println("[HyDowned]   Reviver: ${alivePlayerRef.username} (${alivePlayerRef.uuid})")
                     println("[HyDowned]   Downed: $downedPlayerName (${downedUuidComponent.uuid})")
                     println("[HyDowned]   Distance: ${Math.sqrt(distanceSquared)} blocks")
                     println("[HyDowned]   Crouching: $isCrouching")
-                    println("[HyDowned] ============================================")
+                    Log.separator("ReviveInteraction")
 
                     // Add reviver
                     downedComponent.reviverPlayerIds.add(reviverUUID)
@@ -122,12 +124,12 @@ class ReviveInteractionSystem(
                     // Initialize revive timer if this is the first reviver
                     if (downedComponent.reviverPlayerIds.size == 1) {
                         downedComponent.reviveTimeRemaining = config.reviveTimerSeconds.toDouble()
-                        println("[HyDowned] ✓ Initialized revive timer: ${config.reviveTimerSeconds}s")
+                        Log.verbose("ReviveInteraction", "Initialized revive timer: ${config.reviveTimerSeconds}s")
                     }
 
                     // Send feedback
-                    alivePlayerRef.sendMessage(Message.raw("§e✚ Reviving $downedPlayerName... (stay crouched)"))
-                    downedPlayer.sendMessage(Message.raw("§a✚ ${alivePlayerRef.username} is reviving you!"))
+                    alivePlayerRef.sendMessage(Message.raw("Reviving $downedPlayerName - stay crouched"))
+                    downedPlayer.sendMessage(Message.raw("${alivePlayerRef.username} is reviving you"))
                 }
             }
         }
@@ -143,7 +145,7 @@ class ReviveInteractionSystem(
                 // Try to send message to the reviver if they're still online
                 for (player in allPlayers) {
                     if (player.uuid.toString() == reviverUUID) {
-                        player.sendMessage(Message.raw("§c✚ Revive cancelled - stay crouched and close!"))
+                        player.sendMessage(Message.raw("Revive cancelled"))
                         break
                     }
                 }

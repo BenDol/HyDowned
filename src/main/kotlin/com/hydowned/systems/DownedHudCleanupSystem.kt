@@ -11,6 +11,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * Cleans up the event title HUD when a player exits the downed state.
@@ -68,7 +70,7 @@ class DownedHudCleanupSystem(
         try {
             val hideTitle = HideEventTitle()
             playerRef.packetHandler.write(hideTitle)
-            println("[HyDowned] ✓ Event title hidden")
+            Log.verbose("HudCleanup", "Event title hidden")
         } catch (e: Exception) {
             println("[HyDowned] Error hiding event title: ${e.message}")
         }

@@ -9,6 +9,8 @@ import com.hypixel.hytale.server.core.entity.effect.EffectControllerComponent
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * Clears all active entity effects (buffs, debuffs, status effects) when a player enters downed state.

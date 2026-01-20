@@ -28,6 +28,8 @@ import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent
 import com.hypixel.hytale.server.core.plugin.JavaPlugin
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
+import com.hydowned.util.Log
+
 
 /**
  * HyDowned - Downed State Mod for Hytale
@@ -56,9 +58,9 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
     }
 
     override fun setup() {
-        println("[HyDowned] ============================================")
+        Log.separator("Plugin")
         println("[HyDowned] Setup Phase")
-        println("[HyDowned] ============================================")
+        Log.separator("Plugin")
 
         instance = this
 
@@ -66,12 +68,17 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         val pluginDataFolder = java.io.File("plugins/HyDowned")
         try {
             config = DownedConfig.load(pluginDataFolder)
-            println("[HyDowned] ✓ Configuration loaded")
+
+            // Initialize logger with configured log level
+            com.hydowned.util.Log.setLogLevel(config.logLevel)
+
+            Log.verbose("Plugin", "Configuration loaded")
             println("[HyDowned]   - Downed Timer: ${config.downedTimerSeconds}s")
             println("[HyDowned]   - Revive Timer: ${config.reviveTimerSeconds}s")
             println("[HyDowned]   - Downed Speed: ${config.downedSpeedMultiplier * 100}%")
+            println("[HyDowned]   - Log Level: ${config.logLevel}")
         } catch (e: Exception) {
-            println("[HyDowned] ✗ Failed to load configuration: ${e.message}")
+            Log.error("Plugin", "Failed to load configuration: ${e.message}")
             e.printStackTrace()
             throw e
         }
@@ -80,121 +87,121 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         downedComponentType = entityStoreRegistry.registerComponent(
             DownedComponent::class.java
         ) { DownedComponent(0) }
-        println("[HyDowned] ✓ DownedComponent registered")
+        Log.verbose("Plugin", "DownedComponent registered")
 
         // Register PhantomBodyMarker component
         phantomBodyMarkerComponentType = entityStoreRegistry.registerComponent(
             PhantomBodyMarker::class.java
         ) { PhantomBodyMarker(null, null, null) }
-        println("[HyDowned] ✓ PhantomBodyMarker component registered")
+        Log.verbose("Plugin", "PhantomBodyMarker component registered")
 
         // Register login cleanup system (runs sanity checks when player logs in)
         entityStoreRegistry.registerSystem(DownedLoginCleanupSystem(config))
-        println("[HyDowned] ✓ Login cleanup system registered (sanity checks on login)")
+        Log.verbose("Plugin", "Login cleanup system registered (sanity checks on login)")
 
         // Register death interception system
         entityStoreRegistry.registerSystem(DownedDeathInterceptor(config))
-        println("[HyDowned] ✓ Death interception system registered")
+        Log.verbose("Plugin", "Death interception system registered")
 
         // ========== PHANTOM BODY APPROACH ==========
         // Phantom body system (testing if this causes skin issues)
         entityStoreRegistry.registerSystem(DownedPhantomBodySystem(config))
-        println("[HyDowned] ✓ Phantom body system DISABLED (testing)")
+        Log.verbose("Plugin", "Phantom body system DISABLED (testing)")
 
         // Phantom body animation system (testing if this causes skin issues)
         entityStoreRegistry.registerSystem(PhantomBodyAnimationSystem(config))
-        println("[HyDowned] ✓ Phantom body animation system")
+        Log.verbose("Plugin", "Phantom body animation system")
 
         // Register player scale system (makes player tiny - SCALE mode only)
         entityStoreRegistry.registerSystem(DownedPlayerScaleSystem(config))
-        println("[HyDowned] ✓ Player scale system registered (SCALE mode: 0.01% size + hides nameplate)")
+        Log.verbose("Plugin", "Player scale system registered (SCALE mode: 0.01% size + hides nameplate)")
 
         // Register invisibility system (pure invisible - INVISIBLE mode only)
         entityStoreRegistry.registerSystem(DownedInvisibilitySystem(config))
-        println("[HyDowned] ✓ Invisibility system registered (INVISIBLE mode: HiddenFromAdventurePlayers + hides nameplate)")
+        Log.verbose("Plugin", "Invisibility system registered (INVISIBLE mode: HiddenFromAdventurePlayers + hides nameplate)")
 
         // Register collision disable system (disables player-to-player collision, keeps wall collision)
         entityStoreRegistry.registerSystem(DownedCollisionDisableSystem(config))
-        println("[HyDowned] ✓ Collision disable system registered (character collisions disabled, block collisions active)")
+        Log.verbose("Plugin", "Collision disable system registered (character collisions disabled, block collisions active)")
 
         // Register radius constraint system (keeps player within 10 blocks of body)
         entityStoreRegistry.registerSystem(DownedRadiusConstraintSystem(config))
-        println("[HyDowned] ✓ Radius constraint system registered (10 block radius)")
+        Log.verbose("Plugin", "Radius constraint system registered (10 block radius)")
 
         // Register damage immunity system for downed players
         entityStoreRegistry.registerSystem(DownedDamageImmunitySystem(config))
-        println("[HyDowned] ✓ Damage immunity system registered (downed players immune to damage)")
+        Log.verbose("Plugin", "Damage immunity system registered (downed players immune to damage)")
 
         // Register healing suppression system for downed players
         entityStoreRegistry.registerSystem(DownedHealingSuppressionSystem(config))
-        println("[HyDowned] ✓ Healing suppression system registered (downed players cannot heal)")
+        Log.verbose("Plugin", "Healing suppression system registered (downed players cannot heal)")
 
         // Register clear effects system (clears buffs/debuffs when downed)
         entityStoreRegistry.registerSystem(DownedClearEffectsSystem(config))
-        println("[HyDowned] ✓ Clear effects system registered (clears all active effects when downed)")
+        Log.verbose("Plugin", "Clear effects system registered (clears all active effects when downed)")
 
         // Register timer system for downed state countdown
         entityStoreRegistry.registerSystem(DownedTimerSystem(config))
-        println("[HyDowned] ✓ Downed timer system registered")
+        Log.verbose("Plugin", "Downed timer system registered")
 
         // Register revive interaction system (proximity-based)
         entityStoreRegistry.registerSystem(ReviveInteractionSystem(config))
-        println("[HyDowned] ✓ Revive interaction system registered (proximity-based)")
+        Log.verbose("Plugin", "Revive interaction system registered (proximity-based)")
 
         // Register packet interceptor system (PARTIALLY ACTIVE - interactions blocked, ClientMovement commented out)
         entityStoreRegistry.registerSystem(DownedPacketInterceptorSystem(config))
-        println("[HyDowned] ✓ Packet interceptor system registered (interactions blocked, movement allowed)")
+        Log.verbose("Plugin", "Packet interceptor system registered (interactions blocked, movement allowed)")
 
         // Movement suppression system - DISABLED (phantom body approach allows free movement)
         // entityStoreRegistry.registerSystem(DownedMovementSuppressionSystem(config))
-        println("[HyDowned] ✗ Movement suppression system DISABLED (player can move freely within radius)")
+        Log.error("Plugin", "Movement suppression system DISABLED (player can move freely within radius)")
 
         // Teleport lock system - DISABLED (replaced by radius constraint)
         // entityStoreRegistry.registerSystem(DownedTeleportLockSystem(config))
-        println("[HyDowned] ✗ Teleport lock system DISABLED (replaced by radius constraint)")
+        Log.error("Plugin", "Teleport lock system DISABLED (replaced by radius constraint)")
 
         // Register interaction removal system (removes Interactions component completely)
         entityStoreRegistry.registerSystem(DownedRemoveInteractionsSystem(config))
-        println("[HyDowned] ✓ Interaction removal system registered (removes Interactions + Interactable components)")
+        Log.verbose("Plugin", "Interaction removal system registered (removes Interactions + Interactable components)")
 
         // Register interaction blocking system (clears InteractionManager every tick)
         entityStoreRegistry.registerSystem(DownedInteractionBlockingSystem(config))
-        println("[HyDowned] ✓ Interaction blocking system registered (clears InteractionManager to block all interactions)")
+        Log.verbose("Plugin", "Interaction blocking system registered (clears InteractionManager to block all interactions)")
 
         // Register item disable system (removes items from hand to prevent combat crash)
         entityStoreRegistry.registerSystem(DownedDisableItemsSystem(config))
-        println("[HyDowned] ✓ Item disable system registered (clears active hotbar slot to prevent combat)")
+        Log.verbose("Plugin", "Item disable system registered (clears active hotbar slot to prevent combat)")
 
         // Register logout handler system (handles player disconnect while downed)
         entityStoreRegistry.registerSystem(DownedLogoutHandlerSystem(config))
-        println("[HyDowned] ✓ Logout handler system registered (cleans up visibility + executes death on disconnect)")
+        Log.verbose("Plugin", "Logout handler system registered (cleans up visibility + executes death on disconnect)")
 
         // Register commandsaa
         commandRegistry.registerCommand(GiveUpCommand(config))
-        println("[HyDowned] ✓ /giveup command registered (allows downed players to immediately die)")
+        Log.verbose("Plugin", "/giveup command registered (allows downed players to immediately die)")
 
         // Register event listeners
         val playerReadyListener = PlayerReadyEventListener(config)
         eventRegistry.registerGlobal(PlayerReadyEvent::class.java, playerReadyListener::onPlayerReady)
-        println("[HyDowned] ✓ PlayerReadyEvent listener registered (queues login cleanup)")
+        Log.verbose("Plugin", "PlayerReadyEvent listener registered (queues login cleanup)")
 
         /*val playerInteractListener = PlayerInteractListener(config)
         eventRegistry.registerGlobal(PlayerInteractEvent::class.java, playerInteractListener::onPlayerInteract)
-        println("[HyDowned] ✓ PlayerInteractEvent listener registered (handles revive interactions)")*/
+        Log.verbose("Plugin", "PlayerInteractEvent listener registered (handles revive interactions)")*/
 
-        println("[HyDowned] ============================================")
+        Log.separator("Plugin")
     }
 
     override fun start() {
-        println("[HyDowned] ============================================")
+        Log.separator("Plugin")
         println("[HyDowned] Start Phase")
-        println("[HyDowned] ============================================")
+        Log.separator("Plugin")
 
-        println("[HyDowned] ============================================")
-        println("[HyDowned] ✓ HyDowned plugin started successfully!")
+        Log.separator("Plugin")
+        Log.verbose("Plugin", "HyDowned plugin started successfully!")
         println("[HyDowned] Status: PHANTOM BODY APPROACH ACTIVE")
         println("[HyDowned] Invisibility Mode: ${config.invisibilityMode}")
-        println("[HyDowned] ============================================")
+        Log.separator("Plugin")
         println("[HyDowned] FEATURES:")
         println("[HyDowned]   ✓ Phantom body spawned at downed location (visible to all)")
         println("[HyDowned]   ✓ Death animation plays on phantom body")
@@ -217,7 +224,7 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         println("[HyDowned]   ✓ Player teleports back to body on revive")
         println("[HyDowned]   ✓ Logout while downed: auto-death + visibility restoration")
         println("[HyDowned]   ✓ Command: /giveup to instantly die while downed")
-        println("[HyDowned] ============================================")
+        Log.separator("Plugin")
     }
 
     override fun shutdown() {

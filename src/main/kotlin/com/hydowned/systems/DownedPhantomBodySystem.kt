@@ -31,6 +31,8 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.components.PhantomBodyMarker
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * Creates a phantom body NPC at downed location.
@@ -80,13 +82,13 @@ class DownedPhantomBodySystem(
 
         // DEBUG: Check if player has a model
         if (playerModelComponent == null) {
-            println("[HyDowned] [PhantomBody] ✗ ERROR: Player has no ModelComponent!")
+            Log.error("PhantomBody", "ERROR: Player has no ModelComponent!")
             return
         }
 
         val playerModel = playerModelComponent.model
         if (playerModel == null) {
-            println("[HyDowned] [PhantomBody] ✗ ERROR: Player ModelComponent has null Model!")
+            Log.error("PhantomBody", "ERROR: Player ModelComponent has null Model!")
             return
         }
 
@@ -98,14 +100,14 @@ class DownedPhantomBodySystem(
         // Clone player's model for the phantom body (includes base appearance)
         val clonedModel = playerModelComponent.clone() as ModelComponent
         holder.addComponent(ModelComponent.getComponentType(), clonedModel)
-        println("[HyDowned] [PhantomBody] ✓ Added ModelComponent to phantom body")
+        Log.verbose("PhantomBody", "Added ModelComponent to phantom body")
 
         // Clone player's display name if present
         val displayNameComponent = commandBuffer.getComponent(ref, DisplayNameComponent.getComponentType())
         if (displayNameComponent != null) {
             val clonedDisplayName = displayNameComponent.clone() as DisplayNameComponent
             holder.addComponent(DisplayNameComponent.getComponentType(), clonedDisplayName)
-            println("[HyDowned] [PhantomBody] ✓ Added DisplayNameComponent to phantom body")
+            Log.verbose("PhantomBody", "Added DisplayNameComponent to phantom body")
         }
 
         // Clone player's scale if present
@@ -113,14 +115,14 @@ class DownedPhantomBodySystem(
         if (scaleComponent != null) {
             val clonedScale = scaleComponent.clone() as EntityScaleComponent
             holder.addComponent(EntityScaleComponent.getComponentType(), clonedScale)
-            println("[HyDowned] [PhantomBody] ✓ Added EntityScaleComponent to phantom body")
+            Log.verbose("PhantomBody", "Added EntityScaleComponent to phantom body")
         }
 
         // Add ActiveAnimationComponent with "Death" animation permanently set
         val activeAnimation = ActiveAnimationComponent()
         activeAnimation.setPlayingAnimation(AnimationSlot.Movement, "Death")
         holder.addComponent(ActiveAnimationComponent.getComponentType(), activeAnimation)
-        println("[HyDowned] [PhantomBody] ✓ Added ActiveAnimationComponent (Death animation) to phantom body")
+        Log.verbose("PhantomBody", "Added ActiveAnimationComponent (Death animation) to phantom body")
 
         // CRITICAL: Add MovementStatesComponent with sleeping=true to keep entity laying down
         val movementStates = MovementStates()
@@ -131,33 +133,33 @@ class DownedPhantomBodySystem(
         movementStatesComponent.setMovementStates(movementStates)
         movementStatesComponent.setSentMovementStates(movementStates)
         holder.addComponent(MovementStatesComponent.getComponentType(), movementStatesComponent)
-        println("[HyDowned] [PhantomBody] ✓ Added MovementStatesComponent (sleeping=true) to phantom body")
+        Log.verbose("PhantomBody", "Added MovementStatesComponent (sleeping=true) to phantom body")
 
         // Set phantom body position and rotation
         holder.addComponent(
             TransformComponent.getComponentType(),
             TransformComponent(downedLocation, playerTransform.getRotation())
         )
-        println("[HyDowned] [PhantomBody] ✓ Added TransformComponent to phantom body")
+        Log.verbose("PhantomBody", "Added TransformComponent to phantom body")
 
         // Add bounding box (needed for spatial tracking and visibility)
         val playerBoundingBox = commandBuffer.getComponent(ref, BoundingBox.getComponentType())
         if (playerBoundingBox != null) {
             val clonedBoundingBox = playerBoundingBox.clone() as BoundingBox
             holder.addComponent(BoundingBox.getComponentType(), clonedBoundingBox)
-            println("[HyDowned] [PhantomBody] ✓ Added BoundingBox to phantom body")
+            Log.verbose("PhantomBody", "Added BoundingBox to phantom body")
         } else {
             // Create a default bounding box if player doesn't have one
             val defaultBox = Box(-0.3, 0.0, -0.3, 0.3, 1.8, 0.3)
             val defaultBoundingBox = BoundingBox(defaultBox)
             holder.addComponent(BoundingBox.getComponentType(), defaultBoundingBox)
-            println("[HyDowned] [PhantomBody] ✓ Added default BoundingBox to phantom body")
+            Log.verbose("PhantomBody", "Added default BoundingBox to phantom body")
         }
 
         // CRITICAL: Add NetworkId so the entity gets networked to clients
         val nextNetworkId = store.externalData.takeNextNetworkId()
         holder.addComponent(NetworkId.getComponentType(), NetworkId(nextNetworkId))
-        println("[HyDowned] [PhantomBody] ✓ Added NetworkId: $nextNetworkId")
+        Log.verbose("PhantomBody", "Added NetworkId: $nextNetworkId")
 
         // Extract player's equipment for phantom body display (BEFORE spawning entity)
         var equipment: Equipment? = null
@@ -219,7 +221,7 @@ class DownedPhantomBodySystem(
                 // Store equipment data in component for later use
                 component.equipmentData = equipment
 
-                println("[HyDowned] [PhantomBody] ✓ Extracted player equipment for phantom body")
+                Log.verbose("PhantomBody", "Extracted player equipment for phantom body")
                 println("[HyDowned] [PhantomBody]   - Armor: ${equipment.armorIds?.joinToString(", ")}")
                 println("[HyDowned] [PhantomBody]   - Right hand: ${equipment.rightHandItemId}")
                 println("[HyDowned] [PhantomBody]   - Left hand: ${equipment.leftHandItemId}")
@@ -230,18 +232,18 @@ class DownedPhantomBodySystem(
                 val hasLeftHand = equipment.leftHandItemId != null && equipment.leftHandItemId != "Empty"
 
                 if (!hasArmor && !hasRightHand && !hasLeftHand) {
-                    println("[HyDowned] [PhantomBody] ⚠ Player has NO equipment/armor equipped!")
-                    println("[HyDowned] [PhantomBody] ⚠ To see equipment on phantom body:")
+                    Log.warning("PhantomBody", "Player has NO equipment/armor equipped!")
+                    Log.warning("PhantomBody", "To see equipment on phantom body:")
                     println("[HyDowned] [PhantomBody]   1. Equip armor (helmet, chestplate, etc.)")
                     println("[HyDowned] [PhantomBody]   2. Select a hotbar slot (press 1-9) to hold an item")
                     println("[HyDowned] [PhantomBody]   Active hotbar slot was: ${inventory.activeHotbarSlot} (needs to be 0-8)")
                 }
             } catch (e: Exception) {
-                println("[HyDowned] [PhantomBody] ⚠ Failed to extract equipment: ${e.message}")
+                Log.warning("PhantomBody", "Failed to extract equipment: ${e.message}")
                 e.printStackTrace()
             }
         } else {
-            println("[HyDowned] [PhantomBody] ⚠ Player component is null!")
+            Log.warning("PhantomBody", "Player component is null!")
         }
 
         // Extract player's cosmetic skin (outfit)
@@ -249,24 +251,24 @@ class DownedPhantomBodySystem(
         val playerSkinComponent = commandBuffer.getComponent(ref, PlayerSkinComponent.getComponentType())
         if (playerSkinComponent != null) {
             playerSkin = playerSkinComponent.playerSkin
-            println("[HyDowned] [PhantomBody] ✓ Extracted player cosmetic skin/outfit")
+            Log.verbose("PhantomBody", "Extracted player cosmetic skin/outfit")
         } else {
-            println("[HyDowned] [PhantomBody] ⚠ No PlayerSkinComponent found (no cosmetic outfit)")
+            Log.warning("PhantomBody", "No PlayerSkinComponent found (no cosmetic outfit)")
         }
 
         // Add PhantomBodyMarker with player reference, equipment, and cosmetic skin for deferred processing
         val marker = PhantomBodyMarker(ref, equipment, playerSkin)
         holder.addComponent(PhantomBodyMarker.getComponentType(), marker)
-        println("[HyDowned] [PhantomBody] ✓ Added PhantomBodyMarker with equipment and skin data")
+        Log.verbose("PhantomBody", "Added PhantomBodyMarker with equipment and skin data")
 
         // Add the phantom body entity to the world
         val phantomBodyRef = commandBuffer.addEntity(holder, AddReason.SPAWN)
-        println("[HyDowned] [PhantomBody] ✓ Added entity to world with ref: $phantomBodyRef")
+        Log.verbose("PhantomBody", "Added entity to world with ref: $phantomBodyRef")
 
         // Store phantom body reference
         component.phantomBodyRef = phantomBodyRef
 
-        println("[HyDowned] [PhantomBody] ✓ Created phantom body entity")
+        Log.verbose("PhantomBody", "Created phantom body entity")
     }
 
     override fun onComponentSet(
@@ -303,7 +305,7 @@ class DownedPhantomBodySystem(
                     val currentRotation = transformComponent.getRotation()
                     val teleport = Teleport.createForPlayer(downedLocation, currentRotation)
                     commandBuffer.addComponent(ref, Teleport.getComponentType(), teleport)
-                    println("[HyDowned] [PhantomBody] ✓ Teleporting player back to $downedLocation")
+                    Log.verbose("PhantomBody", "Teleporting player back to $downedLocation")
                 }
             }
         } else {
@@ -314,7 +316,7 @@ class DownedPhantomBodySystem(
         val phantomBodyRef = component.phantomBodyRef
         if (phantomBodyRef != null && phantomBodyRef.isValid) {
             commandBuffer.removeEntity(phantomBodyRef, RemoveReason.UNLOAD)
-            println("[HyDowned] [PhantomBody] ✓ Removed phantom body entity")
+            Log.verbose("PhantomBody", "Removed phantom body entity")
         }
     }
 }

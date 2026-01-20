@@ -6,6 +6,8 @@ import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.config.DownedConfig
 import java.util.concurrent.ConcurrentHashMap
+import com.hydowned.util.Log
+
 
 /**
  * Listens for PlayerReadyEvent (player login) and queues cleanup.
@@ -39,7 +41,7 @@ class PlayerReadyEventListener(
         // Queue this player for login cleanup processing
         pendingLoginCleanups[playerRef] = playerUUID
 
-        println("[HyDowned] [PlayerReady] ✓ Queued player for login cleanup")
+        Log.verbose("PlayerReady", "Queued player for login cleanup")
         println("[HyDowned] [PlayerReady] Queue size: ${pendingLoginCleanups.size}")
     }
 }

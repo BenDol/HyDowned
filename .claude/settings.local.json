@@ -54,7 +54,8 @@
       "Bash(Select-Object -First 1)",
       "Bash(ForEach-Object { $_FullName })",
       "Bash(gradlew build:*)",
-      "Bash(cmd /c gradlew.bat build)"
+      "Bash(cmd /c gradlew.bat build)",
+      "Bash(sort:*)"
     ]
   }
 }

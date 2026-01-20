@@ -15,6 +15,8 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.config.DownedConfig
 import com.hydowned.network.DownedPacketInterceptor
 import com.hydowned.network.DownedStateTracker
+import com.hydowned.util.Log
+
 
 /**
  * Installs packet interceptors for all players.
@@ -108,7 +110,7 @@ class DownedPacketInterceptorSystem(
             // the final packetHandler field in PlayerRef. The incoming packet wrapping
             // should be sufficient for blocking interactions.
 
-            println("[HyDowned] ✓ Installed packet interceptors for player:")
+            Log.verbose("PacketInterceptor", "Installed packet interceptors for player:")
             println("[HyDowned]   - Wrapped $wrappedCount incoming handlers")
             println("[HyDowned]   - Outgoing handler wrapping DISABLED (Java 17+ limitation)")
             println("[HyDowned]   - NetworkId=$playerNetworkId stored in tracker")

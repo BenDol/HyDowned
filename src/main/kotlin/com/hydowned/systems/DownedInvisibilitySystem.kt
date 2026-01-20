@@ -13,6 +13,8 @@ import com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * Makes downed players completely invisible (pure invisibility mode).
@@ -55,12 +57,12 @@ class DownedInvisibilitySystem(
 
             if (!alreadyHidden) {
                 commandBuffer.addComponent(ref, HiddenFromAdventurePlayers.getComponentType(), HiddenFromAdventurePlayers.INSTANCE)
-                println("[HyDowned] [Invisible] ✓ Added HiddenFromAdventurePlayers component")
+                Log.verbose("Invisibility", "Added HiddenFromAdventurePlayers component")
             } else {
-                println("[HyDowned] [Invisible] ✓ Player already hidden")
+                Log.verbose("Invisibility", "Player already hidden")
             }
         } catch (e: Exception) {
-            println("[HyDowned] [Invisible] ⚠ Failed to add HiddenFromAdventurePlayers: ${e.message}")
+            Log.warning("Invisibility", "Failed to add HiddenFromAdventurePlayers: ${e.message}")
             e.printStackTrace()
         }
 
@@ -77,9 +79,9 @@ class DownedInvisibilitySystem(
             val emptyDisplayName = DisplayNameComponent()
             commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), emptyDisplayName)
 
-            println("[HyDowned] [Invisible] ✓ Hid nameplate")
+            Log.verbose("Invisibility", "Hid nameplate")
         } else {
-            println("[HyDowned] [Invisible] ⚠ DisplayNameComponent not found")
+            Log.warning("Invisibility", "DisplayNameComponent not found")
         }
 
         println("[HyDowned] [Invisible] ============================================")
@@ -113,12 +115,12 @@ class DownedInvisibilitySystem(
         try {
             if (component.wasVisibleBefore) {
                 commandBuffer.tryRemoveComponent(ref, HiddenFromAdventurePlayers.getComponentType())
-                println("[HyDowned] [Invisible] ✓ Removed HiddenFromAdventurePlayers component (visibility restored)")
+                Log.verbose("Invisibility", "Removed HiddenFromAdventurePlayers component (visibility restored)")
             } else {
-                println("[HyDowned] [Invisible] ✓ Player remains hidden (was already hidden)")
+                Log.verbose("Invisibility", "Player remains hidden (was already hidden)")
             }
         } catch (e: Exception) {
-            println("[HyDowned] [Invisible] ⚠ Failed to remove HiddenFromAdventurePlayers: ${e.message}")
+            Log.warning("Invisibility", "Failed to remove HiddenFromAdventurePlayers: ${e.message}")
             e.printStackTrace()
         }
 
@@ -130,7 +132,7 @@ class DownedInvisibilitySystem(
                 val skinCopy = skinComponent.clone() as PlayerSkinComponent
                 commandBuffer.removeComponent(ref, PlayerSkinComponent.getComponentType())
                 commandBuffer.addComponent(ref, PlayerSkinComponent.getComponentType(), skinCopy)
-                println("[HyDowned] [Invisible] ✓ Refreshed PlayerSkinComponent (client re-sync)")
+                Log.verbose("Invisibility", "Refreshed PlayerSkinComponent (client re-sync)")
             }
 
             val modelComponent = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
@@ -138,10 +140,10 @@ class DownedInvisibilitySystem(
                 val modelCopy = modelComponent.clone() as ModelComponent
                 commandBuffer.removeComponent(ref, ModelComponent.getComponentType())
                 commandBuffer.addComponent(ref, ModelComponent.getComponentType(), modelCopy)
-                println("[HyDowned] [Invisible] ✓ Refreshed ModelComponent (client re-sync)")
+                Log.verbose("Invisibility", "Refreshed ModelComponent (client re-sync)")
             }
         } catch (e: Exception) {
-            println("[HyDowned] [Invisible] ⚠ Failed to refresh skin/model components: ${e.message}")
+            Log.warning("Invisibility", "Failed to refresh skin/model components: ${e.message}")
             e.printStackTrace()
         }
 
@@ -155,13 +157,13 @@ class DownedInvisibilitySystem(
                 // Add back original DisplayNameComponent
                 commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), originalDisplayName)
 
-                println("[HyDowned] [Invisible] ✓ Restored original nameplate")
+                Log.verbose("Invisibility", "Restored original nameplate")
             } catch (e: Exception) {
-                println("[HyDowned] [Invisible] ⚠ Failed to restore nameplate: ${e.message}")
+                Log.warning("Invisibility", "Failed to restore nameplate: ${e.message}")
                 e.printStackTrace()
             }
         } else {
-            println("[HyDowned] [Invisible] ⚠ No original DisplayNameComponent stored")
+            Log.warning("Invisibility", "No original DisplayNameComponent stored")
         }
 
         println("[HyDowned] [Invisible] ============================================")

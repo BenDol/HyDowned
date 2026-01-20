@@ -12,6 +12,8 @@ import com.hypixel.hytale.server.core.modules.interaction.Interactions
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * Removes the Interactions and Interactable components when player is downed, restores them when revived.
@@ -63,9 +65,9 @@ class DownedRemoveInteractionsSystem(
         if (interactions != null) {
             savedInteractions[ref] = interactions
             commandBuffer.removeComponent(ref, interactionsComponentType)
-            println("[HyDowned] [RemoveInteractions] ✓ Removed Interactions component")
+            Log.verbose("RemoveInteractions", "Removed Interactions component")
         } else {
-            println("[HyDowned] [RemoveInteractions] ⚠ No Interactions component found")
+            Log.warning("RemoveInteractions", "No Interactions component found")
         }
 
         // Remove the Interactable component (and track if it existed)
@@ -73,9 +75,9 @@ class DownedRemoveInteractionsSystem(
         if (hadInteractableComponent) {
             hadInteractable.add(ref)
             commandBuffer.removeComponent(ref, interactableComponentType)
-            println("[HyDowned] [RemoveInteractions] ✓ Removed Interactable component - all interactions blocked")
+            Log.verbose("RemoveInteractions", "Removed Interactable component - all interactions blocked")
         } else {
-            println("[HyDowned] [RemoveInteractions] ⚠ No Interactable component found")
+            Log.warning("RemoveInteractions", "No Interactable component found")
         }
     }
 

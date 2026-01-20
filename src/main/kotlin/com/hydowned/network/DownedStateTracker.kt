@@ -3,6 +3,8 @@ package com.hydowned.network
 import com.hypixel.hytale.component.Ref
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import java.util.concurrent.ConcurrentHashMap
+import com.hydowned.util.Log
+
 
 /**
  * Thread-safe tracker for downed player state and network IDs.

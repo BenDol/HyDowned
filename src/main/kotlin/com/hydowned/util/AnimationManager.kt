@@ -1,6 +1,8 @@
 package com.hydowned.util
 
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 class AnimationManager(private val config: DownedConfig) {
 

@@ -6,6 +6,8 @@ import com.hydowned.util.AnimationManager
 import com.hydowned.util.FeedbackManager
 import com.hydowned.util.MovementManager
 import java.util.UUID
+import com.hydowned.util.Log
+
 
 class DownedTimerTask(
     private val stateManager: DownedStateManager,

@@ -17,6 +17,8 @@ import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * Makes downed players immune to all damage
@@ -67,27 +69,27 @@ class DownedDamageImmunitySystem(
         if (downedComponent != null && downedComponent.downedTimeRemaining <= 0) {
             // Timer expired - this is the timeout kill damage, allow it through
             val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-            println("[HyDowned] ============================================")
+            Log.separator("DamageImmunity")
             println("[HyDowned] TIMEOUT KILL DAMAGE - Allowing through")
             println("[HyDowned]   Player: ${playerComponent?.displayName}")
             println("[HyDowned]   Damage: ${damage.amount}")
-            println("[HyDowned] ============================================")
+            Log.separator("DamageImmunity")
             return // Don't block this damage
         }
 
         // Player is downed but timer hasn't expired - make them immune to all damage
         val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
 
-        println("[HyDowned] ============================================")
+        Log.separator("DamageImmunity")
         println("[HyDowned] DAMAGE BLOCKED - Player is downed")
         println("[HyDowned]   Player: ${playerComponent?.displayName}")
         println("[HyDowned]   Incoming damage BEFORE block: ${damage.amount}")
         println("[HyDowned]   Damage source: ${damage.cause?.id ?: "unknown"}")
-        println("[HyDowned] ============================================")
+        Log.separator("DamageImmunity")
 
         // Cancel all damage by setting amount to 0
         val originalDamage = damage.amount
         damage.amount = 0.0f
-        println("[HyDowned] ⚠ Damage set to 0 (was $originalDamage)")
+        Log.warning("DamageImmunity", "Damage set to 0 (was $originalDamage)")
     }
 }

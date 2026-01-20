@@ -16,6 +16,8 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import java.util.concurrent.ConcurrentHashMap
+import com.hydowned.util.Log
+
 
 /**
  * Displays HUD to players who are actively reviving a downed player.

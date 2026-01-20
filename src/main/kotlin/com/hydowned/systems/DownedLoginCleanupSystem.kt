@@ -18,6 +18,8 @@ import com.hydowned.util.DownedCleanupHelper
 import com.hydowned.util.PendingDeathTracker
 import com.hydowned.network.DownedStateTracker
 import com.hypixel.hytale.server.core.entity.UUIDComponent
+import com.hydowned.util.Log
+
 
 /**
  * Sanity check system that processes pending login cleanups.
@@ -81,7 +83,7 @@ class DownedLoginCleanupSystem(
             when (val action = PendingDeathTracker.checkAndClearAction(playerUuid)) {
                 is PendingDeathTracker.RestoreAction.ExecuteDeath -> {
                     // Player intentionally logged out while downed → execute death
-                    println("[HyDowned] [LoginCleanup] ⚠ Player logged out while downed - executing death")
+                    Log.warning("LoginCleanup", "Player logged out while downed - executing death")
 
                     // Create a minimal DownedComponent for death execution
                     val tempDownedComponent = DownedComponent(downedTimeRemaining = 0) // Timer expired (logout counts as expiry)
@@ -97,12 +99,12 @@ class DownedLoginCleanupSystem(
                         "Logged out while downed (executing death on login)"
                     )
 
-                    println("[HyDowned] [LoginCleanup] ✓ Death executed - player will respawn")
+                    Log.verbose("LoginCleanup", "Death executed - player will respawn")
                     return // Exit early - player will die and respawn
                 }
                 is PendingDeathTracker.RestoreAction.RestoreDowned -> {
                     // Player crashed/unloaded while downed → restore downed state
-                    println("[HyDowned] [LoginCleanup] ⚠ Player crashed while downed - RESTORING downed state")
+                    Log.warning("LoginCleanup", "Player crashed while downed - RESTORING downed state")
                     println("[HyDowned] [LoginCleanup]   Time remaining: ${action.timeRemaining}s")
                     println("[HyDowned] [LoginCleanup]   Downed location: ${action.downedLocation}")
 
@@ -112,13 +114,13 @@ class DownedLoginCleanupSystem(
                     val hadHiddenComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType()) != null
                     if (hadHiddenComponent) {
                         commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
-                        println("[HyDowned] [LoginCleanup] ✓ Removed lingering HiddenFromAdventurePlayers before restore")
+                        Log.verbose("LoginCleanup", "Removed lingering HiddenFromAdventurePlayers before restore")
                     }
 
                     val hadIntangibleComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType()) != null
                     if (hadIntangibleComponent) {
                         commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType())
-                        println("[HyDowned] [LoginCleanup] ✓ Removed lingering Intangible before restore")
+                        Log.verbose("LoginCleanup", "Removed lingering Intangible before restore")
                     }
 
                     // Create fresh DownedComponent with saved timer and location
@@ -145,7 +147,7 @@ class DownedLoginCleanupSystem(
                     // Update state tracker (needed for network threads to know player is downed)
                     DownedStateTracker.setDowned(ref)
 
-                    println("[HyDowned] [LoginCleanup] ✓ Downed state restored - all systems triggered")
+                    Log.verbose("LoginCleanup", "Downed state restored - all systems triggered")
 
                     // Exit early - the component callbacks will handle all setup
                     return
@@ -163,7 +165,7 @@ class DownedLoginCleanupSystem(
             val scaleComponent = commandBuffer.getComponent(ref, EntityScaleComponent.getComponentType())
             if (scaleComponent != null) {
                 if (scaleComponent.scale != 1.0f) {
-                    println("[HyDowned] [LoginCleanup] ⚠ Found scale ${scaleComponent.scale}, restoring to 1.0 (crash safety)...")
+                    Log.warning("LoginCleanup", "Found scale ${scaleComponent.scale}, restoring to 1.0 (crash safety)...")
                     scaleComponent.scale = 1.0f
                     issuesFound = true
                 }
@@ -173,7 +175,7 @@ class DownedLoginCleanupSystem(
         // 3. Ensure DisplayNameComponent exists
         val displayNameComponent = commandBuffer.getComponent(ref, DisplayNameComponent.getComponentType())
         if (displayNameComponent == null) {
-            println("[HyDowned] [LoginCleanup] ⚠ DisplayNameComponent missing, ensuring it exists...")
+            Log.warning("LoginCleanup", "DisplayNameComponent missing, ensuring it exists...")
             commandBuffer.ensureComponent(ref, DisplayNameComponent.getComponentType())
             issuesFound = true
         }
@@ -181,7 +183,7 @@ class DownedLoginCleanupSystem(
         // 4. Ensure Interactable component exists
         val interactable = commandBuffer.getComponent(ref, Interactable.getComponentType())
         if (interactable == null) {
-            println("[HyDowned] [LoginCleanup] ⚠ Interactable component missing, ensuring it exists...")
+            Log.warning("LoginCleanup", "Interactable component missing, ensuring it exists...")
             commandBuffer.ensureComponent(ref, Interactable.getComponentType())
             issuesFound = true
         }
@@ -189,7 +191,7 @@ class DownedLoginCleanupSystem(
         // 5. Remove HiddenFromAdventurePlayers if present (invisibility mode cleanup)
         val hiddenComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
         if (hiddenComponent != null) {
-            println("[HyDowned] [LoginCleanup] ⚠ Found HiddenFromAdventurePlayers, removing...")
+            Log.warning("LoginCleanup", "Found HiddenFromAdventurePlayers, removing...")
             commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
             issuesFound = true
         }
@@ -197,7 +199,7 @@ class DownedLoginCleanupSystem(
         // 6. Remove Intangible if present (collision cleanup)
         val intangibleComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType())
         if (intangibleComponent != null) {
-            println("[HyDowned] [LoginCleanup] ⚠ Found Intangible, removing...")
+            Log.warning("LoginCleanup", "Found Intangible, removing...")
             commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType())
             issuesFound = true
         }
@@ -207,16 +209,16 @@ class DownedLoginCleanupSystem(
         commandBuffer.ensureComponent(ref, PlayerSkinComponent.getComponentType())
         val playerSkinComponent = commandBuffer.getComponent(ref, PlayerSkinComponent.getComponentType())
         if (playerSkinComponent != null) {
-            println("[HyDowned] [LoginCleanup] ✓ PlayerSkinComponent verified")
+            Log.verbose("LoginCleanup", "PlayerSkinComponent verified")
         } else {
-            println("[HyDowned] [LoginCleanup] ⚠ PlayerSkinComponent could not be ensured")
+            Log.warning("LoginCleanup", "PlayerSkinComponent could not be ensured")
             issuesFound = true
         }
 
         if (issuesFound) {
-            println("[HyDowned] [LoginCleanup] ✓ Fixed player state issues on login")
+            Log.verbose("LoginCleanup", "Fixed player state issues on login")
         } else {
-            println("[HyDowned] [LoginCleanup] ✓ Player state is clean")
+            Log.verbose("LoginCleanup", "Player state is clean")
         }
     }
 }

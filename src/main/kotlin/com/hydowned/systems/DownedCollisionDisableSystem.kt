@@ -11,6 +11,8 @@ import com.hypixel.hytale.server.core.modules.entity.component.RespondToHit
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * Disables character (entity-to-entity) collision for downed players.
@@ -56,12 +58,12 @@ class DownedCollisionDisableSystem(
                 // Store original state for restoration
                 component.hadCollisionEnabled = wasCheckingCharacterCollisions
 
-                println("[HyDowned] [Collision] ✓ Disabled character collisions (blocks still collide)")
+                Log.verbose("CollisionDisable", "Disabled character collisions (blocks still collide)")
             } else {
-                println("[HyDowned] [Collision] ⚠ CollisionResultComponent not found")
+                Log.warning("CollisionDisable", "CollisionResultComponent not found")
             }
         } catch (e: Exception) {
-            println("[HyDowned] [Collision] ⚠ Failed to disable character collisions: ${e.message}")
+            Log.warning("CollisionDisable", "Failed to disable character collisions: ${e.message}")
             e.printStackTrace()
         }
 
@@ -70,10 +72,10 @@ class DownedCollisionDisableSystem(
             val hadRespondToHit = commandBuffer.getComponent(ref, RespondToHit.getComponentType()) != null
             if (hadRespondToHit) {
                 commandBuffer.tryRemoveComponent(ref, RespondToHit.getComponentType())
-                println("[HyDowned] [Collision] ✓ Removed RespondToHit (no knockback)")
+                Log.verbose("CollisionDisable", "Removed RespondToHit (no knockback)")
             }
         } catch (e: Exception) {
-            println("[HyDowned] [Collision] ⚠ Failed to remove RespondToHit: ${e.message}")
+            Log.warning("CollisionDisable", "Failed to remove RespondToHit: ${e.message}")
             e.printStackTrace()
         }
 
@@ -105,19 +107,19 @@ class DownedCollisionDisableSystem(
             if (collisionResult != null && component.hadCollisionEnabled) {
                 // Note: API method has typo - "Collsions" instead of "Collisions"
                 collisionResult.collisionResult.enableCharacterCollsions()
-                println("[HyDowned] [Collision] ✓ Re-enabled character collisions")
+                Log.verbose("CollisionDisable", "Re-enabled character collisions")
             }
         } catch (e: Exception) {
-            println("[HyDowned] [Collision] ⚠ Failed to re-enable character collisions: ${e.message}")
+            Log.warning("CollisionDisable", "Failed to re-enable character collisions: ${e.message}")
             e.printStackTrace()
         }
 
         // Restore RespondToHit component
         try {
             commandBuffer.ensureComponent(ref, RespondToHit.getComponentType())
-            println("[HyDowned] [Collision] ✓ Restored RespondToHit (knockback enabled)")
+            Log.verbose("CollisionDisable", "Restored RespondToHit (knockback enabled)")
         } catch (e: Exception) {
-            println("[HyDowned] [Collision] ⚠ Failed to restore RespondToHit: ${e.message}")
+            Log.warning("CollisionDisable", "Failed to restore RespondToHit: ${e.message}")
             e.printStackTrace()
         }
 

@@ -15,6 +15,8 @@ import com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.PhantomBodyMarker
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * System that plays death animation and sends equipment updates on phantom bodies after they're fully spawned.
@@ -48,12 +50,12 @@ class PhantomBodyAnimationSystem(
         // Check if entity is fully spawned (has NetworkId)
         val networkId = commandBuffer.getComponent(ref, NetworkId.getComponentType())
         if (networkId != null) {
-            println("[HyDowned] [PhantomAnimation] ✓ Entity has NetworkId: ${networkId.id}")
+            Log.verbose("PhantomAnimation", "Entity has NetworkId: ${networkId.id}")
 
             // Check if entity is visible to clients (has Visible component)
             val visible = store.getComponent(ref, EntityTrackerSystems.Visible.getComponentType())
             if (visible != null && visible.visibleTo.isNotEmpty()) {
-                println("[HyDowned] [PhantomAnimation] ✓ Entity is visible to ${visible.visibleTo.size} viewers")
+                Log.verbose("PhantomAnimation", "Entity is visible to ${visible.visibleTo.size} viewers")
 
                 // Get the marker component to access equipment data
                 val marker = commandBuffer.getComponent(ref, PhantomBodyMarker.getComponentType())
@@ -67,9 +69,9 @@ class PhantomBodyAnimationSystem(
                         false,
                         commandBuffer
                     )
-                    println("[HyDowned] [PhantomAnimation] ✓ Played death animation on phantom body")
+                    Log.verbose("PhantomAnimation", "Played death animation on phantom body")
                 } catch (e: Exception) {
-                    println("[HyDowned] [PhantomAnimation] ✗ Failed to play animation: ${e.message}")
+                    Log.error("PhantomAnimation", "Failed to play animation: ${e.message}")
                     e.printStackTrace()
                 }
 
@@ -86,20 +88,20 @@ class PhantomBodyAnimationSystem(
                             try {
                                 viewer.queueUpdate(ref, update)
                             } catch (e: Exception) {
-                                println("[HyDowned] [PhantomAnimation] ✗ Failed to queue equipment update for viewer: ${e.message}")
+                                Log.error("PhantomAnimation", "Failed to queue equipment update for viewer: ${e.message}")
                             }
                         }
 
-                        println("[HyDowned] [PhantomAnimation] ✓ Queued equipment update to ${visible.visibleTo.size} viewers")
+                        Log.verbose("PhantomAnimation", "Queued equipment update to ${visible.visibleTo.size} viewers")
                         println("[HyDowned] [PhantomAnimation]   - Armor: ${equipmentData.armorIds?.joinToString(", ")}")
                         println("[HyDowned] [PhantomAnimation]   - Right hand: ${equipmentData.rightHandItemId}")
                         println("[HyDowned] [PhantomAnimation]   - Left hand: ${equipmentData.leftHandItemId}")
                     } catch (e: Exception) {
-                        println("[HyDowned] [PhantomAnimation] ✗ Failed to send equipment update: ${e.message}")
+                        Log.error("PhantomAnimation", "Failed to send equipment update: ${e.message}")
                         e.printStackTrace()
                     }
                 } else {
-                    println("[HyDowned] [PhantomAnimation] ⚠ No equipment data in marker")
+                    Log.warning("PhantomAnimation", "No equipment data in marker")
                 }
 
                 // Send cosmetic skin update if we have skin data
@@ -115,26 +117,26 @@ class PhantomBodyAnimationSystem(
                             try {
                                 viewer.queueUpdate(ref, skinUpdate)
                             } catch (e: Exception) {
-                                println("[HyDowned] [PhantomAnimation] ✗ Failed to queue skin update for viewer: ${e.message}")
+                                Log.error("PhantomAnimation", "Failed to queue skin update for viewer: ${e.message}")
                             }
                         }
 
-                        println("[HyDowned] [PhantomAnimation] ✓ Queued cosmetic skin/outfit update to ${visible.visibleTo.size} viewers")
+                        Log.verbose("PhantomAnimation", "Queued cosmetic skin/outfit update to ${visible.visibleTo.size} viewers")
                     } catch (e: Exception) {
-                        println("[HyDowned] [PhantomAnimation] ✗ Failed to send skin update: ${e.message}")
+                        Log.error("PhantomAnimation", "Failed to send skin update: ${e.message}")
                         e.printStackTrace()
                     }
                 } else {
-                    println("[HyDowned] [PhantomAnimation] ⚠ No cosmetic skin data in marker")
+                    Log.warning("PhantomAnimation", "No cosmetic skin data in marker")
                 }
 
                 // Remove the marker component so we don't process again
                 commandBuffer.removeComponent(ref, PhantomBodyMarker.getComponentType())
             } else {
-                println("[HyDowned] [PhantomAnimation] ✗ Entity not visible yet, waiting...")
+                Log.error("PhantomAnimation", "Entity not visible yet, waiting...")
             }
         } else {
-            println("[HyDowned] [PhantomAnimation] ✗ Entity does NOT have NetworkId yet, waiting...")
+            Log.error("PhantomAnimation", "Entity does NOT have NetworkId yet, waiting...")
         }
     }
 }

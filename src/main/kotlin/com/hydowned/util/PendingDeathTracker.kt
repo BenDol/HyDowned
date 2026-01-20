@@ -3,6 +3,8 @@ package com.hydowned.util
 import com.hypixel.hytale.math.vector.Vector3d
 import java.io.File
 import java.util.UUID
+import com.hydowned.util.Log
+
 
 /**
  * Tracks players who should die OR restore downed state when they log back in.
@@ -33,7 +35,7 @@ object PendingDeathTracker {
             markerFile.writeText("DEATH")
             println("[HyDowned] [DeathTracker] Marked $playerUuid for death on next login")
         } catch (e: Exception) {
-            println("[HyDowned] [DeathTracker] ⚠ Failed to create death marker for $playerUuid: ${e.message}")
+            Log.warning("DeathTracker", "Failed to create death marker for $playerUuid: ${e.message}")
             e.printStackTrace()
         }
     }
@@ -54,7 +56,7 @@ object PendingDeathTracker {
             markerFile.writeText("RESTORE:$timeRemaining$locationStr")
             println("[HyDowned] [DeathTracker] Marked $playerUuid to restore downed state ($timeRemaining seconds, location: $downedLocation) on next login")
         } catch (e: Exception) {
-            println("[HyDowned] [DeathTracker] ⚠ Failed to create restore marker for $playerUuid: ${e.message}")
+            Log.warning("DeathTracker", "Failed to create restore marker for $playerUuid: ${e.message}")
             e.printStackTrace()
         }
     }
@@ -97,12 +99,12 @@ object PendingDeathTracker {
                     RestoreAction.RestoreDowned(timeRemaining, location)
                 }
                 else -> {
-                    println("[HyDowned] [DeathTracker] ⚠ Unknown marker content: $content")
+                    Log.warning("DeathTracker", "Unknown marker content: $content")
                     RestoreAction.None
                 }
             }
         } catch (e: Exception) {
-            println("[HyDowned] [DeathTracker] ⚠ Error reading marker file for $playerUuid: ${e.message}")
+            Log.warning("DeathTracker", "Error reading marker file for $playerUuid: ${e.message}")
             e.printStackTrace()
             // Clean up corrupted file
             markerFile.delete()

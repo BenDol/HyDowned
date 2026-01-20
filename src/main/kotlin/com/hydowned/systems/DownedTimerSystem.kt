@@ -10,9 +10,9 @@ import com.hypixel.hytale.server.core.entity.entities.Player
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
-import com.hydowned.listeners.PlayerInteractListener
 import com.hydowned.commands.GiveUpCommand
 import com.hydowned.util.DownedCleanupHelper
+import com.hydowned.util.Log
 
 /**
  * System that ticks down the downed timer and executes death when it expires
@@ -44,7 +44,7 @@ class DownedTimerSystem(
         // Process any pending give-up commands for this entity
         val pendingGiveUp = GiveUpCommand.pendingGiveUps.remove(ref)
         if (pendingGiveUp != null && pendingGiveUp) {
-            println("[HyDowned] [TimerSystem] Processing pending give-up command")
+            Log.verbose("TimerSystem", "Processing pending give-up command")
 
             // Execute death immediately
             DownedCleanupHelper.executeDeath(
@@ -54,33 +54,8 @@ class DownedTimerSystem(
                 reason = "gave up"
             )
 
-            println("[HyDowned] [TimerSystem] ✓ Give-up processed, death executed")
+            Log.info("TimerSystem", "Give-up processed, death executed")
             return // Exit early - player gave up
-        }
-
-        // Process any pending revive interactions for this entity
-        val pendingReviverUUID = PlayerInteractListener.pendingRevives.remove(ref)
-        if (pendingReviverUUID != null) {
-            println("[HyDowned] Processing pending revive from: $pendingReviverUUID")
-
-            // Add reviver to the set
-            if (downedComponent.reviverPlayerIds.add(pendingReviverUUID)) {
-                println("[HyDowned] ✓ Added reviver: $pendingReviverUUID")
-
-                // If this is the first reviver, initialize the revive timer
-                if (downedComponent.reviverPlayerIds.size == 1) {
-                    downedComponent.reviveTimeRemaining = config.reviveTimerSeconds.toDouble()
-                    println("[HyDowned] ✓ Initialized revive timer: ${config.reviveTimerSeconds}s")
-                } else {
-                    println("[HyDowned] ✓ Multiple revivers now: ${downedComponent.reviverPlayerIds.size}")
-                }
-
-                // Send feedback to downed player
-                val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-                playerComponent?.sendMessage(Message.raw("A PLAYER IS REVIVING YOU!"))
-            } else {
-                println("[HyDowned] Reviver already in set")
-            }
         }
 
         // Get player component for sending messages
@@ -91,24 +66,18 @@ class DownedTimerSystem(
 
         val timeRemaining = downedComponent.downedTimeRemaining
 
-        println("[HyDowned] Timer tick: ${timeRemaining}s remaining")
+        Log.debug("TimerSystem", "Timer tick: ${timeRemaining}s remaining")
 
-        // Send chat messages at specific intervals
-        if (playerComponent != null) {
+        // Send chat messages at specific intervals (only if not being revived)
+        if (playerComponent != null && downedComponent.reviverPlayerIds.isEmpty()) {
             when (timeRemaining) {
-                // Important milestones
-                60 -> playerComponent.sendMessage(Message.raw("DOWNED! 60 seconds until death..."))
-                30 -> playerComponent.sendMessage(Message.raw("30 seconds remaining!"))
-                10 -> playerComponent.sendMessage(Message.raw("10 SECONDS!"))
-                5  -> playerComponent.sendMessage(Message.raw("5!"))
-                4  -> playerComponent.sendMessage(Message.raw("4!"))
-                3  -> playerComponent.sendMessage(Message.raw("3!"))
-                2  -> playerComponent.sendMessage(Message.raw("2!"))
-                1  -> playerComponent.sendMessage(Message.raw("1!"))
-                // Every 10 seconds for longer timers
+                60 -> playerComponent.sendMessage(Message.raw("Downed - 60s remaining"))
+                30 -> playerComponent.sendMessage(Message.raw("30s remaining"))
+                10 -> playerComponent.sendMessage(Message.raw("10s remaining"))
                 else -> {
+                    // Every 30 seconds for longer timers
                     if (timeRemaining > 60 && timeRemaining % 30 == 0) {
-                        playerComponent.sendMessage(Message.raw("DOWNED! ${timeRemaining} seconds remaining..."))
+                        playerComponent.sendMessage(Message.raw("Downed - ${timeRemaining}s remaining"))
                     }
                 }
             }
@@ -116,9 +85,6 @@ class DownedTimerSystem(
 
         // Check if revivers are still present
         if (downedComponent.reviverPlayerIds.isNotEmpty()) {
-            // TODO: Verify revivers are still nearby and online
-            // For now, just process the revive timer
-
             // Calculate revive speed based on reviver count
             val reviverCount = downedComponent.reviverPlayerIds.size
             val speedMultiplier = if (config.multipleReviversMode == "SPEEDUP") {
@@ -128,15 +94,51 @@ class DownedTimerSystem(
             }
 
             // Decrement revive timer
+            val oldReviveTime = downedComponent.reviveTimeRemaining
             downedComponent.reviveTimeRemaining -= speedMultiplier
 
-            println("[HyDowned] Revivers: ${reviverCount}, Speed: ${speedMultiplier}x, Remaining: ${downedComponent.reviveTimeRemaining}s")
+            Log.debug("TimerSystem", "Revivers: ${reviverCount}, Speed: ${speedMultiplier}x, Remaining: ${downedComponent.reviveTimeRemaining}s")
+
+            // Send countdown messages (only on whole second changes)
+            val oldSeconds = oldReviveTime.toInt()
+            val newSeconds = downedComponent.reviveTimeRemaining.toInt()
+
+            if (oldSeconds != newSeconds && newSeconds >= 0) {
+                // Get all players from Universe to find revivers
+                val allPlayers = com.hypixel.hytale.server.core.universe.Universe.get().players
+                val reviverNames = mutableListOf<String>()
+
+                // Find reviver names
+                for (player in allPlayers) {
+                    if (downedComponent.reviverPlayerIds.contains(player.uuid.toString())) {
+                        reviverNames.add(player.username)
+
+                        // Send countdown to reviver every second
+                        if (newSeconds <= 10 || newSeconds % 2 == 0) {
+                            player.sendMessage(Message.raw("Reviving - ${newSeconds}s"))
+                        }
+                    }
+                }
+
+                // Send countdown to downed player
+                if (playerComponent != null) {
+                    val reviverText = if (reviverNames.size == 1) {
+                        reviverNames[0]
+                    } else {
+                        "${reviverNames.size} players"
+                    }
+
+                    if (newSeconds <= 10 || newSeconds % 2 == 0) {
+                        playerComponent.sendMessage(Message.raw("$reviverText reviving - ${newSeconds}s"))
+                    }
+                }
+            }
 
             // Check if revive complete
             if (downedComponent.reviveTimeRemaining <= 0) {
-                println("[HyDowned] ============================================")
-                println("[HyDowned] Revive complete!")
-                println("[HyDowned] ============================================")
+                Log.separator("TimerSystem")
+                Log.info("TimerSystem", "Revive complete!")
+                Log.separator("TimerSystem")
 
                 // Use centralized cleanup helper to handle revive
                 val reviveSuccess = DownedCleanupHelper.executeRevive(
@@ -147,13 +149,21 @@ class DownedTimerSystem(
                 )
 
                 if (reviveSuccess) {
-                    // Send success messages
-                    playerComponent?.sendMessage(Message.raw("REVIVED! YOU'RE BACK! ✚✚✚"))
+                    // Send success message to downed player
+                    playerComponent?.sendMessage(Message.raw("Revived!"))
 
-                    // TODO: Notify revivers of success
-                    println("[HyDowned] ✓ Player revived successfully")
+                    // Notify revivers of success
+                    val allPlayers = com.hypixel.hytale.server.core.universe.Universe.get().players
+                    for (player in allPlayers) {
+                        if (downedComponent.reviverPlayerIds.contains(player.uuid.toString())) {
+                            val downedPlayerName = playerComponent?.displayName ?: "Player"
+                            player.sendMessage(Message.raw("Revived $downedPlayerName"))
+                        }
+                    }
+
+                    Log.info("TimerSystem", "Player revived successfully")
                 } else {
-                    println("[HyDowned] ⚠ Revive completed but health restoration failed")
+                    Log.warning("TimerSystem", "Revive completed but health restoration failed")
                 }
 
                 return // Exit early - player is revived
@@ -162,9 +172,6 @@ class DownedTimerSystem(
 
         // Check if timer expired
         if (timeRemaining <= 0) {
-            // Send final message
-            playerComponent?.sendMessage(Message.raw("Time's up! Executing death..."))
-
             // Use centralized cleanup helper to handle death
             DownedCleanupHelper.executeDeath(
                 ref,
@@ -173,7 +180,7 @@ class DownedTimerSystem(
                 "Timer expired"
             )
 
-            println("[HyDowned] ✓ Death executed, normal respawn flow will proceed")
+            Log.verbose("TimerSystem", "Death executed, normal respawn flow will proceed")
         }
     }
 

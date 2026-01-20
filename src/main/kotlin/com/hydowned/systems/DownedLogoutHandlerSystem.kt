@@ -13,6 +13,8 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.util.PendingDeathTracker
+import com.hydowned.util.Log
+
 
 /**
  * Handles when a downed player logs out (entity is removed from world).
@@ -73,9 +75,9 @@ class DownedLogoutHandlerSystem(
                 println("[HyDowned] [LogoutHandler] Detected INTENTIONAL logout (DISCONNECT)")
                 if (playerUuid != null) {
                     PendingDeathTracker.markForDeath(playerUuid)
-                    println("[HyDowned] [LogoutHandler] ✓ Marked player for death on rejoin")
+                    Log.verbose("LogoutHandler", "Marked player for death on rejoin")
                 } else {
-                    println("[HyDowned] [LogoutHandler] ⚠ Player UUID is null, cannot mark for death")
+                    Log.warning("LogoutHandler", "Player UUID is null, cannot mark for death")
                 }
             }
             "UNLOAD" -> {
@@ -85,21 +87,21 @@ class DownedLogoutHandlerSystem(
                     val timeRemaining = downedComponent.downedTimeRemaining
                     val downedLocation = downedComponent.downedLocation
                     PendingDeathTracker.markForRestore(playerUuid, timeRemaining, downedLocation)
-                    println("[HyDowned] [LogoutHandler] ✓ Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
+                    Log.verbose("LogoutHandler", "Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
                 } else {
-                    println("[HyDowned] [LogoutHandler] ⚠ Player UUID is null, cannot mark for restore")
+                    Log.warning("LogoutHandler", "Player UUID is null, cannot mark for restore")
                 }
             }
             else -> {
                 // Unknown reason - log it for investigation, default to crash recovery (be lenient)
-                println("[HyDowned] [LogoutHandler] ⚠ Unknown RemoveReason: $reason - defaulting to crash recovery")
+                Log.warning("LogoutHandler", "Unknown RemoveReason: $reason - defaulting to crash recovery")
                 if (playerUuid != null) {
                     val timeRemaining = downedComponent.downedTimeRemaining
                     val downedLocation = downedComponent.downedLocation
                     PendingDeathTracker.markForRestore(playerUuid, timeRemaining, downedLocation)
-                    println("[HyDowned] [LogoutHandler] ✓ Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
+                    Log.verbose("LogoutHandler", "Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
                 } else {
-                    println("[HyDowned] [LogoutHandler] ⚠ Player UUID is null, cannot mark for restore")
+                    Log.warning("LogoutHandler", "Player UUID is null, cannot mark for restore")
                 }
             }
         }
@@ -114,15 +116,15 @@ class DownedLogoutHandlerSystem(
                 // Remove empty DisplayNameComponent and restore original
                 commandBuffer.removeComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent.getComponentType())
                 commandBuffer.addComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent.getComponentType(), originalDisplayName)
-                println("[HyDowned] [LogoutHandler] ✓ Restored original DisplayNameComponent")
+                Log.verbose("LogoutHandler", "Restored original DisplayNameComponent")
             } catch (e: Exception) {
-                println("[HyDowned] [LogoutHandler] ⚠ Failed to restore DisplayNameComponent: ${e.message}")
+                Log.warning("LogoutHandler", "Failed to restore DisplayNameComponent: ${e.message}")
                 e.printStackTrace()
                 // Ensure SOMETHING exists even if restore fails
                 commandBuffer.ensureComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent.getComponentType())
             }
         } else {
-            println("[HyDowned] [LogoutHandler] ⚠ No original DisplayNameComponent stored, ensuring one exists")
+            Log.warning("LogoutHandler", "No original DisplayNameComponent stored, ensuring one exists")
             commandBuffer.ensureComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent.getComponentType())
         }
 
@@ -130,10 +132,10 @@ class DownedLogoutHandlerSystem(
         try {
             if (downedComponent.wasVisibleBefore) {
                 commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
-                println("[HyDowned] [LogoutHandler] ✓ Removed HiddenFromAdventurePlayers")
+                Log.verbose("LogoutHandler", "Removed HiddenFromAdventurePlayers")
             }
         } catch (e: Exception) {
-            println("[HyDowned] [LogoutHandler] ⚠ Failed to remove HiddenFromAdventurePlayers: ${e.message}")
+            Log.warning("LogoutHandler", "Failed to remove HiddenFromAdventurePlayers: ${e.message}")
             e.printStackTrace()
         }
 
@@ -143,10 +145,10 @@ class DownedLogoutHandlerSystem(
             if (collisionResult != null && downedComponent.hadCollisionEnabled) {
                 // Note: API method has typo - "Collsions" instead of "Collisions"
                 collisionResult.collisionResult.enableCharacterCollsions()
-                println("[HyDowned] [LogoutHandler] ✓ Re-enabled character collisions")
+                Log.verbose("LogoutHandler", "Re-enabled character collisions")
             }
         } catch (e: Exception) {
-            println("[HyDowned] [LogoutHandler] ⚠ Failed to re-enable character collisions: ${e.message}")
+            Log.warning("LogoutHandler", "Failed to re-enable character collisions: ${e.message}")
             e.printStackTrace()
         }
 
@@ -161,7 +163,7 @@ class DownedLogoutHandlerSystem(
         val phantomBodyRef = downedComponent.phantomBodyRef
         if (phantomBodyRef != null && phantomBodyRef.isValid) {
             commandBuffer.removeEntity(phantomBodyRef, com.hypixel.hytale.component.RemoveReason.UNLOAD)
-            println("[HyDowned] [LogoutHandler] ✓ Removed phantom body entity")
+            Log.verbose("LogoutHandler", "Removed phantom body entity")
         }
 
         // 5. Restore scale manually (callback won't fire during entity removal)
@@ -169,22 +171,22 @@ class DownedLogoutHandlerSystem(
             val scaleComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.EntityScaleComponent.getComponentType())
             if (scaleComponent != null) {
                 scaleComponent.scale = downedComponent.originalScale
-                println("[HyDowned] [LogoutHandler] ✓ Restored scale to ${downedComponent.originalScale}")
+                Log.verbose("LogoutHandler", "Restored scale to ${downedComponent.originalScale}")
             }
         } catch (e: Exception) {
-            println("[HyDowned] [LogoutHandler] ⚠ Failed to restore scale: ${e.message}")
+            Log.warning("LogoutHandler", "Failed to restore scale: ${e.message}")
             e.printStackTrace()
         }
 
         // 6. Restore Interactable component
         commandBuffer.ensureComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Interactable.getComponentType())
-        println("[HyDowned] [LogoutHandler] ✓ Ensured Interactable component exists")
+        Log.verbose("LogoutHandler", "Ensured Interactable component exists")
 
         // 7. Remove DownedComponent and clear state tracker
         // (Restoration is handled by file-based PendingDeathTracker, not in-memory component)
         commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
         com.hydowned.network.DownedStateTracker.setNotDowned(ref)
 
-        println("[HyDowned] [LogoutHandler] ✓ Cleaned up downed state (restoration data saved to disk)")
+        Log.verbose("LogoutHandler", "Cleaned up downed state (restoration data saved to disk)")
     }
 }

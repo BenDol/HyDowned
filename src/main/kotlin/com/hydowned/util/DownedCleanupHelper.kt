@@ -20,6 +20,8 @@ import com.hypixel.hytale.server.core.universe.Universe
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.network.DownedStateTracker
+import com.hydowned.util.Log
+
 
 /**
  * Centralized helper for downed state cleanup operations.
@@ -79,9 +81,9 @@ object DownedCleanupHelper {
                 val entityStatMap = commandBuffer.getComponent(ref, EntityStatMap.getComponentType())
                 if (entityStatMap != null) {
                     entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), 0.0f)
-                    println("[HyDowned] [Cleanup] ✓ Forced health to 0 (logout scenario)")
+                    Log.verbose("CleanupHelper", "Forced health to 0 (logout scenario)")
                 } else {
-                    println("[HyDowned] [Cleanup] ⚠ EntityStatMap not found, cannot force health to 0")
+                    Log.warning("CleanupHelper", "EntityStatMap not found, cannot force health to 0")
                 }
             } else {
                 // For timer expiry: use damage system for proper death flow
@@ -100,14 +102,14 @@ object DownedCleanupHelper {
                 // Execute death - this will add DeathComponent and trigger normal death flow
                 DamageSystems.executeDamage(ref, commandBuffer, killDamage)
 
-                println("[HyDowned] [Cleanup] ✓ Death damage executed")
+                Log.verbose("CleanupHelper", "Death damage executed")
             }
 
             // Clean up downed state AFTER death is processed
             cleanupDownedState(ref, commandBuffer, downedComponent, forceHealthToZero)
 
         } catch (e: Exception) {
-            println("[HyDowned] [Cleanup] ⚠ Failed to execute death: ${e.message}")
+            Log.warning("CleanupHelper", "Failed to execute death: ${e.message}")
             e.printStackTrace()
         }
     }
@@ -150,14 +152,14 @@ object DownedCleanupHelper {
             if (healthStat != null) {
                 val restoreAmount = healthStat.max * healthPercent.toFloat()
                 entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), restoreAmount)
-                println("[HyDowned] [Cleanup] ✓ Restored health to ${restoreAmount} (${healthPercent * 100}%)")
+                Log.verbose("CleanupHelper", "Restored health to ${restoreAmount} (${healthPercent * 100}%)")
                 return true
             } else {
-                println("[HyDowned] [Cleanup] ⚠ Health stat not found")
+                Log.warning("CleanupHelper", "Health stat not found")
                 return false
             }
         } else {
-            println("[HyDowned] [Cleanup] ⚠ EntityStatMap not found")
+            Log.warning("CleanupHelper", "EntityStatMap not found")
             return false
         }
     }
@@ -179,12 +181,12 @@ object DownedCleanupHelper {
             val transformComponent = commandBuffer.getComponent(ref, TransformComponent.getComponentType())
             if (transformComponent != null) {
                 transformComponent.teleportPosition(downedLocation)
-                println("[HyDowned] [Cleanup] ✓ Teleported player back to downed location")
+                Log.verbose("CleanupHelper", "Teleported player back to downed location")
             } else {
-                println("[HyDowned] [Cleanup] ⚠ TransformComponent not found")
+                Log.warning("CleanupHelper", "TransformComponent not found")
             }
         } else {
-            println("[HyDowned] [Cleanup] ⚠ Downed location not set")
+            Log.warning("CleanupHelper", "Downed location not set")
         }
     }
 
@@ -209,9 +211,9 @@ object DownedCleanupHelper {
             val phantomBodyRef = downedComponent.phantomBodyRef
             if (phantomBodyRef != null && phantomBodyRef.isValid) {
                 commandBuffer.removeEntity(phantomBodyRef, RemoveReason.UNLOAD)
-                println("[HyDowned] [Cleanup] ✓ Manually removed phantom body entity (logout scenario)")
+                Log.verbose("CleanupHelper", "Manually removed phantom body entity (logout scenario)")
             } else {
-                println("[HyDowned] [Cleanup] ⚠ Phantom body ref is null or invalid")
+                Log.warning("CleanupHelper", "Phantom body ref is null or invalid")
             }
 
             // 2. Restore player scale (CRITICAL: onComponentRemoved doesn't fire during logout)
@@ -219,12 +221,12 @@ object DownedCleanupHelper {
                 val scaleComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.EntityScaleComponent.getComponentType())
                 if (scaleComponent != null) {
                     scaleComponent.scale = downedComponent.originalScale
-                    println("[HyDowned] [Cleanup] ✓ Restored scale to ${downedComponent.originalScale} (logout scenario)")
+                    Log.verbose("CleanupHelper", "Restored scale to ${downedComponent.originalScale} (logout scenario)")
                 } else {
-                    println("[HyDowned] [Cleanup] ⚠ EntityScaleComponent not found, cannot restore scale")
+                    Log.warning("CleanupHelper", "EntityScaleComponent not found, cannot restore scale")
                 }
             } catch (e: Exception) {
-                println("[HyDowned] [Cleanup] ⚠ Failed to restore scale: ${e.message}")
+                Log.warning("CleanupHelper", "Failed to restore scale: ${e.message}")
                 e.printStackTrace()
             }
 
@@ -235,14 +237,14 @@ object DownedCleanupHelper {
                 if (originalDisplayName != null) {
                     commandBuffer.removeComponent(ref, DisplayNameComponent.getComponentType())
                     commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), originalDisplayName)
-                    println("[HyDowned] [Cleanup] ✓ Restored original DisplayNameComponent (logout scenario)")
+                    Log.verbose("CleanupHelper", "Restored original DisplayNameComponent (logout scenario)")
                 } else {
                     // No original stored - ensure component exists
                     commandBuffer.ensureComponent(ref, DisplayNameComponent.getComponentType())
-                    println("[HyDowned] [Cleanup] ⚠ No original DisplayNameComponent, ensured one exists")
+                    Log.warning("CleanupHelper", "No original DisplayNameComponent, ensured one exists")
                 }
             } catch (e: Exception) {
-                println("[HyDowned] [Cleanup] ⚠ Failed to restore DisplayNameComponent: ${e.message}")
+                Log.warning("CleanupHelper", "Failed to restore DisplayNameComponent: ${e.message}")
                 e.printStackTrace()
             }
 
@@ -251,10 +253,10 @@ object DownedCleanupHelper {
             try {
                 if (downedComponent.wasVisibleBefore) {
                     commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
-                    println("[HyDowned] [Cleanup] ✓ Removed HiddenFromAdventurePlayers (logout scenario)")
+                    Log.verbose("CleanupHelper", "Removed HiddenFromAdventurePlayers (logout scenario)")
                 }
             } catch (e: Exception) {
-                println("[HyDowned] [Cleanup] ⚠ Failed to remove HiddenFromAdventurePlayers: ${e.message}")
+                Log.warning("CleanupHelper", "Failed to remove HiddenFromAdventurePlayers: ${e.message}")
                 e.printStackTrace()
             }
 
@@ -265,10 +267,10 @@ object DownedCleanupHelper {
                 if (collisionResult != null && downedComponent.hadCollisionEnabled) {
                     // Note: API method has typo - "Collsions" instead of "Collisions"
                     collisionResult.collisionResult.enableCharacterCollsions()
-                    println("[HyDowned] [Cleanup] ✓ Re-enabled character collisions (logout scenario)")
+                    Log.verbose("CleanupHelper", "Re-enabled character collisions (logout scenario)")
                 }
             } catch (e: Exception) {
-                println("[HyDowned] [Cleanup] ⚠ Failed to re-enable character collisions: ${e.message}")
+                Log.warning("CleanupHelper", "Failed to re-enable character collisions: ${e.message}")
                 e.printStackTrace()
             }
 
@@ -283,7 +285,7 @@ object DownedCleanupHelper {
             // DownedRemoveInteractionsSystem removes this when downed, but won't restore it during logout
             // Ensuring it exists allows the player to interact after respawn
             commandBuffer.ensureComponent(ref, Interactable.getComponentType())
-            println("[HyDowned] [Cleanup] ✓ Ensured Interactable component exists (logout scenario)")
+            Log.verbose("CleanupHelper", "Ensured Interactable component exists (logout scenario)")
         }
 
         // Remove downed component (triggers visibility restoration + phantom body removal for non-logout)
@@ -292,7 +294,7 @@ object DownedCleanupHelper {
         // Clear downed state tracking
         DownedStateTracker.setNotDowned(ref)
 
-        println("[HyDowned] [Cleanup] ✓ Cleaned up DownedComponent and state tracker")
+        Log.verbose("CleanupHelper", "Cleaned up DownedComponent and state tracker")
     }
 
     /**
@@ -313,7 +315,7 @@ object DownedCleanupHelper {
             true, // sendToSelf
             commandBuffer
         )
-        println("[HyDowned] [Cleanup] ✓ Played death animation")
+        Log.verbose("CleanupHelper", "Played death animation")
 
         // Set movement state to sleeping
         val movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType())
@@ -334,9 +336,9 @@ object DownedCleanupHelper {
             sentStates.sleeping = false
             sentStates.idle = true
 
-            println("[HyDowned] [Cleanup] ✓ Set movement state to sleeping")
+            Log.verbose("CleanupHelper", "Set movement state to sleeping")
         } else {
-            println("[HyDowned] [Cleanup] ⚠ MovementStatesComponent not found")
+            Log.warning("CleanupHelper", "MovementStatesComponent not found")
         }
     }
 }

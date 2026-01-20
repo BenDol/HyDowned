@@ -11,6 +11,8 @@ import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntitySta
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * Suppresses ALL healing for downed players by:
@@ -72,12 +74,12 @@ class DownedHealingSuppressionSystem(
 
             // Log the healing attempt
             val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-            println("[HyDowned] ============================================")
+            Log.separator("HealingSuppression")
             println("[HyDowned] HEALING BLOCKED - Player is downed")
             println("[HyDowned]   Player: ${playerComponent?.displayName}")
             println("[HyDowned]   Attempted health: $currentHealth HP")
             println("[HyDowned]   Reverted to: 1 HP")
-            println("[HyDowned] ============================================")
+            Log.separator("HealingSuppression")
         }
     }
 }

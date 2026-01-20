@@ -17,6 +17,8 @@ import com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import java.util.function.Consumer
+import com.hydowned.util.Log
+
 
 /**
  * Packet interceptor for downed players.
@@ -57,17 +59,17 @@ class DownedPacketInterceptor(
                     // }
                     is MouseInteraction -> {
                         // Block all mouse interactions while downed
-                        println("[HyDowned] [INTERCEPTOR] ✓ BLOCKED MouseInteraction")
+                        Log.verbose("PacketInterceptor", "BLOCKED MouseInteraction")
                         // Don't call original handler - packet is blocked
                     }
                     is SyncInteractionChains -> {
                         // Block interaction chains (block breaking, item use, etc.)
-                        println("[HyDowned] [INTERCEPTOR] ✓ BLOCKED SyncInteractionChains (${packet.updates.size} interactions)")
+                        Log.verbose("PacketInterceptor", "BLOCKED SyncInteractionChains (${packet.updates.size} interactions)")
                         // Don't call original handler - packet is blocked
                     }
                     is ClientPlaceBlock -> {
                         // Block block placement
-                        println("[HyDowned] [INTERCEPTOR] ✓ BLOCKED ClientPlaceBlock")
+                        Log.verbose("PacketInterceptor", "BLOCKED ClientPlaceBlock")
                         // Don't call original handler - packet is blocked
                     }
                     else -> {

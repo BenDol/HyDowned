@@ -11,6 +11,8 @@ import com.hypixel.hytale.server.core.modules.entity.component.EntityScaleCompon
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.Log
+
 
 /**
  * Makes downed players extremely tiny and hides their nameplate.
@@ -89,9 +91,9 @@ class DownedPlayerScaleSystem(
             val emptyDisplayName = DisplayNameComponent()
             commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), emptyDisplayName)
 
-            println("[HyDowned] [Scale] ✓ Replaced nameplate with empty DisplayNameComponent")
+            Log.verbose("PlayerScale", "Replaced nameplate with empty DisplayNameComponent")
         } else {
-            println("[HyDowned] [Scale] ⚠ DisplayNameComponent not found")
+            Log.warning("PlayerScale", "DisplayNameComponent not found")
         }
     }
 
@@ -134,9 +136,9 @@ class DownedPlayerScaleSystem(
             println("[HyDowned] [Scale]   Current scale: ${scaleComponent.scale}")
             println("[HyDowned] [Scale]   Restoring to: ${component.originalScale}")
             scaleComponent.scale = component.originalScale
-            println("[HyDowned] [Scale] ✓ Player scaled back to ${component.originalScale}")
+            Log.verbose("PlayerScale", "Player scaled back to ${component.originalScale}")
         } else {
-            println("[HyDowned] [Scale] ⚠ EntityScaleComponent not found, cannot restore scale")
+            Log.warning("PlayerScale", "EntityScaleComponent not found, cannot restore scale")
         }
 
         // Check what components exist AFTER we restore
@@ -154,9 +156,9 @@ class DownedPlayerScaleSystem(
                 val skinCopy = skinAfter.clone() as com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent
                 commandBuffer.removeComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
                 commandBuffer.addComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType(), skinCopy)
-                println("[HyDowned] [Scale] ✓ PlayerSkinComponent refreshed")
+                Log.verbose("PlayerScale", "PlayerSkinComponent refreshed")
             } catch (e: Exception) {
-                println("[HyDowned] [Scale] ✗ Failed to refresh PlayerSkinComponent: ${e.message}")
+                Log.error("PlayerScale", "Failed to refresh PlayerSkinComponent: ${e.message}")
                 e.printStackTrace()
             }
         }
@@ -168,9 +170,9 @@ class DownedPlayerScaleSystem(
                 val modelCopy = modelAfter.clone() as com.hypixel.hytale.server.core.modules.entity.component.ModelComponent
                 commandBuffer.removeComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType())
                 commandBuffer.addComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType(), modelCopy)
-                println("[HyDowned] [Scale] ✓ ModelComponent refreshed")
+                Log.verbose("PlayerScale", "ModelComponent refreshed")
             } catch (e: Exception) {
-                println("[HyDowned] [Scale] ✗ Failed to refresh ModelComponent: ${e.message}")
+                Log.error("PlayerScale", "Failed to refresh ModelComponent: ${e.message}")
                 e.printStackTrace()
             }
         }
@@ -187,13 +189,13 @@ class DownedPlayerScaleSystem(
                 // Add back original DisplayNameComponent
                 commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), originalDisplayName)
 
-                println("[HyDowned] [Scale] ✓ Restored original nameplate")
+                Log.verbose("PlayerScale", "Restored original nameplate")
             } catch (e: Exception) {
-                println("[HyDowned] [Scale] ⚠ Failed to restore nameplate: ${e.message}")
+                Log.warning("PlayerScale", "Failed to restore nameplate: ${e.message}")
                 e.printStackTrace()
             }
         } else {
-            println("[HyDowned] [Scale] ⚠ No original DisplayNameComponent stored")
+            Log.warning("PlayerScale", "No original DisplayNameComponent stored")
         }
     }
 }

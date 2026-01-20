@@ -2,7 +2,6 @@ package com.hydowned.systems
 
 import com.hypixel.hytale.component.ArchetypeChunk
 import com.hypixel.hytale.component.CommandBuffer
-import com.hypixel.hytale.component.Ref
 import com.hypixel.hytale.component.Store
 import com.hypixel.hytale.component.SystemGroup
 import com.hypixel.hytale.component.dependency.Dependency
@@ -22,6 +21,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.network.DownedStateTracker
+import com.hydowned.util.Log
 
 /**
  * Intercepts damage that would kill a player and puts them in downed state instead
@@ -65,7 +65,7 @@ class DownedDeathInterceptor(
 
         // Skip if player already downed
         if (commandBuffer.getArchetype(ref).contains(DownedComponent.getComponentType())) {
-            println("[HyDowned] Player already downed, allowing damage through")
+            Log.debug("DeathInterceptor", "Player already downed, allowing damage through")
             return
         }
 
@@ -80,20 +80,20 @@ class DownedDeathInterceptor(
 
         if (newHealth <= healthStat.min) {
             // This damage would kill the player - intercept it!
-            println("[HyDowned] ============================================")
-            println("[HyDowned] Intercepting lethal damage!")
-            println("[HyDowned]   Current Health: $currentHealth")
-            println("[HyDowned]   Damage Amount: ${damage.amount}")
-            println("[HyDowned]   Would be fatal: $newHealth HP")
-            println("[HyDowned] ============================================")
+            Log.separator("DeathInterceptor")
+            Log.verbose("DeathInterceptor", "Intercepting lethal damage!")
+            Log.debug("DeathInterceptor", "Current Health: $currentHealth")
+            Log.debug("DeathInterceptor", "Damage Amount: ${damage.amount}")
+            Log.debug("DeathInterceptor", "Would be fatal: $newHealth HP")
+            Log.separator("DeathInterceptor")
 
             // Modify damage to leave player at 1 HP instead of 0
             val modifiedDamage = currentHealth - 1.0f
             damage.amount = modifiedDamage
 
-            println("[HyDowned] Modified damage to: $modifiedDamage (leaves player at 1 HP)")
-            println("[HyDowned]   Calculated final health: ${currentHealth - modifiedDamage} HP")
-            println("[HyDowned]   Current damage.amount after modification: ${damage.amount}")
+            Log.verbose("DeathInterceptor", "Modified damage to: $modifiedDamage (leaves player at 1 HP)")
+            Log.debug("DeathInterceptor", "Calculated final health: ${currentHealth - modifiedDamage} HP")
+            Log.debug("DeathInterceptor", "Current damage.amount after modification: ${damage.amount}")
 
             // Get location for downed state
             val transform = archetypeChunk.getComponent(index, TransformComponent.getComponentType())
@@ -115,14 +115,47 @@ class DownedDeathInterceptor(
             // Track downed state for network threads
             DownedStateTracker.setDowned(ref)
 
-            println("[HyDowned] ✓ Player entered downed state")
-            println("[HyDowned]   Timer: ${config.downedTimerSeconds} seconds")
-            println("[HyDowned]   Location: $location")
-            println("[HyDowned] ============================================")
+            Log.info("DeathInterceptor", "Player entered downed state")
+            Log.debug("DeathInterceptor", "Timer: ${config.downedTimerSeconds} seconds")
+            Log.debug("DeathInterceptor", "Location: $location")
+            Log.separator("DeathInterceptor")
 
-            // TODO: Apply visual effects (animation, particles, etc.)
-            // TODO: Apply movement speed reduction
-            // TODO: Send feedback message to player
+            // Notify nearby players
+            val downedPlayer = archetypeChunk.getComponent(index, Player.getComponentType())
+            val downedPlayerName = downedPlayer?.displayName ?: "A player"
+
+            if (location != null) {
+                val allPlayers = com.hypixel.hytale.server.core.universe.Universe.get().players
+                var notifiedCount = 0
+
+                for (nearbyPlayer in allPlayers) {
+                    val nearbyRef = nearbyPlayer.reference ?: continue
+
+                    // Skip the downed player themselves
+                    if (nearbyRef == ref) {
+                        continue
+                    }
+
+                    // Get nearby player's position
+                    val nearbyTransform = store.getComponent(nearbyRef, TransformComponent.getComponentType())
+                        ?: continue
+                    val nearbyPos = nearbyTransform.position
+
+                    // Calculate distance
+                    val dx = nearbyPos.x - location.x
+                    val dz = nearbyPos.z - location.z
+                    val distanceSquared = dx * dx + dz * dz
+                    val notifyRangeSquared = 256.0 * 256.0
+
+                    // Send message if within range
+                    if (distanceSquared <= notifyRangeSquared) {
+                        nearbyPlayer.sendMessage(Message.raw("$downedPlayerName is downed - crouch near their body to revive"))
+                        notifiedCount++
+                    }
+                }
+
+                Log.verbose("DeathInterceptor", "Notified $notifiedCount nearby players")
+            }
         }
     }
 }
