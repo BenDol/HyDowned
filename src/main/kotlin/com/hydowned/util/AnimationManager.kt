@@ -21,7 +21,7 @@ class AnimationManager(private val config: DownedConfig) {
         // originalAnimations[player] = player.currentAnimation
         // player.setAnimation(animationType)
 
-        println("Setting downed animation for player (type: ${if (config.isLayingAnimation) "LAYING" else "CRAWLING"})")
+        Log.verbose("Animation", "Setting downed animation for player (type: ${if (config.isLayingAnimation) "LAYING" else "CRAWLING"})")
     }
 
     fun restoreNormalAnimation(player: Any) {
@@ -34,7 +34,7 @@ class AnimationManager(private val config: DownedConfig) {
         //     player.resetToDefaultAnimation()
         // }
 
-        println("Restoring normal animation for player")
+        Log.verbose("Animation", "Restoring normal animation for player")
     }
 
     fun cleanup() {

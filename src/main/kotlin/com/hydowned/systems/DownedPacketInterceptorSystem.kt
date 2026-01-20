@@ -62,14 +62,14 @@ class DownedPacketInterceptorSystem(
 
         // Check if it's a GenericPacketHandler (it should be)
         if (packetHandler !is GenericPacketHandler) {
-            println("[HyDowned] Warning: PacketHandler is not GenericPacketHandler, cannot intercept")
+            Log.verbose("PacketInterceptor", "Warning: PacketHandler is not GenericPacketHandler, cannot intercept")
             return
         }
 
         // Get the player's network ID (on world thread - safe to access ECS)
         val networkIdComponent = commandBuffer.getComponent(ref, NetworkId.getComponentType())
         if (networkIdComponent == null) {
-            println("[HyDowned] Warning: NetworkId component not found, cannot install packet interceptors")
+            Log.verbose("PacketInterceptor", "Warning: NetworkId component not found, cannot install packet interceptors")
             return
         }
         val playerNetworkId = networkIdComponent.id
@@ -83,7 +83,7 @@ class DownedPacketInterceptorSystem(
             handlersField.isAccessible = true
             val handlers = handlersField.get(packetHandler) as Array<Any?>
 
-            println("[HyDowned] [INSTALL] Found ${handlers.size} handler slots in GenericPacketHandler")
+            Log.verbose("PacketInterceptor", "Found ${handlers.size} handler slots in GenericPacketHandler")
 
             // Count how many we wrap
             var wrappedCount = 0
@@ -111,12 +111,12 @@ class DownedPacketInterceptorSystem(
             // should be sufficient for blocking interactions.
 
             Log.verbose("PacketInterceptor", "Installed packet interceptors for player:")
-            println("[HyDowned]   - Wrapped $wrappedCount incoming handlers")
-            println("[HyDowned]   - Outgoing handler wrapping DISABLED (Java 17+ limitation)")
-            println("[HyDowned]   - NetworkId=$playerNetworkId stored in tracker")
+            Log.verbose("PacketInterceptor", "  - Wrapped $wrappedCount incoming handlers")
+            Log.verbose("PacketInterceptor", "  - Outgoing handler wrapping DISABLED (Java 17+ limitation)")
+            Log.verbose("PacketInterceptor", "  - NetworkId=$playerNetworkId stored in tracker")
 
         } catch (e: Exception) {
-            println("[HyDowned] Failed to install packet interceptors: ${e.message}")
+            Log.verbose("PacketInterceptor", "Failed to install packet interceptors: ${e.message}")
             e.printStackTrace()
         }
     }

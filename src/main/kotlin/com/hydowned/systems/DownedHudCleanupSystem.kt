@@ -64,7 +64,7 @@ class DownedHudCleanupSystem(
         val playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
             ?: return
 
-        println("[HyDowned] Cleaning up event title HUD for exiting downed state")
+        Log.verbose("HudCleanup", "Cleaning up event title HUD for exiting downed state")
 
         // Hide event title
         try {
@@ -72,7 +72,7 @@ class DownedHudCleanupSystem(
             playerRef.packetHandler.write(hideTitle)
             Log.verbose("HudCleanup", "Event title hidden")
         } catch (e: Exception) {
-            println("[HyDowned] Error hiding event title: ${e.message}")
+            Log.verbose("HudCleanup", "Error hiding event title: ${e.message}")
         }
     }
 }

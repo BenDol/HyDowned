@@ -133,3 +133,4 @@ logs/
 .env.*.local
 
 nul
+/decompiled

@@ -36,12 +36,12 @@ class PlayerReadyEventListener(
             "Unknown (${playerUUID.take(8)})"
         }
 
-        println("[HyDowned] [PlayerReady] Player logged in: $playerName")
+        Log.verbose("PlayerReady", "Player logged in: $playerName")
 
         // Queue this player for login cleanup processing
         pendingLoginCleanups[playerRef] = playerUUID
 
         Log.verbose("PlayerReady", "Queued player for login cleanup")
-        println("[HyDowned] [PlayerReady] Queue size: ${pendingLoginCleanups.size}")
+        Log.verbose("PlayerReady", "Queue size: ${pendingLoginCleanups.size}")
     }
 }

@@ -73,7 +73,7 @@ class DownedPhantomBodySystem(
     ) {
         val downedLocation = component.downedLocation ?: return
 
-        println("[HyDowned] [PhantomBody] Player downed, spawning phantom body at $downedLocation")
+        Log.verbose("PhantomBody", "Player downed, spawning phantom body at $downedLocation")
 
         // Get player's model and transform to replicate for the phantom body
         val playerModelComponent = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
@@ -92,7 +92,7 @@ class DownedPhantomBodySystem(
             return
         }
 
-        println("[HyDowned] [PhantomBody] Player model: ${playerModel.modelAssetId}")
+        Log.verbose("PhantomBody", "Player model: ${playerModel.modelAssetId}")
 
         // Create a new entity holder for the phantom body
         val holder = EntityStore.REGISTRY.newHolder()
@@ -169,62 +169,62 @@ class DownedPhantomBodySystem(
                 val inventory = playerComponent.inventory
                 equipment = Equipment()
 
-                println("[HyDowned] [PhantomBody] DEBUG: Inventory class: ${inventory.javaClass.name}")
-                println("[HyDowned] [PhantomBody] DEBUG: Active hotbar slot: ${inventory.activeHotbarSlot}")
+                Log.verbose("PhantomBody", "DEBUG: Inventory class: ${inventory.javaClass.name}")
+                Log.verbose("PhantomBody", "DEBUG: Active hotbar slot: ${inventory.activeHotbarSlot}")
 
                 // Extract armor (4 slots: head, chest, hands, legs)
                 val armor = inventory.armor
-                println("[HyDowned] [PhantomBody] DEBUG: Armor container capacity: ${armor.capacity}")
-                println("[HyDowned] [PhantomBody] DEBUG: Armor container class: ${armor.javaClass.name}")
+                Log.verbose("PhantomBody", "DEBUG: Armor container capacity: ${armor.capacity}")
+                Log.verbose("PhantomBody", "DEBUG: Armor container class: ${armor.javaClass.name}")
 
                 equipment.armorIds = Array(armor.capacity.toInt()) { "" }
                 java.util.Arrays.fill(equipment.armorIds, "")
 
                 var armorCount = 0
                 armor.forEachWithMeta({ slot, itemStack, armorIds ->
-                    println("[HyDowned] [PhantomBody] DEBUG: Armor slot $slot: ${itemStack.itemId}")
+                    Log.verbose("PhantomBody", "DEBUG: Armor slot $slot: ${itemStack.itemId}")
                     armorIds[slot.toInt()] = itemStack.itemId
                     armorCount++
                 }, equipment.armorIds)
-                println("[HyDowned] [PhantomBody] DEBUG: Found $armorCount armor items")
+                Log.verbose("PhantomBody", "DEBUG: Found $armorCount armor items")
 
                 // Extract hand items
                 // Check what getItemInHand() is actually returning
                 val activeHotbarItem = inventory.activeHotbarItem
-                println("[HyDowned] [PhantomBody] DEBUG: Active hotbar item (slot ${inventory.activeHotbarSlot}): ${activeHotbarItem?.itemId ?: "null"}")
+                Log.verbose("PhantomBody", "DEBUG: Active hotbar item (slot ${inventory.activeHotbarSlot}): ${activeHotbarItem?.itemId ?: "null"}")
 
                 val itemInHand = inventory.itemInHand
-                println("[HyDowned] [PhantomBody] DEBUG: Item in hand (final): ${itemInHand?.itemId ?: "null"}")
+                Log.verbose("PhantomBody", "DEBUG: Item in hand (final): ${itemInHand?.itemId ?: "null"}")
 
                 equipment.rightHandItemId = if (itemInHand != null) itemInHand.itemId else "Empty"
 
                 val utilityItem = inventory.utilityItem
-                println("[HyDowned] [PhantomBody] DEBUG: Utility item: ${utilityItem?.itemId ?: "null"}")
+                Log.verbose("PhantomBody", "DEBUG: Utility item: ${utilityItem?.itemId ?: "null"}")
                 equipment.leftHandItemId = if (utilityItem != null) utilityItem.itemId else "Empty"
 
                 // DEBUG: Also try to iterate all inventory slots
-                println("[HyDowned] [PhantomBody] DEBUG: Hotbar capacity: ${inventory.hotbar.capacity}")
+                Log.verbose("PhantomBody", "DEBUG: Hotbar capacity: ${inventory.hotbar.capacity}")
                 var hotbarCount = 0
 
                 // Check all 9 hotbar slots
                 for (i in 0 until inventory.hotbar.capacity.toInt()) {
                     val item = inventory.hotbar.getItemStack(i.toShort())
                     if (item != null) {
-                        println("[HyDowned] [PhantomBody] DEBUG: Hotbar slot $i: ${item.itemId}")
+                        Log.verbose("PhantomBody", "DEBUG: Hotbar slot $i: ${item.itemId}")
                         hotbarCount++
                     } else {
-                        println("[HyDowned] [PhantomBody] DEBUG: Hotbar slot $i: empty")
+                        Log.verbose("PhantomBody", "DEBUG: Hotbar slot $i: empty")
                     }
                 }
-                println("[HyDowned] [PhantomBody] DEBUG: Found $hotbarCount hotbar items total")
+                Log.verbose("PhantomBody", "DEBUG: Found $hotbarCount hotbar items total")
 
                 // Store equipment data in component for later use
                 component.equipmentData = equipment
 
                 Log.verbose("PhantomBody", "Extracted player equipment for phantom body")
-                println("[HyDowned] [PhantomBody]   - Armor: ${equipment.armorIds?.joinToString(", ")}")
-                println("[HyDowned] [PhantomBody]   - Right hand: ${equipment.rightHandItemId}")
-                println("[HyDowned] [PhantomBody]   - Left hand: ${equipment.leftHandItemId}")
+                Log.verbose("PhantomBody", "  - Armor: ${equipment.armorIds?.joinToString(", ")}")
+                Log.verbose("PhantomBody", "  - Right hand: ${equipment.rightHandItemId}")
+                Log.verbose("PhantomBody", "  - Left hand: ${equipment.leftHandItemId}")
 
                 // Check if player has any equipment at all
                 val hasArmor = equipment.armorIds?.any { it.isNotEmpty() } == true
@@ -234,9 +234,9 @@ class DownedPhantomBodySystem(
                 if (!hasArmor && !hasRightHand && !hasLeftHand) {
                     Log.warning("PhantomBody", "Player has NO equipment/armor equipped!")
                     Log.warning("PhantomBody", "To see equipment on phantom body:")
-                    println("[HyDowned] [PhantomBody]   1. Equip armor (helmet, chestplate, etc.)")
-                    println("[HyDowned] [PhantomBody]   2. Select a hotbar slot (press 1-9) to hold an item")
-                    println("[HyDowned] [PhantomBody]   Active hotbar slot was: ${inventory.activeHotbarSlot} (needs to be 0-8)")
+                    Log.verbose("PhantomBody", "  1. Equip armor (helmet, chestplate, etc.)")
+                    Log.verbose("PhantomBody", "  2. Select a hotbar slot (press 1-9) to hold an item")
+                    Log.verbose("PhantomBody", "  Active hotbar slot was: ${inventory.activeHotbarSlot} (needs to be 0-8)")
                 }
             } catch (e: Exception) {
                 Log.warning("PhantomBody", "Failed to extract equipment: ${e.message}")
@@ -287,14 +287,14 @@ class DownedPhantomBodySystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        println("[HyDowned] [PhantomBody] DownedComponent removed - cleaning up")
+        Log.verbose("PhantomBody", "DownedComponent removed - cleaning up")
 
         // Check if player entity is still valid (not being removed/logged out)
         val isPlayerValid = ref.isValid
 
         // Only teleport player back if they're still in the world (revived, not logged out)
         if (isPlayerValid) {
-            println("[HyDowned] [PhantomBody] Player still in world - teleporting back to body")
+            Log.verbose("PhantomBody", "Player still in world - teleporting back to body")
 
             // CRITICAL: Teleport player back to downed location (where phantom body is)
             val downedLocation = component.downedLocation
@@ -309,7 +309,7 @@ class DownedPhantomBodySystem(
                 }
             }
         } else {
-            println("[HyDowned] [PhantomBody] Player entity being removed (logout) - skipping teleport")
+            Log.verbose("PhantomBody", "Player entity being removed (logout) - skipping teleport")
         }
 
         // Always remove phantom body entity

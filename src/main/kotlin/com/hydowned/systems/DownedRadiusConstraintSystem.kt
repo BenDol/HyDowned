@@ -117,7 +117,7 @@ class DownedRadiusConstraintSystem(
 
             playerRefComponent.getPacketHandler().write(teleportPacket)
 
-            println("[HyDowned] [RadiusConstraint] Player exceeded ${MAX_DISTANCE_FROM_BODY}m radius, teleported back")
+            Log.verbose("RadiusConstraint", "Player exceeded ${MAX_DISTANCE_FROM_BODY}m radius, teleported back")
         }
     }
 }

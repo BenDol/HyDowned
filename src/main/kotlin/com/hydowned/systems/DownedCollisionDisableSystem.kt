@@ -42,8 +42,8 @@ class DownedCollisionDisableSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        println("[HyDowned] [Collision] ============================================")
-        println("[HyDowned] [Collision] Disabling character collision for downed player")
+        Log.verbose("CollisionDisable", "============================================")
+        Log.verbose("CollisionDisable", "Disabling character collision for downed player")
 
         // Disable character (entity-to-entity) collisions using CollisionResultComponent
         try {
@@ -79,7 +79,7 @@ class DownedCollisionDisableSystem(
             e.printStackTrace()
         }
 
-        println("[HyDowned] [Collision] ============================================")
+        Log.verbose("CollisionDisable", "============================================")
     }
 
     override fun onComponentSet(
@@ -98,8 +98,8 @@ class DownedCollisionDisableSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        println("[HyDowned] [Collision] ============================================")
-        println("[HyDowned] [Collision] Restoring character collision for player")
+        Log.verbose("CollisionDisable", "============================================")
+        Log.verbose("CollisionDisable", "Restoring character collision for player")
 
         // Re-enable character (entity-to-entity) collisions if they were enabled before
         try {
@@ -123,6 +123,6 @@ class DownedCollisionDisableSystem(
             e.printStackTrace()
         }
 
-        println("[HyDowned] [Collision] ============================================")
+        Log.verbose("CollisionDisable", "============================================")
     }
 }

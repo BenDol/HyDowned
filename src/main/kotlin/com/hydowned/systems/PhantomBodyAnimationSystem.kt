@@ -45,7 +45,7 @@ class PhantomBodyAnimationSystem(
     ) {
         val ref = archetypeChunk.getReferenceTo(index)
 
-        println("[HyDowned] [PhantomAnimation] Checking phantom body entity...")
+        Log.verbose("PhantomAnimation", "Checking phantom body entity...")
 
         // Check if entity is fully spawned (has NetworkId)
         val networkId = commandBuffer.getComponent(ref, NetworkId.getComponentType())
@@ -93,9 +93,9 @@ class PhantomBodyAnimationSystem(
                         }
 
                         Log.verbose("PhantomAnimation", "Queued equipment update to ${visible.visibleTo.size} viewers")
-                        println("[HyDowned] [PhantomAnimation]   - Armor: ${equipmentData.armorIds?.joinToString(", ")}")
-                        println("[HyDowned] [PhantomAnimation]   - Right hand: ${equipmentData.rightHandItemId}")
-                        println("[HyDowned] [PhantomAnimation]   - Left hand: ${equipmentData.leftHandItemId}")
+                        Log.verbose("PhantomAnimation", "  - Armor: ${equipmentData.armorIds?.joinToString(", ")}")
+                        Log.verbose("PhantomAnimation", "  - Right hand: ${equipmentData.rightHandItemId}")
+                        Log.verbose("PhantomAnimation", "  - Left hand: ${equipmentData.leftHandItemId}")
                     } catch (e: Exception) {
                         Log.error("PhantomAnimation", "Failed to send equipment update: ${e.message}")
                         e.printStackTrace()

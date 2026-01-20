@@ -187,7 +187,7 @@ class DownedPacketInterceptor(
             //                 val animationId = packet.animationId
             //                 if (animationId != null && !animationId.contains("Death", ignoreCase = true)) {
             //                     // Block non-death animations
-            //                     println("[HyDowned] Blocked non-death animation in ${packet.slot} slot: $animationId")
+            //                     Log.verbose("PacketInterceptor", "Blocked non-death animation in ${packet.slot} slot: $animationId")
             //                     return // Don't send packet
             //                 }
             //             }
@@ -212,7 +212,7 @@ class DownedPacketInterceptor(
             //             if (packet.slot == AnimationSlot.Movement || packet.slot == AnimationSlot.Status) {
             //                 val animationId = packet.animationId
             //                 if (animationId != null && !animationId.contains("Death", ignoreCase = true)) {
-            //                     println("[HyDowned] Blocked non-death animation in ${packet.slot} slot: $animationId")
+            //                     Log.verbose("PacketInterceptor", "Blocked non-death animation in ${packet.slot} slot: $animationId")
             //                     return
             //                 }
             //             }
@@ -262,7 +262,7 @@ class DownedPacketInterceptor(
                                 movementStates.falling = false
                                 movementStates.crouching = false
                                 movementStates.forcedCrouching = false
-                                println("[HyDowned] [INTERCEPTOR] Modified MovementStates in EntityUpdates - forced sleeping = true, blocked crouching")
+                                Log.verbose("PacketInterceptor", "Modified MovementStates in EntityUpdates - forced sleeping = true, blocked crouching")
                             }
                         }
                     }

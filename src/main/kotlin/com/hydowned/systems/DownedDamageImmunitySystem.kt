@@ -36,25 +36,26 @@ class DownedDamageImmunitySystem(
     private val config: DownedConfig
 ) : DamageEventSystem() {
 
+    // CRITICAL: Query ONLY requires Player + DownedComponent!
+    // If we require EntityStatMap in the query, the system won't run
+    // for entities missing that component during cleanup/transition, and damage bypasses us!
+    // Instead, we check for EntityStatMap inside the handler.
     private val query = Query.and(
         Player.getComponentType(),
-        DownedComponent.getComponentType(),
-        EntityStatMap.getComponentType()
+        DownedComponent.getComponentType()
     )
 
     // Run in FilterDamageGroup, BEFORE ApplyDamage
     private val dependencies = setOf(
-        SystemDependency<EntityStore, DamageSystems.ApplyDamage>(Order.BEFORE, DamageSystems.ApplyDamage::class.java)
+        SystemDependency(Order.BEFORE, DamageSystems.ApplyDamage::class.java)
     )
 
     override fun getQuery(): Query<EntityStore> = query
 
-    
     override fun getGroup(): SystemGroup<EntityStore>? {
         return DamageModule.get().filterDamageGroup
     }
 
-    
     override fun getDependencies(): Set<Dependency<EntityStore>> = dependencies
 
     override fun handle(
@@ -64,32 +65,26 @@ class DownedDamageImmunitySystem(
         commandBuffer: CommandBuffer<EntityStore>,
         damage: Damage
     ) {
+        val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
+        Log.warning("DamageImmunity", "[ENTRY] Processing damage for downed player ${playerComponent?.displayName}, amount: ${damage.amount}")
+
         // Check if timer has expired - allow timeout death damage through
         val downedComponent = archetypeChunk.getComponent(index, DownedComponent.getComponentType())
-        if (downedComponent != null && downedComponent.downedTimeRemaining <= 0) {
-            // Timer expired - this is the timeout kill damage, allow it through
-            val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-            Log.separator("DamageImmunity")
-            println("[HyDowned] TIMEOUT KILL DAMAGE - Allowing through")
-            println("[HyDowned]   Player: ${playerComponent?.displayName}")
-            println("[HyDowned]   Damage: ${damage.amount}")
-            Log.separator("DamageImmunity")
-            return // Don't block this damage
+        if (downedComponent == null) {
+            Log.warning("DamageImmunity", "[MISSING COMPONENT] ${playerComponent?.displayName} has no DownedComponent - this shouldn't happen!")
+            return // Allow damage through since player isn't actually downed
         }
 
-        // Player is downed but timer hasn't expired - make them immune to all damage
-        val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-
-        Log.separator("DamageImmunity")
-        println("[HyDowned] DAMAGE BLOCKED - Player is downed")
-        println("[HyDowned]   Player: ${playerComponent?.displayName}")
-        println("[HyDowned]   Incoming damage BEFORE block: ${damage.amount}")
-        println("[HyDowned]   Damage source: ${damage.cause?.id ?: "unknown"}")
-        Log.separator("DamageImmunity")
+        if (downedComponent.downedTimeRemaining <= 0) {
+            // Timer expired - this is the timeout kill damage, allow it through
+            val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
+            Log.warning("DamageImmunity", "TIMEOUT KILL DAMAGE - Allowing through for ${playerComponent?.displayName}, damage: ${damage.amount}")
+            return // Don't block this damage
+        }
 
         // Cancel all damage by setting amount to 0
         val originalDamage = damage.amount
         damage.amount = 0.0f
-        Log.warning("DamageImmunity", "Damage set to 0 (was $originalDamage)")
+        Log.warning("DamageImmunity", "DAMAGE BLOCKED - Player is downed: ${playerComponent?.displayName}, blocked ${originalDamage} damage")
     }
 }

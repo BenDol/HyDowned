@@ -35,10 +35,12 @@ class DownedDeathInterceptor(
     private val config: DownedConfig
 ) : DamageEventSystem() {
 
+    // CRITICAL: Query ONLY requires Player component!
+    // If we require EntityStatMap/TransformComponent in the query, the system won't run
+    // for entities missing those components during cleanup/transition, and damage bypasses us!
+    // Instead, we check for these components inside the handler and fail gracefully.
     private val query = Query.and(
-        Player.getComponentType(),
-        EntityStatMap.getComponentType(),
-        TransformComponent.getComponentType()
+        Player.getComponentType()
     )
 
     // Run in FilterDamageGroup, BEFORE ApplyDamage
@@ -62,41 +64,69 @@ class DownedDeathInterceptor(
         damage: Damage
     ) {
         val ref = archetypeChunk.getReferenceTo(index)
+        val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
 
-        // Skip if player already downed
+        // LOG EVERY DAMAGE EVENT (even non-lethal) to catch what's happening
+        Log.warning("DeathInterceptor", "[ENTRY] Processing damage for ${playerComponent?.displayName}, amount: ${damage.amount}, source: ${damage.source}")
+
+        // Check if player already downed (or being downed in this tick's command buffer)
         if (commandBuffer.getArchetype(ref).contains(DownedComponent.getComponentType())) {
-            Log.debug("DeathInterceptor", "Player already downed, allowing damage through")
+            // CRITICAL: Player is already downed (or will be after command buffer applies)
+            // We MUST block all damage, not just return early!
+            // If we return early without blocking, damage passes through and kills them
+            val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
+            Log.warning("DeathInterceptor", "DAMAGE BLOCKED - Player already downed/being downed: ${playerComponent?.displayName}, damage blocked: ${damage.amount}")
+
+            // Block ALL damage to already-downed players
+            damage.amount = 0.0f
             return
         }
 
-        // Get health stats
+        // Get health stats - MUST be present to process damage
         val entityStatMap = archetypeChunk.getComponent(index, EntityStatMap.getComponentType())
-            ?: return
-        val healthStat = entityStatMap.get(DefaultEntityStatTypes.getHealth()) ?: return
+        if (entityStatMap == null) {
+            Log.warning("DeathInterceptor", "[MISSING COMPONENT] ${playerComponent?.displayName} has no EntityStatMap - CANNOT intercept damage!")
+            return
+        }
+
+        val healthStat = entityStatMap.get(DefaultEntityStatTypes.getHealth())
+        if (healthStat == null) {
+            Log.warning("DeathInterceptor", "[MISSING HEALTH] ${playerComponent?.displayName} has no health stat - CANNOT intercept damage!")
+            return
+        }
+
         val currentHealth = healthStat.get()
 
         // Calculate if this damage would be lethal
         val newHealth = currentHealth - damage.amount
 
-        if (newHealth <= healthStat.min) {
-            // This damage would kill the player - intercept it!
+        Log.warning("DeathInterceptor", "[HEALTH CHECK] ${playerComponent?.displayName}: current=${currentHealth}, damage=${damage.amount}, result=${newHealth}, min=${healthStat.min}")
+
+        // CRITICAL: Check if damage would bring health below 1 HP (lethal threshold)
+        // We use 1 HP instead of min (0) to prevent edge cases where Hytale's internal
+        // death check might trigger between damage and our interception.
+        if (newHealth < 1.0f) {
+            // This damage would bring player below 1 HP - intercept it!
             Log.separator("DeathInterceptor")
-            Log.verbose("DeathInterceptor", "Intercepting lethal damage!")
-            Log.debug("DeathInterceptor", "Current Health: $currentHealth")
-            Log.debug("DeathInterceptor", "Damage Amount: ${damage.amount}")
-            Log.debug("DeathInterceptor", "Would be fatal: $newHealth HP")
+            Log.warning("DeathInterceptor", "INTERCEPTING DAMAGE - Would bring ${playerComponent?.displayName} below 1 HP safety threshold!")
+            Log.info("DeathInterceptor", "  Current: ${currentHealth} HP")
+            Log.info("DeathInterceptor", "  Damage: ${damage.amount}")
+            Log.info("DeathInterceptor", "  Result: ${newHealth} HP < 1.0 HP threshold")
             Log.separator("DeathInterceptor")
 
-            // Modify damage to leave player at 1 HP instead of 0
+            // Modify damage to leave player at EXACTLY 1 HP (not 0.5, not 0)
+            // This prevents any rounding/truncation issues in Hytale's engine
+            val originalDamageAmount = damage.amount
             val modifiedDamage = currentHealth - 1.0f
-            damage.amount = modifiedDamage
+            damage.amount = modifiedDamage.coerceAtLeast(0.0f)
 
-            Log.verbose("DeathInterceptor", "Modified damage to: $modifiedDamage (leaves player at 1 HP)")
-            Log.debug("DeathInterceptor", "Calculated final health: ${currentHealth - modifiedDamage} HP")
-            Log.debug("DeathInterceptor", "Current damage.amount after modification: ${damage.amount}")
+            Log.info("DeathInterceptor", "  Modified damage from ${originalDamageAmount} to ${damage.amount} (leaves player at 1 HP)")
 
-            // Get location for downed state
+            // Get location for downed state (optional - will be null if TransformComponent missing)
             val transform = archetypeChunk.getComponent(index, TransformComponent.getComponentType())
+            if (transform == null) {
+                Log.warning("DeathInterceptor", "[MISSING COMPONENT] ${playerComponent?.displayName} has no TransformComponent - location will be null")
+            }
             val location = transform?.position?.clone()
 
             // Add downed component instead of letting death happen
@@ -156,6 +186,9 @@ class DownedDeathInterceptor(
 
                 Log.verbose("DeathInterceptor", "Notified $notifiedCount nearby players")
             }
+        } else {
+            // Damage is NOT lethal - allowing through
+            Log.warning("DeathInterceptor", "[NON-LETHAL] Allowing damage through for ${playerComponent?.displayName}: ${currentHealth} HP -> ${newHealth} HP")
         }
     }
 }

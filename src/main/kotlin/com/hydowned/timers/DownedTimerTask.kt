@@ -56,7 +56,7 @@ class DownedTimerTask(
         // Placeholder logging
         val downedCount = stateManager.getAllDownedStates().size
         if (downedCount > 0) {
-            println("DownedTimerTask: Processing $downedCount downed player(s)")
+            Log.debug("TimerTask", "Processing $downedCount downed player(s)")
         }
     }
 
@@ -137,7 +137,7 @@ class DownedTimerTask(
         player.health = 0.0  // This will trigger normal death
         */
 
-        println("DownedTimerTask: Player $playerId downed timer expired - executing death")
+        Log.debug("TimerTask", "Player $playerId downed timer expired - executing death")
     }
 
     private fun completeRevive(player: Any, playerId: UUID) {
@@ -160,7 +160,7 @@ class DownedTimerTask(
         feedbackManager.sendReviveCompleteFeedback(player)
         */
 
-        println("DownedTimerTask: Player $playerId revive complete - restoring to normal state")
+        Log.debug("TimerTask", "Player $playerId revive complete - restoring to normal state")
     }
 
     private fun isWithinRange(loc1: Any, loc2: Any, range: Double): Boolean {

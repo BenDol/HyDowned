@@ -59,7 +59,7 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
     override fun setup() {
         Log.separator("Plugin")
-        println("[HyDowned] Setup Phase")
+        Log.verbose("Plugin", "Setup Phase")
         Log.separator("Plugin")
 
         instance = this
@@ -73,10 +73,10 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
             com.hydowned.util.Log.setLogLevel(config.logLevel)
 
             Log.verbose("Plugin", "Configuration loaded")
-            println("[HyDowned]   - Downed Timer: ${config.downedTimerSeconds}s")
-            println("[HyDowned]   - Revive Timer: ${config.reviveTimerSeconds}s")
-            println("[HyDowned]   - Downed Speed: ${config.downedSpeedMultiplier * 100}%")
-            println("[HyDowned]   - Log Level: ${config.logLevel}")
+            Log.verbose("Plugin", "  - Downed Timer: ${config.downedTimerSeconds}s")
+            Log.verbose("Plugin", "  - Revive Timer: ${config.reviveTimerSeconds}s")
+            Log.verbose("Plugin", "  - Downed Speed: ${config.downedSpeedMultiplier * 100}%")
+            Log.verbose("Plugin", "  - Log Level: ${config.logLevel}")
         } catch (e: Exception) {
             Log.error("Plugin", "Failed to load configuration: ${e.message}")
             e.printStackTrace()
@@ -194,42 +194,42 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
     override fun start() {
         Log.separator("Plugin")
-        println("[HyDowned] Start Phase")
+        Log.verbose("Plugin", "Start Phase")
         Log.separator("Plugin")
 
         Log.separator("Plugin")
         Log.verbose("Plugin", "HyDowned plugin started successfully!")
-        println("[HyDowned] Status: PHANTOM BODY APPROACH ACTIVE")
-        println("[HyDowned] Invisibility Mode: ${config.invisibilityMode}")
+        Log.verbose("Plugin", "Status: PHANTOM BODY APPROACH ACTIVE")
+        Log.verbose("Plugin", "Invisibility Mode: ${config.invisibilityMode}")
         Log.separator("Plugin")
-        println("[HyDowned] FEATURES:")
-        println("[HyDowned]   ✓ Phantom body spawned at downed location (visible to all)")
-        println("[HyDowned]   ✓ Death animation plays on phantom body")
+        Log.verbose("Plugin", "FEATURES:")
+        Log.verbose("Plugin", "  ✓ Phantom body spawned at downed location (visible to all)")
+        Log.verbose("Plugin", "  ✓ Death animation plays on phantom body")
 
         if (config.useScaleMode) {
-            println("[HyDowned]   ✓ Downed player: SCALE mode (0.01% size, nameplate hidden)")
+            Log.verbose("Plugin", "  ✓ Downed player: SCALE mode (0.01% size, nameplate hidden)")
         } else if (config.useInvisibleMode) {
-            println("[HyDowned]   ✓ Downed player: INVISIBLE mode (VisibilityComponent, nameplate hidden)")
+            Log.verbose("Plugin", "  ✓ Downed player: INVISIBLE mode (VisibilityComponent, nameplate hidden)")
         }
 
-        println("[HyDowned]   ✓ Character collision disabled (no pushing/attacking players)")
-        println("[HyDowned]   ✓ Block collision enabled (can't walk through walls)")
-        println("[HyDowned]   ✓ 10 block movement radius from phantom body")
-        println("[HyDowned]   ✓ Interactions blocked while downed")
-        println("[HyDowned]   ✓ Immune to damage while downed")
-        println("[HyDowned]   ✓ Healing blocked while downed")
-        println("[HyDowned]   ✓ All active effects cleared when downed")
-        println("[HyDowned]   ✓ Timer: ${config.downedTimerSeconds}s until death")
-        println("[HyDowned]   ✓ Revive: CROUCH near phantom body (${config.reviveRange} blocks)")
-        println("[HyDowned]   ✓ Player teleports back to body on revive")
-        println("[HyDowned]   ✓ Logout while downed: auto-death + visibility restoration")
-        println("[HyDowned]   ✓ Command: /giveup to instantly die while downed")
+        Log.verbose("Plugin", "  ✓ Character collision disabled (no pushing/attacking players)")
+        Log.verbose("Plugin", "  ✓ Block collision enabled (can't walk through walls)")
+        Log.verbose("Plugin", "  ✓ 10 block movement radius from phantom body")
+        Log.verbose("Plugin", "  ✓ Interactions blocked while downed")
+        Log.verbose("Plugin", "  ✓ Immune to damage while downed")
+        Log.verbose("Plugin", "  ✓ Healing blocked while downed")
+        Log.verbose("Plugin", "  ✓ All active effects cleared when downed")
+        Log.verbose("Plugin", "  ✓ Timer: ${config.downedTimerSeconds}s until death")
+        Log.verbose("Plugin", "  ✓ Revive: CROUCH near phantom body (${config.reviveRange} blocks)")
+        Log.verbose("Plugin", "  ✓ Player teleports back to body on revive")
+        Log.verbose("Plugin", "  ✓ Logout while downed: auto-death + visibility restoration")
+        Log.verbose("Plugin", "  ✓ Command: /giveup to instantly die while downed")
         Log.separator("Plugin")
     }
 
     override fun shutdown() {
-        println("[HyDowned] Shutting down...")
+        Log.verbose("Plugin", "Shutting down...")
         instance = null
-        println("[HyDowned] Shutdown complete")
+        Log.verbose("Plugin", "Shutdown complete")
     }
 }

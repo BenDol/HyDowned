@@ -56,14 +56,14 @@ class DownedLogoutHandlerSystem(
         val uuidComponent = commandBuffer.getComponent(ref, UUIDComponent.getComponentType())
         val playerUuid = uuidComponent?.uuid
 
-        println("[HyDowned] [LogoutHandler] Downed player logging out: $playerUuid")
-        println("[HyDowned] [LogoutHandler] Reason: $reason")
+        Log.verbose("LogoutHandler", "Downed player logging out: $playerUuid")
+        Log.verbose("LogoutHandler", "Reason: $reason")
 
         // Get the DownedComponent
         val downedComponent = commandBuffer.getComponent(ref, DownedComponent.getComponentType())
             ?: return
 
-        println("[HyDowned] [LogoutHandler] Player quit while downed")
+        Log.verbose("LogoutHandler", "Player quit while downed")
 
         // Determine if this is an intentional logout or a crash/disconnect
         // UNLOAD = kicked by duplicate login / server shutdown (could be crash - mark for restore)
@@ -72,7 +72,7 @@ class DownedLogoutHandlerSystem(
         when (reason.toString()) {
             "DISCONNECT" -> {
                 // Intentional logout - player should die on rejoin
-                println("[HyDowned] [LogoutHandler] Detected INTENTIONAL logout (DISCONNECT)")
+                Log.verbose("LogoutHandler", "Detected INTENTIONAL logout (DISCONNECT)")
                 if (playerUuid != null) {
                     PendingDeathTracker.markForDeath(playerUuid)
                     Log.verbose("LogoutHandler", "Marked player for death on rejoin")
@@ -82,7 +82,7 @@ class DownedLogoutHandlerSystem(
             }
             "UNLOAD" -> {
                 // Unload (duplicate login, server shutdown) - could be crash, preserve downed state
-                println("[HyDowned] [LogoutHandler] Detected UNINTENTIONAL disconnect (UNLOAD) - preserving downed state")
+                Log.verbose("LogoutHandler", "Detected UNINTENTIONAL disconnect (UNLOAD) - preserving downed state")
                 if (playerUuid != null) {
                     val timeRemaining = downedComponent.downedTimeRemaining
                     val downedLocation = downedComponent.downedLocation

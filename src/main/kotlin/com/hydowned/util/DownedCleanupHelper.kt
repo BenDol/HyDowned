@@ -57,9 +57,9 @@ object DownedCleanupHelper {
         reason: String,
         forceHealthToZero: Boolean = false
     ) {
-        println("[HyDowned] [Cleanup] ============================================")
-        println("[HyDowned] [Cleanup] Executing death: $reason")
-        println("[HyDowned] [Cleanup] ============================================")
+        Log.verbose("CleanupHelper", "============================================")
+        Log.verbose("CleanupHelper", "Executing death: $reason")
+        Log.verbose("CleanupHelper", "============================================")
 
         // CRITICAL: Set timer to 0 BEFORE executing death
         // This makes the damage immunity system allow the killing damage through
@@ -135,17 +135,18 @@ object DownedCleanupHelper {
         downedComponent: DownedComponent,
         healthPercent: Double
     ): Boolean {
-        println("[HyDowned] [Cleanup] ============================================")
-        println("[HyDowned] [Cleanup] Executing revive")
-        println("[HyDowned] [Cleanup] ============================================")
+        Log.verbose("CleanupHelper", "============================================")
+        Log.verbose("CleanupHelper", "Executing revive")
+        Log.verbose("CleanupHelper", "============================================")
 
         // Teleport player back to downed location
         teleportToDownedLocation(ref, commandBuffer, downedComponent)
 
-        // Clean up downed state (not logout, so component callbacks will fire)
-        cleanupDownedState(ref, commandBuffer, downedComponent, isLogout = false)
-
-        // Restore health
+        // CRITICAL: Restore health BEFORE removing DownedComponent
+        // This prevents a race condition where another player could attack during revive:
+        // - If we remove DownedComponent first, player loses damage immunity
+        // - If damage arrives before health is restored, player is at 1 HP and vulnerable
+        // - By restoring health first, player is protected until they have sufficient HP
         val entityStatMap = commandBuffer.getComponent(ref, EntityStatMap.getComponentType())
         if (entityStatMap != null) {
             val healthStat = entityStatMap.get(DefaultEntityStatTypes.getHealth())
@@ -153,7 +154,6 @@ object DownedCleanupHelper {
                 val restoreAmount = healthStat.max * healthPercent.toFloat()
                 entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), restoreAmount)
                 Log.verbose("CleanupHelper", "Restored health to ${restoreAmount} (${healthPercent * 100}%)")
-                return true
             } else {
                 Log.warning("CleanupHelper", "Health stat not found")
                 return false
@@ -162,6 +162,11 @@ object DownedCleanupHelper {
             Log.warning("CleanupHelper", "EntityStatMap not found")
             return false
         }
+
+        // Now safe to clean up downed state (player has health and can survive attacks)
+        cleanupDownedState(ref, commandBuffer, downedComponent, isLogout = false)
+
+        return true
     }
 
     /**

@@ -23,7 +23,7 @@ object DownedStateTracker {
      */
     fun setDowned(playerRef: Ref<EntityStore>) {
         downedPlayers.add(playerRef)
-        println("[HyDowned] StateTracker: Player marked as downed")
+        Log.verbose("StateTracker", "StateTracker: Player marked as downed")
     }
 
     /**
@@ -31,7 +31,7 @@ object DownedStateTracker {
      */
     fun setNotDowned(playerRef: Ref<EntityStore>) {
         downedPlayers.remove(playerRef)
-        println("[HyDowned] StateTracker: Player marked as not downed")
+        Log.verbose("StateTracker", "StateTracker: Player marked as not downed")
     }
 
     /**

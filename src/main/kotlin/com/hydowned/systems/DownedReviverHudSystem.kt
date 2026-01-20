@@ -154,7 +154,7 @@ class DownedReviverHudSystem(
             // Send packet
             playerRef.packetHandler.write(titlePacket)
         } catch (e: Exception) {
-            println("[HyDowned] Error sending reviver HUD: ${e.message}")
+            Log.error("ReviverHud", "Error sending reviver HUD: ${e.message}")
         }
     }
 
@@ -163,7 +163,7 @@ class DownedReviverHudSystem(
             val hidePacket = HideEventTitle()
             playerRef.packetHandler.write(hidePacket)
         } catch (e: Exception) {
-            println("[HyDowned] Error hiding reviver HUD: ${e.message}")
+            Log.error("ReviverHud", "Error hiding reviver HUD: ${e.message}")
         }
     }
 

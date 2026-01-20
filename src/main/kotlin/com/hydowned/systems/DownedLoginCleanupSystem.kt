@@ -70,7 +70,7 @@ class DownedLoginCleanupSystem(
             return // No cleanup needed for this player
         }
 
-        println("[HyDowned] [LoginCleanup] Processing login cleanup for player...")
+        Log.verbose("LoginCleanup", "Processing login cleanup for player...")
 
         var issuesFound = false
 
@@ -105,8 +105,8 @@ class DownedLoginCleanupSystem(
                 is PendingDeathTracker.RestoreAction.RestoreDowned -> {
                     // Player crashed/unloaded while downed → restore downed state
                     Log.warning("LoginCleanup", "Player crashed while downed - RESTORING downed state")
-                    println("[HyDowned] [LoginCleanup]   Time remaining: ${action.timeRemaining}s")
-                    println("[HyDowned] [LoginCleanup]   Downed location: ${action.downedLocation}")
+                    Log.verbose("LoginCleanup", "  Time remaining: ${action.timeRemaining}s")
+                    Log.verbose("LoginCleanup", "  Downed location: ${action.downedLocation}")
 
                     // CRITICAL: Remove any lingering invisibility/collision components BEFORE restoring downed state
                     // If these are present, the invisibility/collision systems will think the player was already hidden/intangible

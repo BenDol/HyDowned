@@ -42,12 +42,12 @@ class DownedInvisibilitySystem(
     ) {
         // Only run if INVISIBLE mode is enabled
         if (!config.useInvisibleMode) {
-            println("[HyDowned] [Invisible] Skipping - invisibilityMode is not INVISIBLE")
+            Log.verbose("Invisibility", "Skipping - invisibilityMode is not INVISIBLE")
             return
         }
 
-        println("[HyDowned] [Invisible] ============================================")
-        println("[HyDowned] [Invisible] Making player invisible")
+        Log.verbose("Invisibility", "============================================")
+        Log.verbose("Invisibility", "Making player invisible")
 
         // Make player invisible using HiddenFromAdventurePlayers
         try {
@@ -84,7 +84,7 @@ class DownedInvisibilitySystem(
             Log.warning("Invisibility", "DisplayNameComponent not found")
         }
 
-        println("[HyDowned] [Invisible] ============================================")
+        Log.verbose("Invisibility", "============================================")
     }
 
     override fun onComponentSet(
@@ -108,8 +108,8 @@ class DownedInvisibilitySystem(
             return
         }
 
-        println("[HyDowned] [Invisible] ============================================")
-        println("[HyDowned] [Invisible] Restoring player visibility")
+        Log.verbose("Invisibility", "============================================")
+        Log.verbose("Invisibility", "Restoring player visibility")
 
         // Restore visibility by removing HiddenFromAdventurePlayers (if we added it)
         try {
@@ -166,6 +166,6 @@ class DownedInvisibilitySystem(
             Log.warning("Invisibility", "No original DisplayNameComponent stored")
         }
 
-        println("[HyDowned] [Invisible] ============================================")
+        Log.verbose("Invisibility", "============================================")
     }
 }

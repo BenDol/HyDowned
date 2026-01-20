@@ -49,7 +49,7 @@ class GiveUpCommand(
             return
         }
 
-        println("[HyDowned] [GiveUpCommand] Player used /giveup while downed")
+        Log.verbose("GiveUpCommand", "Player used /giveup while downed")
 
         // Queue this give-up request for processing by DownedTimerSystem
         // The timer system has access to the ECS commandBuffer and can safely execute death

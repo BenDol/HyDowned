@@ -63,7 +63,7 @@ class DownedHealingSuppressionSystem(
         val now = System.currentTimeMillis()
         if (now - lastLogTime > 5000) {
             val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-            println("[HyDowned] [HealingSuppression] Current server-side health: $currentHealth HP (player: ${playerComponent?.displayName})")
+            Log.verbose("HealingSuppression", "Current server-side health: $currentHealth HP (player: ${playerComponent?.displayName})")
             lastLogTime = now
         }
 
@@ -75,10 +75,10 @@ class DownedHealingSuppressionSystem(
             // Log the healing attempt
             val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
             Log.separator("HealingSuppression")
-            println("[HyDowned] HEALING BLOCKED - Player is downed")
-            println("[HyDowned]   Player: ${playerComponent?.displayName}")
-            println("[HyDowned]   Attempted health: $currentHealth HP")
-            println("[HyDowned]   Reverted to: 1 HP")
+            Log.verbose("HealingSuppression", "HEALING BLOCKED - Player is downed")
+            Log.verbose("HealingSuppression", "  Player: ${playerComponent?.displayName}")
+            Log.verbose("HealingSuppression", "  Attempted health: $currentHealth HP")
+            Log.verbose("HealingSuppression", "  Reverted to: 1 HP")
             Log.separator("HealingSuppression")
         }
     }

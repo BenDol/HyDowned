@@ -23,7 +23,7 @@ object PendingDeathTracker {
     init {
         // Ensure directory exists
         pendingDeathsDir.mkdirs()
-        println("[HyDowned] [DeathTracker] Initialized with directory: ${pendingDeathsDir.absolutePath}")
+        Log.verbose("DeathTracker", "Initialized with directory: ${pendingDeathsDir.absolutePath}")
     }
 
     /**
@@ -33,7 +33,7 @@ object PendingDeathTracker {
         val markerFile = File(pendingDeathsDir, "$playerUuid.txt")
         try {
             markerFile.writeText("DEATH")
-            println("[HyDowned] [DeathTracker] Marked $playerUuid for death on next login")
+            Log.verbose("DeathTracker", "Marked $playerUuid for death on next login")
         } catch (e: Exception) {
             Log.warning("DeathTracker", "Failed to create death marker for $playerUuid: ${e.message}")
             e.printStackTrace()
@@ -54,7 +54,7 @@ object PendingDeathTracker {
                 ""
             }
             markerFile.writeText("RESTORE:$timeRemaining$locationStr")
-            println("[HyDowned] [DeathTracker] Marked $playerUuid to restore downed state ($timeRemaining seconds, location: $downedLocation) on next login")
+            Log.verbose("DeathTracker", "Marked $playerUuid to restore downed state ($timeRemaining seconds, location: $downedLocation) on next login")
         } catch (e: Exception) {
             Log.warning("DeathTracker", "Failed to create restore marker for $playerUuid: ${e.message}")
             e.printStackTrace()
@@ -78,7 +78,7 @@ object PendingDeathTracker {
 
             return when {
                 content == "DEATH" -> {
-                    println("[HyDowned] [DeathTracker] Player $playerUuid should die on login")
+                    Log.verbose("DeathTracker", "Player $playerUuid should die on login")
                     RestoreAction.ExecuteDeath
                 }
                 content.startsWith("RESTORE:") -> {
@@ -95,7 +95,7 @@ object PendingDeathTracker {
                         } else null
                     } else null
 
-                    println("[HyDowned] [DeathTracker] Player $playerUuid should restore downed state ($timeRemaining seconds, location: $location)")
+                    Log.verbose("DeathTracker", "Player $playerUuid should restore downed state ($timeRemaining seconds, location: $location)")
                     RestoreAction.RestoreDowned(timeRemaining, location)
                 }
                 else -> {

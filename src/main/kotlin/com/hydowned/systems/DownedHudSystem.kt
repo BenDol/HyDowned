@@ -116,7 +116,7 @@ class DownedHudSystem(
             // Send packet
             playerRef.packetHandler.write(titlePacket)
         } catch (e: Exception) {
-            println("[HyDowned] Error sending event title HUD: ${e.message}")
+            Log.verbose("HudSystem", "Error sending event title HUD: ${e.message}")
             e.printStackTrace()
         }
     }

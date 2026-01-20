@@ -111,11 +111,11 @@ class ReviveInteractionSystem(
                 if (!downedComponent.reviverPlayerIds.contains(reviverUUID)) {
                     val downedPlayerName = downedPlayer.displayName ?: "Player"
                     Log.separator("ReviveInteraction")
-                    println("[HyDowned] CROUCH REVIVE DETECTED!")
-                    println("[HyDowned]   Reviver: ${alivePlayerRef.username} (${alivePlayerRef.uuid})")
-                    println("[HyDowned]   Downed: $downedPlayerName (${downedUuidComponent.uuid})")
-                    println("[HyDowned]   Distance: ${Math.sqrt(distanceSquared)} blocks")
-                    println("[HyDowned]   Crouching: $isCrouching")
+                    Log.verbose("ReviveInteraction", "CROUCH REVIVE DETECTED!")
+                    Log.verbose("ReviveInteraction", "  Reviver: ${alivePlayerRef.username} (${alivePlayerRef.uuid})")
+                    Log.verbose("ReviveInteraction", "  Downed: $downedPlayerName (${downedUuidComponent.uuid})")
+                    Log.verbose("ReviveInteraction", "  Distance: ${Math.sqrt(distanceSquared)} blocks")
+                    Log.verbose("ReviveInteraction", "  Crouching: $isCrouching")
                     Log.separator("ReviveInteraction")
 
                     // Add reviver
@@ -140,7 +140,7 @@ class ReviveInteractionSystem(
             val reviverUUID = iterator.next()
             if (!nearbyAlivePlayerUUIDs.contains(reviverUUID)) {
                 iterator.remove()
-                println("[HyDowned] Reviver stopped reviving (not crouching or out of range): $reviverUUID")
+                Log.verbose("ReviveInteraction", "Reviver stopped reviving (not crouching or out of range): $reviverUUID")
 
                 // Try to send message to the reviver if they're still online
                 for (player in allPlayers) {

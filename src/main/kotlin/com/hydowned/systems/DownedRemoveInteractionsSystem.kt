@@ -58,7 +58,7 @@ class DownedRemoveInteractionsSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        println("[HyDowned] [RemoveInteractions] onComponentAdded triggered for downed player")
+        Log.verbose("RemoveInteractions", "onComponentAdded triggered for downed player")
 
         // Save and remove the Interactions component
         val interactions = commandBuffer.getComponent(ref, interactionsComponentType)
@@ -101,13 +101,13 @@ class DownedRemoveInteractionsSystem(
         val interactions = savedInteractions.remove(ref)
         if (interactions != null) {
             commandBuffer.addComponent(ref, interactionsComponentType, interactions)
-            println("[HyDowned] Restored Interactions component")
+            Log.verbose("RemoveInteractions", "Restored Interactions component")
         }
 
         // Restore the Interactable component if it existed before
         if (hadInteractable.remove(ref)) {
             commandBuffer.ensureComponent(ref, interactableComponentType)
-            println("[HyDowned] Restored Interactable component - interactions re-enabled")
+            Log.verbose("RemoveInteractions", "Restored Interactable component - interactions re-enabled")
         }
     }
 }
