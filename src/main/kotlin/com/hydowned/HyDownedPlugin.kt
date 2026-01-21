@@ -70,6 +70,9 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
     override fun setup() {
         instance = this
 
+        // Initialize logging system with Hytale logger
+        Log.init(logger)
+
         // Initialize configuration
         val pluginDataFolder = java.io.File("plugins/HyDowned")
         try {

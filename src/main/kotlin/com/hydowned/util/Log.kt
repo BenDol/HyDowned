@@ -1,7 +1,12 @@
 package com.hydowned.util
 
+import com.hypixel.hytale.logger.HytaleLogger
+
 /**
- * Simple logging system with configurable log levels
+ * Logging system for HyDowned mod.
+ *
+ * Outputs to stdout/stderr which is captured by Hytale's logging system.
+ * The server's log level configuration will control what actually appears in logs.
  *
  * Log Levels:
  * - ERROR: Critical errors that need immediate attention
@@ -12,9 +17,9 @@ package com.hydowned.util
  *
  * Usage:
  * ```
- * Logger.info("System", "Player entered downed state")
- * Logger.debug("System", "Current health: $health")
- * Logger.error("System", "Failed to save data: ${e.message}")
+ * Log.info("System", "Player entered downed state")
+ * Log.debug("System", "Current health: $health")
+ * Log.error("System", "Failed to save data: ${e.message}")
  * ```
  */
 object Log {
@@ -27,15 +32,26 @@ object Log {
         DEBUG(4)
     }
 
+    private var logger: HytaleLogger? = null
     private var enabledLevel: LogLevel = LogLevel.INFO
 
     /**
-     * Set the minimum log level to display
-     * All logs at this level or higher priority will be shown
+     * Initialize with Hytale logger (should be called from plugin setup)
+     */
+    fun init(pluginLogger: HytaleLogger) {
+        logger = pluginLogger
+        // Log initialization using the logger
+        logger?.atInfo()?.log("HyDowned logging system initialized")
+    }
+
+    /**
+     * Set the minimum log level to display.
+     * All logs at this level or higher priority will be shown.
+     * Note: The server's log level also applies - this is an additional filter.
      */
     fun setLogLevel(level: LogLevel) {
         enabledLevel = level
-        println("[HyDowned] Log level set to: $level")
+        logger?.atInfo()?.log("Log level set to: $level")
     }
 
     /**
@@ -46,7 +62,7 @@ object Log {
             val parsedLevel = LogLevel.valueOf(level.uppercase())
             setLogLevel(parsedLevel)
         } catch (e: IllegalArgumentException) {
-            println("[HyDowned] [Logger] Invalid log level: $level, using INFO")
+            logger?.atInfo()?.log("Invalid log level: $level, using INFO")
             setLogLevel(LogLevel.INFO)
         }
     }
@@ -59,11 +75,11 @@ object Log {
     }
 
     /**
-     * Log an error message (always shown)
+     * Log an error message (always shown if server ERROR level is enabled)
      */
     fun error(category: String, message: String) {
         if (isEnabled(LogLevel.ERROR)) {
-            println("[HyDowned] [ERROR] [$category] $message")
+            logger?.atSevere()?.log("[ERROR] [$category] $message")
         }
     }
 
@@ -72,7 +88,7 @@ object Log {
      */
     fun warning(category: String, message: String) {
         if (isEnabled(LogLevel.WARNING)) {
-            println("[HyDowned] [WARNING] [$category] $message")
+            logger?.atWarning()?.log("[WARNING] [$category] $message")
         }
     }
 
@@ -81,7 +97,7 @@ object Log {
      */
     fun info(category: String, message: String) {
         if (isEnabled(LogLevel.INFO)) {
-            println("[HyDowned] [INFO] [$category] $message")
+            logger?.atInfo()?.log("[$category] $message")
         }
     }
 
@@ -90,7 +106,7 @@ object Log {
      */
     fun verbose(category: String, message: String) {
         if (isEnabled(LogLevel.VERBOSE)) {
-            println("[HyDowned] [VERBOSE] [$category] $message")
+            logger?.atFiner()?.log("[VERBOSE] [$category] $message")
         }
     }
 
@@ -99,7 +115,7 @@ object Log {
      */
     fun debug(category: String, message: String) {
         if (isEnabled(LogLevel.DEBUG)) {
-            println("[HyDowned] [DEBUG] [$category] $message")
+            logger?.atFine()?.log("[DEBUG] [$category] $message")
         }
     }
 
@@ -108,7 +124,7 @@ object Log {
      */
     fun separator(category: String) {
         if (isEnabled(LogLevel.VERBOSE)) {
-            println("[HyDowned] [$category] ============================================")
+            logger?.atInfo()?.log("[$category] ============================================")
         }
     }
 }
