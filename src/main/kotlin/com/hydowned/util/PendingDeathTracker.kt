@@ -3,7 +3,6 @@ package com.hydowned.util
 import com.hypixel.hytale.math.vector.Vector3d
 import java.io.File
 import java.util.UUID
-import com.hydowned.util.Log
 
 
 /**
@@ -23,7 +22,7 @@ object PendingDeathTracker {
     init {
         // Ensure directory exists
         pendingDeathsDir.mkdirs()
-        Log.verbose("DeathTracker", "Initialized with directory: ${pendingDeathsDir.absolutePath}")
+        Log.finer("DeathTracker", "Initialized with directory: ${pendingDeathsDir.absolutePath}")
     }
 
     /**
@@ -33,7 +32,7 @@ object PendingDeathTracker {
         val markerFile = File(pendingDeathsDir, "$playerUuid.txt")
         try {
             markerFile.writeText("DEATH")
-            Log.verbose("DeathTracker", "Marked $playerUuid for death on next login")
+            Log.finer("DeathTracker", "Marked $playerUuid for death on next login")
         } catch (e: Exception) {
             Log.warning("DeathTracker", "Failed to create death marker for $playerUuid: ${e.message}")
             e.printStackTrace()
@@ -54,7 +53,7 @@ object PendingDeathTracker {
                 ""
             }
             markerFile.writeText("RESTORE:$timeRemaining$locationStr")
-            Log.verbose("DeathTracker", "Marked $playerUuid to restore downed state ($timeRemaining seconds, location: $downedLocation) on next login")
+            Log.finer("DeathTracker", "Marked $playerUuid to restore downed state ($timeRemaining seconds, location: $downedLocation) on next login")
         } catch (e: Exception) {
             Log.warning("DeathTracker", "Failed to create restore marker for $playerUuid: ${e.message}")
             e.printStackTrace()
@@ -78,7 +77,7 @@ object PendingDeathTracker {
 
             return when {
                 content == "DEATH" -> {
-                    Log.verbose("DeathTracker", "Player $playerUuid should die on login")
+                    Log.finer("DeathTracker", "Player $playerUuid should die on login")
                     RestoreAction.ExecuteDeath
                 }
                 content.startsWith("RESTORE:") -> {
@@ -95,7 +94,7 @@ object PendingDeathTracker {
                         } else null
                     } else null
 
-                    Log.verbose("DeathTracker", "Player $playerUuid should restore downed state ($timeRemaining seconds, location: $location)")
+                    Log.finer("DeathTracker", "Player $playerUuid should restore downed state ($timeRemaining seconds, location: $location)")
                     RestoreAction.RestoreDowned(timeRemaining, location)
                 }
                 else -> {

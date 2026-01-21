@@ -11,5 +11,5 @@
   "enableActionBar": true,
   "invisibilityMode": "INVISIBLE",
   "downedMode": "PLAYER",
-  "logLevel": "INFO"
+  "logLevel": "FINER"
 }

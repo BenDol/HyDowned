@@ -51,7 +51,7 @@ class DownedMobAggroSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        Log.verbose("MobAggro", "Attempting to prevent mob targeting")
+        Log.finer("MobAggro", "Attempting to prevent mob targeting")
 
         var approachesApplied = 0
 
@@ -62,7 +62,7 @@ class DownedMobAggroSystem(
 
             if (!hadIntangible) {
                 commandBuffer.ensureComponent(ref, Intangible.getComponentType())
-                Log.verbose("MobAggro", "Added Intangible component")
+                Log.finer("MobAggro", "Added Intangible component")
                 approachesApplied++
             }
         } catch (e: Exception) {
@@ -74,14 +74,14 @@ class DownedMobAggroSystem(
             val hadRespondToHit = commandBuffer.getComponent(ref, RespondToHit.getComponentType()) != null
             if (hadRespondToHit) {
                 commandBuffer.tryRemoveComponent(ref, RespondToHit.getComponentType())
-                Log.verbose("MobAggro", "Removed RespondToHit component")
+                Log.finer("MobAggro", "Removed RespondToHit component")
                 approachesApplied++
             }
         } catch (e: Exception) {
             Log.warning("MobAggro", "Failed to remove RespondToHit: ${e.message}")
         }
 
-        Log.verbose("MobAggro", "Applied $approachesApplied aggro-prevention approaches")
+        Log.finer("MobAggro", "Applied $approachesApplied aggro-prevention approaches")
     }
 
     override fun onComponentSet(
@@ -100,13 +100,13 @@ class DownedMobAggroSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        Log.verbose("MobAggro", "Restoring mob targetability")
+        Log.finer("MobAggro", "Restoring mob targetability")
 
         // Restore 1: Remove Intangible component if we added it
         try {
             if (component.wasTargetable) { // If they were targetable before, remove Intangible
                 commandBuffer.tryRemoveComponent(ref, Intangible.getComponentType())
-                Log.verbose("MobAggro", "Removed Intangible component")
+                Log.finer("MobAggro", "Removed Intangible component")
             }
         } catch (e: Exception) {
             Log.warning("MobAggro", "Failed to remove Intangible: ${e.message}")
@@ -115,7 +115,7 @@ class DownedMobAggroSystem(
         // Restore 2: Re-add RespondToHit
         try {
             commandBuffer.ensureComponent(ref, RespondToHit.getComponentType())
-            Log.verbose("MobAggro", "Restored RespondToHit component")
+            Log.finer("MobAggro", "Restored RespondToHit component")
         } catch (e: Exception) {
             Log.warning("MobAggro", "Failed to restore RespondToHit: ${e.message}")
         }

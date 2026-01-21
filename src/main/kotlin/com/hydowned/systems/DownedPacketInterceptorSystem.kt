@@ -63,14 +63,14 @@ class DownedPacketInterceptorSystem(
 
         // Check if it's a GenericPacketHandler (it should be)
         if (packetHandler !is GenericPacketHandler) {
-            Log.verbose("PacketInterceptor", "Warning: PacketHandler is not GenericPacketHandler (is ${packetHandler::class.java.name}), cannot intercept")
+            Log.finer("PacketInterceptor", "Warning: PacketHandler is not GenericPacketHandler (is ${packetHandler::class.java.name}), cannot intercept")
             return
         }
 
         // Get the player's network ID (on world thread - safe to access ECS)
         val networkIdComponent = commandBuffer.getComponent(ref, NetworkId.getComponentType())
         if (networkIdComponent == null) {
-            Log.verbose("PacketInterceptor", "Warning: NetworkId component not found, cannot install packet interceptors")
+            Log.finer("PacketInterceptor", "Warning: NetworkId component not found, cannot install packet interceptors")
             return
         }
         val playerNetworkId = networkIdComponent.id
@@ -84,7 +84,7 @@ class DownedPacketInterceptorSystem(
             handlersField.isAccessible = true
             val handlers = handlersField.get(packetHandler) as Array<Any?>
 
-            Log.verbose("PacketInterceptor", "Found ${handlers.size} handler slots in GenericPacketHandler")
+            Log.finer("PacketInterceptor", "Found ${handlers.size} handler slots in GenericPacketHandler")
 
             // Count how many we wrap
             var wrappedCount = 0
@@ -128,20 +128,20 @@ class DownedPacketInterceptorSystem(
                     } else {
                         pipeline.addLast(handlerName, channelHandler)
                     }
-                    Log.verbose("PacketInterceptor", "Installed Netty channel handler for outgoing packets")
+                    Log.finer("PacketInterceptor", "Installed Netty channel handler for outgoing packets")
                 }
             } catch (e: Exception) {
                 Log.warning("PacketInterceptor", "Failed to install Netty channel handler: ${e.message}")
                 e.printStackTrace()
             }
 
-            Log.verbose("PacketInterceptor", "Installed packet interceptors for player:")
-            Log.verbose("PacketInterceptor", "  - Wrapped $wrappedCount incoming handlers (ClientMovement BLOCKED)")
-            Log.verbose("PacketInterceptor", "  - Installed Netty channel handler (intercepts ALL outgoing EntityUpdates)")
-            Log.verbose("PacketInterceptor", "  - NetworkId=$playerNetworkId stored in tracker")
+            Log.finer("PacketInterceptor", "Installed packet interceptors for player:")
+            Log.finer("PacketInterceptor", "  - Wrapped $wrappedCount incoming handlers (ClientMovement BLOCKED)")
+            Log.finer("PacketInterceptor", "  - Installed Netty channel handler (intercepts ALL outgoing EntityUpdates)")
+            Log.finer("PacketInterceptor", "  - NetworkId=$playerNetworkId stored in tracker")
 
         } catch (e: Exception) {
-            Log.verbose("PacketInterceptor", "Failed to install packet interceptors: ${e.message}")
+            Log.finer("PacketInterceptor", "Failed to install packet interceptors: ${e.message}")
             e.printStackTrace()
         }
     }
@@ -167,12 +167,12 @@ class DownedPacketInterceptorSystem(
 
                     if (pipeline.get(handlerName) != null) {
                         pipeline.remove(handlerName)
-                        Log.verbose("PacketInterceptor", "Removed Netty channel handler for disconnecting player")
+                        Log.finer("PacketInterceptor", "Removed Netty channel handler for disconnecting player")
                     }
                 }
             }
         } catch (e: Exception) {
-            Log.verbose("PacketInterceptor", "Failed to remove Netty channel handler: ${e.message}")
+            Log.finer("PacketInterceptor", "Failed to remove Netty channel handler: ${e.message}")
         }
 
         // Clean up downed state tracking

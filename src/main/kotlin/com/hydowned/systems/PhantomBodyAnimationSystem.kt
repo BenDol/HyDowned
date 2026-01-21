@@ -72,7 +72,7 @@ class PhantomBodyAnimationSystem(
                         false,
                         commandBuffer
                     )
-                    Log.verbose("PhantomAnimation", "Played death animation on phantom body")
+                    Log.finer("PhantomAnimation", "Played death animation on phantom body")
                 } catch (e: Exception) {
                     Log.error("PhantomAnimation", "Failed to play animation: ${e.message}")
                     e.printStackTrace()
@@ -95,7 +95,7 @@ class PhantomBodyAnimationSystem(
                             }
                         }
 
-                        Log.verbose("PhantomAnimation", "Queued equipment update to ${visible.visibleTo.size} viewers")
+                        Log.finer("PhantomAnimation", "Queued equipment update to ${visible.visibleTo.size} viewers")
                         // PERFORMANCE: Commented out expensive string operations (joinToString on every phantom body spawn)
                         // Log.verbose("PhantomAnimation", "  - Armor: ${equipmentData.armorIds?.joinToString(", ")}")
                         // Log.verbose("PhantomAnimation", "  - Right hand: ${equipmentData.rightHandItemId}")
@@ -125,7 +125,7 @@ class PhantomBodyAnimationSystem(
                             }
                         }
 
-                        Log.verbose("PhantomAnimation", "Queued cosmetic skin/outfit update to ${visible.visibleTo.size} viewers")
+                        Log.finer("PhantomAnimation", "Queued cosmetic skin/outfit update to ${visible.visibleTo.size} viewers")
                     } catch (e: Exception) {
                         Log.error("PhantomAnimation", "Failed to send skin update: ${e.message}")
                         e.printStackTrace()

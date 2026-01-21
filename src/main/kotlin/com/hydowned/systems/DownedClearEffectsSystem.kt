@@ -46,7 +46,7 @@ class DownedClearEffectsSystem(
         val effectController = commandBuffer.getComponent(ref, EffectControllerComponent.getComponentType())
         if (effectController != null) {
             effectController.clearEffects(ref, commandBuffer)
-            Log.verbose("ClearEffects", "Cleared all entity effects for downed player")
+            Log.finer("ClearEffects", "Cleared all entity effects for downed player")
         }
     }
 

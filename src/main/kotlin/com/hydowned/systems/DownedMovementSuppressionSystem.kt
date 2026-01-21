@@ -112,7 +112,7 @@ class DownedMovementSuppressionSystem(
 
                 queue.clear()
                 queue.addAll(filtered)
-                Log.verbose("MovementSuppression", "Filtered ${queue.size - filtered.size} movement inputs from queue")
+                Log.finer("MovementSuppression", "Filtered ${queue.size - filtered.size} movement inputs from queue")
             }
         }
 

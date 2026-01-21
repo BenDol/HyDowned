@@ -40,41 +40,41 @@ class DownedPlayerScaleSystem(
     ) {
         // Only run in PHANTOM mode with SCALE invisibility
         if (!config.usePhantomMode || !config.useScaleMode) {
-            Log.verbose("PlayerScale", "Skipping - not PHANTOM mode or not SCALE invisibility")
+            Log.finer("PlayerScale", "Skipping - not PHANTOM mode or not SCALE invisibility")
             return
         }
 
-        Log.verbose("PlayerScale", "============================================")
-        Log.verbose("PlayerScale", "BEFORE SCALING:")
+        Log.finer("PlayerScale", "============================================")
+        Log.finer("PlayerScale", "BEFORE SCALING:")
 
         // Check what components exist BEFORE we do anything
         val modelBefore = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType())
         val skinBefore = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
-        Log.verbose("PlayerScale", "  ModelComponent exists: ${modelBefore != null}")
-        Log.verbose("PlayerScale", "  PlayerSkinComponent exists: ${skinBefore != null}")
+        Log.finer("PlayerScale", "  ModelComponent exists: ${modelBefore != null}")
+        Log.finer("PlayerScale", "  PlayerSkinComponent exists: ${skinBefore != null}")
 
         // Get or create EntityScaleComponent
         val scaleComponentBefore = commandBuffer.getComponent(ref, EntityScaleComponent.getComponentType())
-        Log.verbose("PlayerScale", "  EntityScaleComponent existed before: ${scaleComponentBefore != null}")
+        Log.finer("PlayerScale", "  EntityScaleComponent existed before: ${scaleComponentBefore != null}")
 
         val scaleComponent = commandBuffer.ensureAndGetComponent(ref, EntityScaleComponent.getComponentType())
-        Log.verbose("PlayerScale", "  EntityScaleComponent after ensure: exists")
+        Log.finer("PlayerScale", "  EntityScaleComponent after ensure: exists")
 
         // Store original scale for restoration
         component.originalScale = scaleComponent.scale
-        Log.verbose("PlayerScale", "  Original scale value: ${component.originalScale}")
+        Log.finer("PlayerScale", "  Original scale value: ${component.originalScale}")
 
         // Scale down to 0.1% of normal size (practically invisible but still rendered)
         scaleComponent.scale = 0.00001f
-        Log.verbose("PlayerScale", "  New scale value: ${scaleComponent.scale}")
+        Log.finer("PlayerScale", "  New scale value: ${scaleComponent.scale}")
 
         // Check what components exist AFTER we change scale
         val modelAfter = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType())
         val skinAfter = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
-        Log.verbose("PlayerScale", "AFTER SCALING:")
-        Log.verbose("PlayerScale", "  ModelComponent exists: ${modelAfter != null}")
-        Log.verbose("PlayerScale", "  PlayerSkinComponent exists: ${skinAfter != null}")
-        Log.verbose("PlayerScale", "============================================")
+        Log.finer("PlayerScale", "AFTER SCALING:")
+        Log.finer("PlayerScale", "  ModelComponent exists: ${modelAfter != null}")
+        Log.finer("PlayerScale", "  PlayerSkinComponent exists: ${skinAfter != null}")
+        Log.finer("PlayerScale", "============================================")
 
         // Hide nameplate by replacing DisplayNameComponent with empty one
         // CRITICAL: We MUST keep DisplayNameComponent present (Hytale's PlayerRemovedSystem crashes if null)
@@ -91,7 +91,7 @@ class DownedPlayerScaleSystem(
             val emptyDisplayName = DisplayNameComponent()
             commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), emptyDisplayName)
 
-            Log.verbose("PlayerScale", "Replaced nameplate with empty DisplayNameComponent")
+            Log.finer("PlayerScale", "Replaced nameplate with empty DisplayNameComponent")
         } else {
             Log.warning("PlayerScale", "DisplayNameComponent not found")
         }
@@ -121,22 +121,22 @@ class DownedPlayerScaleSystem(
         // NOTE: This callback fires for normal death/revive, but NOT during logout/entity removal
         // For logout, scale + nameplate restoration is handled in DownedCleanupHelper.cleanupDownedState()
 
-        Log.verbose("PlayerScale", "========================d====================")
-        Log.verbose("PlayerScale", "BEFORE RESTORING SCALE:")
+        Log.finer("PlayerScale", "========================d====================")
+        Log.finer("PlayerScale", "BEFORE RESTORING SCALE:")
 
         // Check what components exist BEFORE we restore
         val modelBefore = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType())
         val skinBefore = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
-        Log.verbose("PlayerScale", "  ModelComponent exists: ${modelBefore != null}")
-        Log.verbose("PlayerScale", "  PlayerSkinComponent exists: ${skinBefore != null}")
+        Log.finer("PlayerScale", "  ModelComponent exists: ${modelBefore != null}")
+        Log.finer("PlayerScale", "  PlayerSkinComponent exists: ${skinBefore != null}")
 
         // Restore original scale
         val scaleComponent = commandBuffer.getComponent(ref, EntityScaleComponent.getComponentType())
         if (scaleComponent != null) {
-            Log.verbose("PlayerScale", "  Current scale: ${scaleComponent.scale}")
-            Log.verbose("PlayerScale", "  Restoring to: ${component.originalScale}")
+            Log.finer("PlayerScale", "  Current scale: ${scaleComponent.scale}")
+            Log.finer("PlayerScale", "  Restoring to: ${component.originalScale}")
             scaleComponent.scale = component.originalScale
-            Log.verbose("PlayerScale", "Player scaled back to ${component.originalScale}")
+            Log.finer("PlayerScale", "Player scaled back to ${component.originalScale}")
         } else {
             Log.warning("PlayerScale", "EntityScaleComponent not found, cannot restore scale")
         }
@@ -144,19 +144,19 @@ class DownedPlayerScaleSystem(
         // Check what components exist AFTER we restore
         val modelAfter = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType())
         val skinAfter = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
-        Log.verbose("PlayerScale", "AFTER RESTORING SCALE:")
-        Log.verbose("PlayerScale", "  ModelComponent exists: ${modelAfter != null}")
-        Log.verbose("PlayerScale", "  PlayerSkinComponent exists: ${skinAfter != null}")
+        Log.finer("PlayerScale", "AFTER RESTORING SCALE:")
+        Log.finer("PlayerScale", "  ModelComponent exists: ${modelAfter != null}")
+        Log.finer("PlayerScale", "  PlayerSkinComponent exists: ${skinAfter != null}")
 
         // EXPERIMENTAL: Try to force a refresh of appearance components
         // Remove and re-add PlayerSkinComponent to trigger client sync
         if (skinAfter != null) {
-            Log.verbose("PlayerScale", "Attempting to refresh PlayerSkinComponent...")
+            Log.finer("PlayerScale", "Attempting to refresh PlayerSkinComponent...")
             try {
                 val skinCopy = skinAfter.clone() as com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent
                 commandBuffer.removeComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
                 commandBuffer.addComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType(), skinCopy)
-                Log.verbose("PlayerScale", "PlayerSkinComponent refreshed")
+                Log.finer("PlayerScale", "PlayerSkinComponent refreshed")
             } catch (e: Exception) {
                 Log.error("PlayerScale", "Failed to refresh PlayerSkinComponent: ${e.message}")
                 e.printStackTrace()
@@ -165,19 +165,19 @@ class DownedPlayerScaleSystem(
 
         // Try to refresh ModelComponent
         if (modelAfter != null) {
-            Log.verbose("PlayerScale", "Attempting to refresh ModelComponent...")
+            Log.finer("PlayerScale", "Attempting to refresh ModelComponent...")
             try {
                 val modelCopy = modelAfter.clone() as com.hypixel.hytale.server.core.modules.entity.component.ModelComponent
                 commandBuffer.removeComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType())
                 commandBuffer.addComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType(), modelCopy)
-                Log.verbose("PlayerScale", "ModelComponent refreshed")
+                Log.finer("PlayerScale", "ModelComponent refreshed")
             } catch (e: Exception) {
                 Log.error("PlayerScale", "Failed to refresh ModelComponent: ${e.message}")
                 e.printStackTrace()
             }
         }
 
-        Log.verbose("PlayerScale", "============================================")
+        Log.finer("PlayerScale", "============================================")
 
         // Restore original nameplate (replace empty DisplayNameComponent with original)
         val originalDisplayName = component.originalDisplayName
@@ -189,7 +189,7 @@ class DownedPlayerScaleSystem(
                 // Add back original DisplayNameComponent
                 commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), originalDisplayName)
 
-                Log.verbose("PlayerScale", "Restored original nameplate")
+                Log.finer("PlayerScale", "Restored original nameplate")
             } catch (e: Exception) {
                 Log.warning("PlayerScale", "Failed to restore nameplate: ${e.message}")
                 e.printStackTrace()

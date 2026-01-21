@@ -79,13 +79,13 @@ class DownedDeathInterceptor(
             // Check if this is intentional death damage (from executeDeath)
             // executeDeath uses 999999.0f as kill damage - allow it through
             if (damage.amount >= 999999.0f) {
-                Log.verbose("DeathInterceptor", "INTENTIONAL KILL DAMAGE (999999+) - Allowing through for ${playerComponent?.displayName}")
+                Log.finer("DeathInterceptor", "INTENTIONAL KILL DAMAGE (999999+) - Allowing through for ${playerComponent?.displayName}")
                 return // Don't block this damage - player should die
             }
 
             // Check if timer has expired - allow timeout/giveup kill damage through
             if (downedComponent != null && downedComponent.downedTimeRemaining <= 0) {
-                Log.verbose("DeathInterceptor", "TIMEOUT/GIVEUP KILL DAMAGE - Allowing through for ${playerComponent?.displayName}, damage: ${damage.amount}")
+                Log.finer("DeathInterceptor", "TIMEOUT/GIVEUP KILL DAMAGE - Allowing through for ${playerComponent?.displayName}, damage: ${damage.amount}")
                 return // Don't block this damage - player should die
             }
 
@@ -162,7 +162,7 @@ class DownedDeathInterceptor(
             // Track downed state for network threads
             DownedStateTracker.setDowned(ref)
 
-            if (Log.isEnabled(Log.LogLevel.DEBUG)) {
+            if (Log.isEnabled(java.util.logging.Level.FINE)) {
                 Log.debug("DeathInterceptor", "Player entered downed state")
                 Log.debug("DeathInterceptor", "Timer: ${config.downedTimerSeconds} seconds")
                 Log.debug("DeathInterceptor", "Location: $location")
@@ -206,7 +206,7 @@ class DownedDeathInterceptor(
                     }
                 }
 
-                Log.verbose("DeathInterceptor", "Notified $notifiedCount nearby players")
+                Log.finer("DeathInterceptor", "Notified $notifiedCount nearby players")
             }
         } else {
             // Damage is NOT lethal - allowing through

@@ -1,130 +1,108 @@
 package com.hydowned.util
 
 import com.hypixel.hytale.logger.HytaleLogger
+import java.util.logging.Level
 
 /**
  * Logging system for HyDowned mod.
  *
- * Outputs to stdout/stderr which is captured by Hytale's logging system.
- * The server's log level configuration will control what actually appears in logs.
+ * Uses Hytale's native logging system. Configure log levels in the server's config.json:
+ * ```json
+ * "LogLevels": {
+ *   "com.hydowned": "FINER"  // or INFO, WARNING, SEVERE, FINE, etc.
+ * }
+ * ```
  *
- * Log Levels:
- * - ERROR: Critical errors that need immediate attention
- * - WARNING: Potential issues or unexpected behavior
- * - INFO: Important informational messages
- * - VERBOSE: Detailed operational messages
- * - DEBUG: Very detailed debugging information
+ * Log Level Mapping:
+ * - error()   -> SEVERE (critical errors)
+ * - warning() -> WARNING (potential issues)
+ * - info()    -> INFO (important messages)
+ * - verbose() -> FINER (detailed operations)
+ * - debug()   -> FINE (very detailed debugging)
  *
  * Usage:
  * ```
  * Log.info("System", "Player entered downed state")
- * Log.debug("System", "Current health: $health")
+ * if (Log.isEnabled(Level.FINE)) {
+ *     Log.debug("System", "Expensive: ${expensiveOperation()}")
+ * }
  * Log.error("System", "Failed to save data: ${e.message}")
  * ```
  */
 object Log {
 
-    enum class LogLevel(val priority: Int) {
-        ERROR(0),
-        WARNING(1),
-        INFO(2),
-        VERBOSE(3),
-        DEBUG(4)
-    }
-
-    private var logger: HytaleLogger? = null
-    private var enabledLevel: LogLevel = LogLevel.INFO
+    private var logger: HyDownedLogger? = null
 
     /**
      * Initialize with Hytale logger (should be called from plugin setup)
      */
-    fun init(pluginLogger: HytaleLogger) {
-        logger = pluginLogger
-        // Log initialization using the logger
-        logger?.atInfo()?.log("HyDowned logging system initialized")
+    fun init(pluginLogger: HytaleLogger, logLevel: String = "INFO") {
+        logger = HyDownedLogger(pluginLogger, logLevel)
+        logger?.atInfo()?.log("HyDowned logging system initialized with level: $logLevel")
+
+        // Force lazy initialization of backend logger (which sets log level from config)
+        logger?.isEnabled(Level.INFO)
     }
 
     /**
-     * Set the minimum log level to display.
-     * All logs at this level or higher priority will be shown.
-     * Note: The server's log level also applies - this is an additional filter.
+     * Check if a specific log level is enabled.
+     * Use this to avoid expensive string operations when logging is disabled.
+     *
+     * Example:
+     * ```
+     * if (Log.isEnabled(Level.FINE)) {
+     *     Log.debug("System", "Expensive data: ${expensiveToString()}")
+     * }
+     * ```
      */
-    fun setLogLevel(level: LogLevel) {
-        enabledLevel = level
-        logger?.atInfo()?.log("Log level set to: $level")
+    fun isEnabled(level: Level): Boolean {
+        return logger?.isEnabled(level) ?: false
     }
 
     /**
-     * Set log level from string (for config loading)
-     */
-    fun setLogLevel(level: String) {
-        try {
-            val parsedLevel = LogLevel.valueOf(level.uppercase())
-            setLogLevel(parsedLevel)
-        } catch (e: IllegalArgumentException) {
-            logger?.atInfo()?.log("Invalid log level: $level, using INFO")
-            setLogLevel(LogLevel.INFO)
-        }
-    }
-
-    /**
-     * Check if a log level is enabled
-     */
-    fun isEnabled(level: LogLevel): Boolean {
-        return level.priority <= enabledLevel.priority
-    }
-
-    /**
-     * Log an error message (always shown if server ERROR level is enabled)
+     * Log an error message (SEVERE level)
      */
     fun error(category: String, message: String) {
-        if (isEnabled(LogLevel.ERROR)) {
-            logger?.atSevere()?.log("[ERROR] [$category] $message")
-        }
+        logger?.atSevere()?.log("[$category] $message")
     }
 
     /**
-     * Log a warning message
+     * Log a warning message (WARNING level)
      */
     fun warning(category: String, message: String) {
-        if (isEnabled(LogLevel.WARNING)) {
-            logger?.atWarning()?.log("[WARNING] [$category] $message")
-        }
+        logger?.atWarning()?.log("[$category] $message")
     }
 
     /**
-     * Log an info message
+     * Log an info message (INFO level)
      */
     fun info(category: String, message: String) {
-        if (isEnabled(LogLevel.INFO)) {
-            logger?.atInfo()?.log("[$category] $message")
-        }
+        logger?.atInfo()?.log("[$category] $message")
     }
 
     /**
-     * Log a verbose message (detailed operations)
+     * Log a verbose message (FINER level - detailed operations)
      */
-    fun verbose(category: String, message: String) {
-        if (isEnabled(LogLevel.VERBOSE)) {
-            logger?.atFiner()?.log("[VERBOSE] [$category] $message")
-        }
+    fun finer(category: String, message: String) {
+        logger?.atFiner()?.log("[$category] $message")
     }
 
     /**
-     * Log a debug message (very detailed)
+     * Log a fine message (FINE level - very detailed)
      */
-    fun debug(category: String, message: String) {
-        if (isEnabled(LogLevel.DEBUG)) {
-            logger?.atFine()?.log("[DEBUG] [$category] $message")
-        }
+    fun fine(category: String, message: String) {
+        logger?.atFine()?.log("[$category] $message")
     }
 
     /**
-     * Log a separator line (only for VERBOSE and DEBUG)
+     * Log a debug message (FINE level - very detailed)
      */
-    fun separator(category: String) {
-        if (isEnabled(LogLevel.VERBOSE)) {
-            logger?.atInfo()?.log("[$category] ============================================")
-        }
+    fun debug(category: String, message: String) = fine(category, message)
+
+    /**
+     * Log a separator line (INFO level for visibility)
+     */
+    fun separator(category: String, logLevel: Level = Level.INFO) {
+        logger?.at(logLevel)?.log("[$category] ============================================")
     }
 }

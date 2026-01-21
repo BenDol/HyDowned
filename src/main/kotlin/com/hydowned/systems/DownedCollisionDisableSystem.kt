@@ -42,8 +42,8 @@ class DownedCollisionDisableSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        Log.verbose("CollisionDisable", "============================================")
-        Log.verbose("CollisionDisable", "Disabling character collision for downed player")
+        Log.finer("CollisionDisable", "============================================")
+        Log.finer("CollisionDisable", "Disabling character collision for downed player")
 
         // Disable character (entity-to-entity) collisions using CollisionResultComponent
         try {
@@ -58,7 +58,7 @@ class DownedCollisionDisableSystem(
                 // Store original state for restoration
                 component.hadCollisionEnabled = wasCheckingCharacterCollisions
 
-                Log.verbose("CollisionDisable", "Disabled character collisions (blocks still collide)")
+                Log.finer("CollisionDisable", "Disabled character collisions (blocks still collide)")
             } else {
                 Log.warning("CollisionDisable", "CollisionResultComponent not found")
             }
@@ -72,14 +72,14 @@ class DownedCollisionDisableSystem(
             val hadRespondToHit = commandBuffer.getComponent(ref, RespondToHit.getComponentType()) != null
             if (hadRespondToHit) {
                 commandBuffer.tryRemoveComponent(ref, RespondToHit.getComponentType())
-                Log.verbose("CollisionDisable", "Removed RespondToHit (no knockback)")
+                Log.finer("CollisionDisable", "Removed RespondToHit (no knockback)")
             }
         } catch (e: Exception) {
             Log.warning("CollisionDisable", "Failed to remove RespondToHit: ${e.message}")
             e.printStackTrace()
         }
 
-        Log.verbose("CollisionDisable", "============================================")
+        Log.finer("CollisionDisable", "============================================")
     }
 
     override fun onComponentSet(
@@ -98,8 +98,8 @@ class DownedCollisionDisableSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        Log.verbose("CollisionDisable", "============================================")
-        Log.verbose("CollisionDisable", "Restoring character collision for player")
+        Log.finer("CollisionDisable", "============================================")
+        Log.finer("CollisionDisable", "Restoring character collision for player")
 
         // Re-enable character (entity-to-entity) collisions if they were enabled before
         try {
@@ -107,7 +107,7 @@ class DownedCollisionDisableSystem(
             if (collisionResult != null && component.hadCollisionEnabled) {
                 // Note: API method has typo - "Collisions" instead of "Collisions"
                 collisionResult.collisionResult.enableCharacterCollsions()
-                Log.verbose("CollisionDisable", "Re-enabled character collisions")
+                Log.finer("CollisionDisable", "Re-enabled character collisions")
             }
         } catch (e: Exception) {
             Log.warning("CollisionDisable", "Failed to re-enable character collisions: ${e.message}")
@@ -117,12 +117,12 @@ class DownedCollisionDisableSystem(
         // Restore RespondToHit component
         try {
             commandBuffer.ensureComponent(ref, RespondToHit.getComponentType())
-            Log.verbose("CollisionDisable", "Restored RespondToHit (knockback enabled)")
+            Log.finer("CollisionDisable", "Restored RespondToHit (knockback enabled)")
         } catch (e: Exception) {
             Log.warning("CollisionDisable", "Failed to restore RespondToHit: ${e.message}")
             e.printStackTrace()
         }
 
-        Log.verbose("CollisionDisable", "============================================")
+        Log.finer("CollisionDisable", "============================================")
     }
 }

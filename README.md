@@ -72,8 +72,7 @@ Config file: `plugins/HyDowned/config.json`
   "reviveTimerSeconds": 10,         // How long to revive a downed player
   "reviveHealthPercent": 0.2,       // Health % restored on revive
   "reviveRange": 2.0,               // Distance to start revive
-  "downedMode": "PLAYER",           // PLAYER or PHANTOM
-  "logLevel": "INFO"                // ERROR, WARNING, INFO, VERBOSE, DEBUG
+  "downedMode": "PLAYER"            // PLAYER or PHANTOM
 }
 ```
 
@@ -125,6 +124,48 @@ Was planned for PHANTOM mode to slow down the invisible player. Config field exi
 
 - `SCALE`: Shrinks player to 0.01% size (EntityScaleComponent)
 - `INVISIBLE`: Uses HiddenFromAdventurePlayers component
+
+### Logging Configuration
+
+Logging is controlled by the server's `config.json` file, not the mod's config.
+
+**Location:** `dev-server/config.json` (or your server directory)
+
+**Add logging for HyDowned:**
+```json
+{
+  "LogLevels": {
+    "com.hydowned": "FINER"
+  }
+}
+```
+
+**Available log levels** (from most to least verbose):
+- `FINEST` - Most detailed (not used by HyDowned)
+- `FINER` - Very detailed (verbose logs - includes invisibility system, phantom body details)
+- `FINE` - Detailed (debug logs - health checks, damage calculations)
+- `INFO` - Standard messages (system registration, player state changes)
+- `WARNING` - Warnings only
+- `SEVERE` - Errors only
+
+**Recommended levels:**
+- Development: `FINER` - See all verbose logs including system operations
+- Production: `INFO` - Standard operational messages only
+- Debugging issues: `FINE` - Detailed debugging without overwhelming output
+
+**Example server config.json:**
+```json
+{
+  "Version": 3,
+  "ServerName": "Hytale Server",
+  "LogLevels": {
+    "com.hydowned": "FINER"
+  },
+  "Mods": {}
+}
+```
+
+**Note:** Changes to server `config.json` require a server restart to take effect.
 
 ## Commands
 

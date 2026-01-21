@@ -14,6 +14,13 @@ import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.util.PendingDeathTracker
 import com.hydowned.util.Log
+import com.hypixel.hytale.server.core.modules.entity.component.CollisionResultComponent
+import com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent
+import com.hypixel.hytale.server.core.modules.entity.component.EntityScaleComponent
+import com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers
+import com.hypixel.hytale.server.core.modules.entity.component.Intangible
+import com.hypixel.hytale.server.core.modules.entity.component.Interactable
+import com.hypixel.hytale.server.core.universe.PlayerRef
 
 
 /**
@@ -56,14 +63,14 @@ class DownedLogoutHandlerSystem(
         val uuidComponent = commandBuffer.getComponent(ref, UUIDComponent.getComponentType())
         val playerUuid = uuidComponent?.uuid
 
-        Log.verbose("LogoutHandler", "Downed player logging out: $playerUuid")
-        Log.verbose("LogoutHandler", "Reason: $reason")
+        Log.finer("LogoutHandler", "Downed player logging out: $playerUuid")
+        Log.finer("LogoutHandler", "Reason: $reason")
 
         // Get the DownedComponent
         val downedComponent = commandBuffer.getComponent(ref, DownedComponent.getComponentType())
             ?: return
 
-        Log.verbose("LogoutHandler", "Player quit while downed")
+        Log.finer("LogoutHandler", "Player quit while downed")
 
         // Determine if this is an intentional logout or a crash/disconnect
         // UNLOAD = kicked by duplicate login / server shutdown (could be crash - mark for restore)
@@ -72,22 +79,22 @@ class DownedLogoutHandlerSystem(
         when (reason.toString()) {
             "DISCONNECT" -> {
                 // Intentional logout - player should die on rejoin
-                Log.verbose("LogoutHandler", "Detected INTENTIONAL logout (DISCONNECT)")
+                Log.finer("LogoutHandler", "Detected INTENTIONAL logout (DISCONNECT)")
                 if (playerUuid != null) {
                     PendingDeathTracker.markForDeath(playerUuid)
-                    Log.verbose("LogoutHandler", "Marked player for death on rejoin")
+                    Log.finer("LogoutHandler", "Marked player for death on rejoin")
                 } else {
                     Log.warning("LogoutHandler", "Player UUID is null, cannot mark for death")
                 }
             }
             "UNLOAD" -> {
                 // Unload (duplicate login, server shutdown) - could be crash, preserve downed state
-                Log.verbose("LogoutHandler", "Detected UNINTENTIONAL disconnect (UNLOAD) - preserving downed state")
+                Log.finer("LogoutHandler", "Detected UNINTENTIONAL disconnect (UNLOAD) - preserving downed state")
                 if (playerUuid != null) {
                     val timeRemaining = downedComponent.downedTimeRemaining
                     val downedLocation = downedComponent.downedLocation
                     PendingDeathTracker.markForRestore(playerUuid, timeRemaining, downedLocation)
-                    Log.verbose("LogoutHandler", "Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
+                    Log.finer("LogoutHandler", "Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
                 } else {
                     Log.warning("LogoutHandler", "Player UUID is null, cannot mark for restore")
                 }
@@ -99,7 +106,7 @@ class DownedLogoutHandlerSystem(
                     val timeRemaining = downedComponent.downedTimeRemaining
                     val downedLocation = downedComponent.downedLocation
                     PendingDeathTracker.markForRestore(playerUuid, timeRemaining, downedLocation)
-                    Log.verbose("LogoutHandler", "Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
+                    Log.finer("LogoutHandler", "Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
                 } else {
                     Log.warning("LogoutHandler", "Player UUID is null, cannot mark for restore")
                 }
@@ -114,25 +121,25 @@ class DownedLogoutHandlerSystem(
         if (originalDisplayName != null) {
             try {
                 // Remove empty DisplayNameComponent and restore original
-                commandBuffer.removeComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent.getComponentType())
-                commandBuffer.addComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent.getComponentType(), originalDisplayName)
-                Log.verbose("LogoutHandler", "Restored original DisplayNameComponent")
+                commandBuffer.removeComponent(ref, DisplayNameComponent.getComponentType())
+                commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), originalDisplayName)
+                Log.finer("LogoutHandler", "Restored original DisplayNameComponent")
             } catch (e: Exception) {
                 Log.warning("LogoutHandler", "Failed to restore DisplayNameComponent: ${e.message}")
                 e.printStackTrace()
                 // Ensure SOMETHING exists even if restore fails
-                commandBuffer.ensureComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent.getComponentType())
+                commandBuffer.ensureComponent(ref, DisplayNameComponent.getComponentType())
             }
         } else {
             Log.warning("LogoutHandler", "No original DisplayNameComponent stored, ensuring one exists")
-            commandBuffer.ensureComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent.getComponentType())
+            commandBuffer.ensureComponent(ref, DisplayNameComponent.getComponentType())
         }
 
         // 2. Restore visibility (remove HiddenFromAdventurePlayers if we added it)
         try {
             if (downedComponent.wasVisibleBefore) {
-                commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
-                Log.verbose("LogoutHandler", "Removed HiddenFromAdventurePlayers")
+                commandBuffer.tryRemoveComponent(ref, HiddenFromAdventurePlayers.getComponentType())
+                Log.finer("LogoutHandler", "Removed HiddenFromAdventurePlayers")
             }
         } catch (e: Exception) {
             Log.warning("LogoutHandler", "Failed to remove HiddenFromAdventurePlayers: ${e.message}")
@@ -141,11 +148,11 @@ class DownedLogoutHandlerSystem(
 
         // 3. Restore collision (re-enable character collisions)
         try {
-            val collisionResult = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.CollisionResultComponent.getComponentType())
+            val collisionResult = commandBuffer.getComponent(ref, CollisionResultComponent.getComponentType())
             if (collisionResult != null && downedComponent.hadCollisionEnabled) {
                 // Note: API method has typo - "Collsions" instead of "Collisions"
                 collisionResult.collisionResult.enableCharacterCollsions()
-                Log.verbose("LogoutHandler", "Re-enabled character collisions")
+                Log.finer("LogoutHandler", "Re-enabled character collisions")
             }
         } catch (e: Exception) {
             Log.warning("LogoutHandler", "Failed to re-enable character collisions: ${e.message}")
@@ -154,7 +161,7 @@ class DownedLogoutHandlerSystem(
 
         // 3b. Remove any lingering Intangible component (defensive cleanup)
         try {
-            commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType())
+            commandBuffer.tryRemoveComponent(ref, Intangible.getComponentType())
         } catch (e: Exception) {
             // Ignore - component may not exist
         }
@@ -163,15 +170,15 @@ class DownedLogoutHandlerSystem(
         val phantomBodyRef = downedComponent.phantomBodyRef
         if (phantomBodyRef != null && phantomBodyRef.isValid) {
             commandBuffer.removeEntity(phantomBodyRef, com.hypixel.hytale.component.RemoveReason.UNLOAD)
-            Log.verbose("LogoutHandler", "Removed phantom body entity")
+            Log.finer("LogoutHandler", "Removed phantom body entity")
         }
 
         // 5. Restore scale manually (callback won't fire during entity removal)
         try {
-            val scaleComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.EntityScaleComponent.getComponentType())
+            val scaleComponent = commandBuffer.getComponent(ref, EntityScaleComponent.getComponentType())
             if (scaleComponent != null) {
                 scaleComponent.scale = downedComponent.originalScale
-                Log.verbose("LogoutHandler", "Restored scale to ${downedComponent.originalScale}")
+                Log.finer("LogoutHandler", "Restored scale to ${downedComponent.originalScale}")
             }
         } catch (e: Exception) {
             Log.warning("LogoutHandler", "Failed to restore scale: ${e.message}")
@@ -179,17 +186,17 @@ class DownedLogoutHandlerSystem(
         }
 
         // 6. Restore Interactable component
-        commandBuffer.ensureComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Interactable.getComponentType())
-        Log.verbose("LogoutHandler", "Ensured Interactable component exists")
+        commandBuffer.ensureComponent(ref, Interactable.getComponentType())
+        Log.finer("LogoutHandler", "Ensured Interactable component exists")
 
         // 7. Reset camera for PLAYER mode
         try {
-            val playerRefComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.universe.PlayerRef.getComponentType())
+            val playerRefComponent = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
             if (playerRefComponent != null) {
                 val cameraSystem = com.hydowned.HyDownedPlugin.instance?.getCameraSystem()
                 if (cameraSystem != null) {
                     cameraSystem.resetCameraForPlayer(playerRefComponent, commandBuffer)
-                    Log.verbose("LogoutHandler", "Reset camera to normal view")
+                    Log.finer("LogoutHandler", "Reset camera to normal view")
                 }
             }
         } catch (e: Exception) {
@@ -201,6 +208,6 @@ class DownedLogoutHandlerSystem(
         commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
         com.hydowned.network.DownedStateTracker.setNotDowned(ref)
 
-        Log.verbose("LogoutHandler", "Cleaned up downed state (restoration data saved to disk)")
+        Log.finer("LogoutHandler", "Cleaned up downed state (restoration data saved to disk)")
     }
 }

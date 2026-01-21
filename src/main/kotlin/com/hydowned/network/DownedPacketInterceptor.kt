@@ -43,7 +43,7 @@ class DownedPacketInterceptor(
                     is ClientMovement -> {
                         if (usePlayerMode) {
                             // PLAYER mode - COMPLETELY BLOCK ClientMovement packets
-                            Log.verbose("PacketInterceptor", "BLOCKED ClientMovement (PLAYER mode)")
+                            Log.finer("PacketInterceptor", "BLOCKED ClientMovement (PLAYER mode)")
                         } else {
                             // PHANTOM mode - allow movement freely
                             originalHandler.accept(packet)
@@ -51,15 +51,15 @@ class DownedPacketInterceptor(
                     }
                     is MouseInteraction -> {
                         // Block all mouse interactions while downed
-                        Log.verbose("PacketInterceptor", "BLOCKED MouseInteraction")
+                        Log.finer("PacketInterceptor", "BLOCKED MouseInteraction")
                     }
                     is SyncInteractionChains -> {
                         // Block interaction chains (block breaking, item use, etc.)
-                        Log.verbose("PacketInterceptor", "BLOCKED SyncInteractionChains (${packet.updates.size} interactions)")
+                        Log.finer("PacketInterceptor", "BLOCKED SyncInteractionChains (${packet.updates.size} interactions)")
                     }
                     is ClientPlaceBlock -> {
                         // Block block placement
-                        Log.verbose("PacketInterceptor", "BLOCKED ClientPlaceBlock")
+                        Log.finer("PacketInterceptor", "BLOCKED ClientPlaceBlock")
                     }
                     else -> {
                         // Allow other packets through

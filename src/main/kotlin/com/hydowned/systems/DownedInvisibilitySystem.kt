@@ -42,12 +42,12 @@ class DownedInvisibilitySystem(
     ) {
         // Only run in PHANTOM mode with INVISIBLE invisibility
         if (!config.usePhantomMode || !config.useInvisibleMode) {
-            Log.verbose("Invisibility", "Skipping - not PHANTOM mode or not INVISIBLE invisibility")
+            Log.finer("Invisibility", "Skipping - not PHANTOM mode or not INVISIBLE invisibility")
             return
         }
 
-        Log.verbose("Invisibility", "============================================")
-        Log.verbose("Invisibility", "Making player invisible")
+        Log.finer("Invisibility", "============================================")
+        Log.finer("Invisibility", "Making player invisible")
 
         // Make player invisible using HiddenFromAdventurePlayers
         try {
@@ -57,9 +57,9 @@ class DownedInvisibilitySystem(
 
             if (!alreadyHidden) {
                 commandBuffer.addComponent(ref, HiddenFromAdventurePlayers.getComponentType(), HiddenFromAdventurePlayers.INSTANCE)
-                Log.verbose("Invisibility", "Added HiddenFromAdventurePlayers component")
+                Log.finer("Invisibility", "Added HiddenFromAdventurePlayers component")
             } else {
-                Log.verbose("Invisibility", "Player already hidden")
+                Log.finer("Invisibility", "Player already hidden")
             }
         } catch (e: Exception) {
             Log.warning("Invisibility", "Failed to add HiddenFromAdventurePlayers: ${e.message}")
@@ -79,12 +79,12 @@ class DownedInvisibilitySystem(
             val emptyDisplayName = DisplayNameComponent()
             commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), emptyDisplayName)
 
-            Log.verbose("Invisibility", "Hid nameplate")
+            Log.finer("Invisibility", "Hid nameplate")
         } else {
             Log.warning("Invisibility", "DisplayNameComponent not found")
         }
 
-        Log.verbose("Invisibility", "============================================")
+        Log.finer("Invisibility", "============================================")
     }
 
     override fun onComponentSet(
@@ -108,16 +108,16 @@ class DownedInvisibilitySystem(
             return
         }
 
-        Log.verbose("Invisibility", "============================================")
-        Log.verbose("Invisibility", "Restoring player visibility")
+        Log.finer("Invisibility", "============================================")
+        Log.finer("Invisibility", "Restoring player visibility")
 
         // Restore visibility by removing HiddenFromAdventurePlayers (if we added it)
         try {
             if (component.wasVisibleBefore) {
                 commandBuffer.tryRemoveComponent(ref, HiddenFromAdventurePlayers.getComponentType())
-                Log.verbose("Invisibility", "Removed HiddenFromAdventurePlayers component (visibility restored)")
+                Log.finer("Invisibility", "Removed HiddenFromAdventurePlayers component (visibility restored)")
             } else {
-                Log.verbose("Invisibility", "Player remains hidden (was already hidden)")
+                Log.finer("Invisibility", "Player remains hidden (was already hidden)")
             }
         } catch (e: Exception) {
             Log.warning("Invisibility", "Failed to remove HiddenFromAdventurePlayers: ${e.message}")
@@ -132,7 +132,7 @@ class DownedInvisibilitySystem(
                 val skinCopy = skinComponent.clone() as PlayerSkinComponent
                 commandBuffer.removeComponent(ref, PlayerSkinComponent.getComponentType())
                 commandBuffer.addComponent(ref, PlayerSkinComponent.getComponentType(), skinCopy)
-                Log.verbose("Invisibility", "Refreshed PlayerSkinComponent (client re-sync)")
+                Log.finer("Invisibility", "Refreshed PlayerSkinComponent (client re-sync)")
             }
 
             val modelComponent = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
@@ -140,7 +140,7 @@ class DownedInvisibilitySystem(
                 val modelCopy = modelComponent.clone() as ModelComponent
                 commandBuffer.removeComponent(ref, ModelComponent.getComponentType())
                 commandBuffer.addComponent(ref, ModelComponent.getComponentType(), modelCopy)
-                Log.verbose("Invisibility", "Refreshed ModelComponent (client re-sync)")
+                Log.finer("Invisibility", "Refreshed ModelComponent (client re-sync)")
             }
         } catch (e: Exception) {
             Log.warning("Invisibility", "Failed to refresh skin/model components: ${e.message}")
@@ -157,7 +157,7 @@ class DownedInvisibilitySystem(
                 // Add back original DisplayNameComponent
                 commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), originalDisplayName)
 
-                Log.verbose("Invisibility", "Restored original nameplate")
+                Log.finer("Invisibility", "Restored original nameplate")
             } catch (e: Exception) {
                 Log.warning("Invisibility", "Failed to restore nameplate: ${e.message}")
                 e.printStackTrace()
@@ -166,6 +166,6 @@ class DownedInvisibilitySystem(
             Log.warning("Invisibility", "No original DisplayNameComponent stored")
         }
 
-        Log.verbose("Invisibility", "============================================")
+        Log.finer("Invisibility", "============================================")
     }
 }

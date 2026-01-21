@@ -82,7 +82,7 @@ class DownedAnimationLoopSystem(
         val animationPacket = PlayAnimation()
         animationPacket.entityId = networkId
         animationPacket.slot = AnimationSlot.Movement
-        animationPacket.animationId = "Death"
+        animationPacket.animationId = "Sleep"
 
         // Send ONLY to this player's client (not to other players)
         packetHandler.write(animationPacket)

@@ -58,14 +58,14 @@ class DownedRemoveInteractionsSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        Log.verbose("RemoveInteractions", "onComponentAdded triggered for downed player")
+        Log.finer("RemoveInteractions", "onComponentAdded triggered for downed player")
 
         // Save and remove the Interactions component
         val interactions = commandBuffer.getComponent(ref, interactionsComponentType)
         if (interactions != null) {
             savedInteractions[ref] = interactions
             commandBuffer.removeComponent(ref, interactionsComponentType)
-            Log.verbose("RemoveInteractions", "Removed Interactions component")
+            Log.finer("RemoveInteractions", "Removed Interactions component")
         } else {
             Log.debug("RemoveInteractions", "No Interactions component found")
         }
@@ -75,7 +75,7 @@ class DownedRemoveInteractionsSystem(
         if (hadInteractableComponent) {
             hadInteractable.add(ref)
             commandBuffer.removeComponent(ref, interactableComponentType)
-            Log.verbose("RemoveInteractions", "Removed Interactable component - all interactions blocked")
+            Log.finer("RemoveInteractions", "Removed Interactable component - all interactions blocked")
         } else {
             Log.warning("RemoveInteractions", "No Interactable component found")
         }
@@ -101,13 +101,13 @@ class DownedRemoveInteractionsSystem(
         val interactions = savedInteractions.remove(ref)
         if (interactions != null) {
             commandBuffer.addComponent(ref, interactionsComponentType, interactions)
-            Log.verbose("RemoveInteractions", "Restored Interactions component")
+            Log.finer("RemoveInteractions", "Restored Interactions component")
         }
 
         // Restore the Interactable component if it existed before
         if (hadInteractable.remove(ref)) {
             commandBuffer.ensureComponent(ref, interactableComponentType)
-            Log.verbose("RemoveInteractions", "Restored Interactable component - interactions re-enabled")
+            Log.finer("RemoveInteractions", "Restored Interactable component - interactions re-enabled")
         }
     }
 }

@@ -8,14 +8,10 @@ import com.hypixel.hytale.component.Store
 import com.hypixel.hytale.component.query.Query
 import com.hypixel.hytale.component.system.RefChangeSystem
 import com.hypixel.hytale.math.shape.Box
-import com.hypixel.hytale.math.vector.Vector3f
 import com.hypixel.hytale.protocol.AnimationSlot
 import com.hypixel.hytale.protocol.Equipment
 import com.hypixel.hytale.protocol.MovementStates
 import com.hypixel.hytale.server.core.entity.entities.Player
-import com.hypixel.hytale.server.core.inventory.Inventory
-import com.hypixel.hytale.server.core.inventory.ItemStack
-import com.hypixel.hytale.server.core.inventory.container.ItemContainer
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent
 import com.hypixel.hytale.server.core.modules.entity.component.ActiveAnimationComponent
 import com.hypixel.hytale.server.core.modules.entity.component.BoundingBox
@@ -26,7 +22,6 @@ import com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
 import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport
 import com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId
-import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.components.PhantomBodyMarker
@@ -78,7 +73,7 @@ class DownedPhantomBodySystem(
 
         val downedLocation = component.downedLocation ?: return
 
-        Log.verbose("PhantomBody", "PHANTOM MODE: Player downed, spawning phantom body at $downedLocation")
+        Log.finer("PhantomBody", "PHANTOM MODE: Player downed, spawning phantom body at $downedLocation")
 
         // Get player's model and transform to replicate for the phantom body
         val playerModelComponent = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
@@ -97,7 +92,7 @@ class DownedPhantomBodySystem(
             return
         }
 
-        Log.verbose("PhantomBody", "Player model: ${playerModel.modelAssetId}")
+        Log.finer("PhantomBody", "Player model: ${playerModel.modelAssetId}")
 
         // Create a new entity holder for the phantom body
         val holder = EntityStore.REGISTRY.newHolder()
@@ -105,14 +100,14 @@ class DownedPhantomBodySystem(
         // Clone player's model for the phantom body (includes base appearance)
         val clonedModel = playerModelComponent.clone() as ModelComponent
         holder.addComponent(ModelComponent.getComponentType(), clonedModel)
-        Log.verbose("PhantomBody", "Added ModelComponent to phantom body")
+        Log.finer("PhantomBody", "Added ModelComponent to phantom body")
 
         // Clone player's display name if present
         val displayNameComponent = commandBuffer.getComponent(ref, DisplayNameComponent.getComponentType())
         if (displayNameComponent != null) {
             val clonedDisplayName = displayNameComponent.clone() as DisplayNameComponent
             holder.addComponent(DisplayNameComponent.getComponentType(), clonedDisplayName)
-            Log.verbose("PhantomBody", "Added DisplayNameComponent to phantom body")
+            Log.finer("PhantomBody", "Added DisplayNameComponent to phantom body")
         }
 
         // Clone player's scale if present
@@ -120,14 +115,14 @@ class DownedPhantomBodySystem(
         if (scaleComponent != null) {
             val clonedScale = scaleComponent.clone() as EntityScaleComponent
             holder.addComponent(EntityScaleComponent.getComponentType(), clonedScale)
-            Log.verbose("PhantomBody", "Added EntityScaleComponent to phantom body")
+            Log.finer("PhantomBody", "Added EntityScaleComponent to phantom body")
         }
 
         // Add ActiveAnimationComponent with "Death" animation permanently set
         val activeAnimation = ActiveAnimationComponent()
         activeAnimation.setPlayingAnimation(AnimationSlot.Movement, "Death")
         holder.addComponent(ActiveAnimationComponent.getComponentType(), activeAnimation)
-        Log.verbose("PhantomBody", "Added ActiveAnimationComponent (Death animation) to phantom body")
+        Log.finer("PhantomBody", "Added ActiveAnimationComponent (Death animation) to phantom body")
 
         // CRITICAL: Add MovementStatesComponent with sleeping=true to keep entity laying down
         val movementStates = MovementStates()
@@ -138,33 +133,33 @@ class DownedPhantomBodySystem(
         movementStatesComponent.movementStates = movementStates
         movementStatesComponent.sentMovementStates = movementStates
         holder.addComponent(MovementStatesComponent.getComponentType(), movementStatesComponent)
-        Log.verbose("PhantomBody", "Added MovementStatesComponent (sleeping=true) to phantom body")
+        Log.finer("PhantomBody", "Added MovementStatesComponent (sleeping=true) to phantom body")
 
         // Set phantom body position and rotation
         holder.addComponent(
             TransformComponent.getComponentType(),
             TransformComponent(downedLocation, playerTransform.getRotation())
         )
-        Log.verbose("PhantomBody", "Added TransformComponent to phantom body")
+        Log.finer("PhantomBody", "Added TransformComponent to phantom body")
 
         // Add bounding box (needed for spatial tracking and visibility)
         val playerBoundingBox = commandBuffer.getComponent(ref, BoundingBox.getComponentType())
         if (playerBoundingBox != null) {
             val clonedBoundingBox = playerBoundingBox.clone() as BoundingBox
             holder.addComponent(BoundingBox.getComponentType(), clonedBoundingBox)
-            Log.verbose("PhantomBody", "Added BoundingBox to phantom body")
+            Log.finer("PhantomBody", "Added BoundingBox to phantom body")
         } else {
             // Create a default bounding box if player doesn't have one
             val defaultBox = Box(-0.3, 0.0, -0.3, 0.3, 1.8, 0.3)
             val defaultBoundingBox = BoundingBox(defaultBox)
             holder.addComponent(BoundingBox.getComponentType(), defaultBoundingBox)
-            Log.verbose("PhantomBody", "Added default BoundingBox to phantom body")
+            Log.finer("PhantomBody", "Added default BoundingBox to phantom body")
         }
 
         // CRITICAL: Add NetworkId so the entity gets networked to clients
         val nextNetworkId = store.externalData.takeNextNetworkId()
         holder.addComponent(NetworkId.getComponentType(), NetworkId(nextNetworkId))
-        Log.verbose("PhantomBody", "Added NetworkId: $nextNetworkId")
+        Log.finer("PhantomBody", "Added NetworkId: $nextNetworkId")
 
         // Extract player's equipment for phantom body display (BEFORE spawning entity)
         var equipment: Equipment? = null
@@ -174,62 +169,62 @@ class DownedPhantomBodySystem(
                 val inventory = playerComponent.inventory
                 equipment = Equipment()
 
-                Log.verbose("PhantomBody", "DEBUG: Inventory class: ${inventory.javaClass.name}")
-                Log.verbose("PhantomBody", "DEBUG: Active hotbar slot: ${inventory.activeHotbarSlot}")
+                Log.finer("PhantomBody", "DEBUG: Inventory class: ${inventory.javaClass.name}")
+                Log.finer("PhantomBody", "DEBUG: Active hotbar slot: ${inventory.activeHotbarSlot}")
 
                 // Extract armor (4 slots: head, chest, hands, legs)
                 val armor = inventory.armor
-                Log.verbose("PhantomBody", "DEBUG: Armor container capacity: ${armor.capacity}")
-                Log.verbose("PhantomBody", "DEBUG: Armor container class: ${armor.javaClass.name}")
+                Log.finer("PhantomBody", "DEBUG: Armor container capacity: ${armor.capacity}")
+                Log.finer("PhantomBody", "DEBUG: Armor container class: ${armor.javaClass.name}")
 
                 equipment.armorIds = Array(armor.capacity.toInt()) { "" }
                 java.util.Arrays.fill(equipment.armorIds, "")
 
                 var armorCount = 0
                 armor.forEachWithMeta({ slot, itemStack, armorIds ->
-                    Log.verbose("PhantomBody", "DEBUG: Armor slot $slot: ${itemStack.itemId}")
+                    Log.finer("PhantomBody", "DEBUG: Armor slot $slot: ${itemStack.itemId}")
                     armorIds[slot.toInt()] = itemStack.itemId
                     armorCount++
                 }, equipment.armorIds)
-                Log.verbose("PhantomBody", "DEBUG: Found $armorCount armor items")
+                Log.finer("PhantomBody", "DEBUG: Found $armorCount armor items")
 
                 // Extract hand items
                 // Check what getItemInHand() is actually returning
                 val activeHotbarItem = inventory.activeHotbarItem
-                Log.verbose("PhantomBody", "DEBUG: Active hotbar item (slot ${inventory.activeHotbarSlot}): ${activeHotbarItem?.itemId ?: "null"}")
+                Log.finer("PhantomBody", "DEBUG: Active hotbar item (slot ${inventory.activeHotbarSlot}): ${activeHotbarItem?.itemId ?: "null"}")
 
                 val itemInHand = inventory.itemInHand
-                Log.verbose("PhantomBody", "DEBUG: Item in hand (final): ${itemInHand?.itemId ?: "null"}")
+                Log.finer("PhantomBody", "DEBUG: Item in hand (final): ${itemInHand?.itemId ?: "null"}")
 
                 equipment.rightHandItemId = itemInHand?.itemId ?: "Empty"
 
                 val utilityItem = inventory.utilityItem
-                Log.verbose("PhantomBody", "DEBUG: Utility item: ${utilityItem?.itemId ?: "null"}")
+                Log.finer("PhantomBody", "DEBUG: Utility item: ${utilityItem?.itemId ?: "null"}")
                 equipment.leftHandItemId = utilityItem?.itemId ?: "Empty"
 
                 // DEBUG: Also try to iterate all inventory slots
-                Log.verbose("PhantomBody", "DEBUG: Hotbar capacity: ${inventory.hotbar.capacity}")
+                Log.finer("PhantomBody", "DEBUG: Hotbar capacity: ${inventory.hotbar.capacity}")
                 var hotbarCount = 0
 
                 // Check all 9 hotbar slots
                 for (i in 0 until inventory.hotbar.capacity.toInt()) {
                     val item = inventory.hotbar.getItemStack(i.toShort())
                     if (item != null) {
-                        Log.verbose("PhantomBody", "DEBUG: Hotbar slot $i: ${item.itemId}")
+                        Log.finer("PhantomBody", "DEBUG: Hotbar slot $i: ${item.itemId}")
                         hotbarCount++
                     } else {
-                        Log.verbose("PhantomBody", "DEBUG: Hotbar slot $i: empty")
+                        Log.finer("PhantomBody", "DEBUG: Hotbar slot $i: empty")
                     }
                 }
-                Log.verbose("PhantomBody", "DEBUG: Found $hotbarCount hotbar items total")
+                Log.finer("PhantomBody", "DEBUG: Found $hotbarCount hotbar items total")
 
                 // Store equipment data in component for later use
                 component.equipmentData = equipment
 
-                Log.verbose("PhantomBody", "Extracted player equipment for phantom body")
-                Log.verbose("PhantomBody", "  - Armor: ${equipment.armorIds?.joinToString(", ")}")
-                Log.verbose("PhantomBody", "  - Right hand: ${equipment.rightHandItemId}")
-                Log.verbose("PhantomBody", "  - Left hand: ${equipment.leftHandItemId}")
+                Log.finer("PhantomBody", "Extracted player equipment for phantom body")
+                Log.finer("PhantomBody", "  - Armor: ${equipment.armorIds?.joinToString(", ")}")
+                Log.finer("PhantomBody", "  - Right hand: ${equipment.rightHandItemId}")
+                Log.finer("PhantomBody", "  - Left hand: ${equipment.leftHandItemId}")
 
                 // Check if player has any equipment at all
                 val hasArmor = equipment.armorIds?.any { it.isNotEmpty() } == true
@@ -239,9 +234,9 @@ class DownedPhantomBodySystem(
                 if (!hasArmor && !hasRightHand && !hasLeftHand) {
                     Log.warning("PhantomBody", "Player has NO equipment/armor equipped!")
                     Log.warning("PhantomBody", "To see equipment on phantom body:")
-                    Log.verbose("PhantomBody", "  1. Equip armor (helmet, chestplate, etc.)")
-                    Log.verbose("PhantomBody", "  2. Select a hotbar slot (press 1-9) to hold an item")
-                    Log.verbose("PhantomBody", "  Active hotbar slot was: ${inventory.activeHotbarSlot} (needs to be 0-8)")
+                    Log.finer("PhantomBody", "  1. Equip armor (helmet, chestplate, etc.)")
+                    Log.finer("PhantomBody", "  2. Select a hotbar slot (press 1-9) to hold an item")
+                    Log.finer("PhantomBody", "  Active hotbar slot was: ${inventory.activeHotbarSlot} (needs to be 0-8)")
                 }
             } catch (e: Exception) {
                 Log.warning("PhantomBody", "Failed to extract equipment: ${e.message}")
@@ -256,7 +251,7 @@ class DownedPhantomBodySystem(
         val playerSkinComponent = commandBuffer.getComponent(ref, PlayerSkinComponent.getComponentType())
         if (playerSkinComponent != null) {
             playerSkin = playerSkinComponent.playerSkin
-            Log.verbose("PhantomBody", "Extracted player cosmetic skin/outfit")
+            Log.finer("PhantomBody", "Extracted player cosmetic skin/outfit")
         } else {
             Log.warning("PhantomBody", "No PlayerSkinComponent found (no cosmetic outfit)")
         }
@@ -264,16 +259,16 @@ class DownedPhantomBodySystem(
         // Add PhantomBodyMarker with player reference, equipment, and cosmetic skin for deferred processing
         val marker = PhantomBodyMarker(ref, equipment, playerSkin)
         holder.addComponent(PhantomBodyMarker.getComponentType(), marker)
-        Log.verbose("PhantomBody", "Added PhantomBodyMarker with equipment and skin data")
+        Log.finer("PhantomBody", "Added PhantomBodyMarker with equipment and skin data")
 
         // Add the phantom body entity to the world
         val phantomBodyRef = commandBuffer.addEntity(holder, AddReason.SPAWN)
-        Log.verbose("PhantomBody", "Added entity to world with ref: $phantomBodyRef")
+        Log.finer("PhantomBody", "Added entity to world with ref: $phantomBodyRef")
 
         // Store phantom body reference
         component.phantomBodyRef = phantomBodyRef
 
-        Log.verbose("PhantomBody", "Created phantom body entity")
+        Log.finer("PhantomBody", "Created phantom body entity")
     }
 
     override fun onComponentSet(
@@ -297,14 +292,14 @@ class DownedPhantomBodySystem(
             return
         }
 
-        Log.verbose("PhantomBody", "DownedComponent removed - cleaning up phantom body")
+        Log.finer("PhantomBody", "DownedComponent removed - cleaning up phantom body")
 
         // Check if player entity is still valid (not being removed/logged out)
         val isPlayerValid = ref.isValid
 
         // Only teleport player back if they're still in the world (revived, not logged out)
         if (isPlayerValid) {
-            Log.verbose("PhantomBody", "Player still in world - teleporting back to body")
+            Log.finer("PhantomBody", "Player still in world - teleporting back to body")
 
             // CRITICAL: Teleport player back to downed location (where phantom body is)
             val downedLocation = component.downedLocation
@@ -315,18 +310,18 @@ class DownedPhantomBodySystem(
                     val currentRotation = transformComponent.rotation
                     val teleport = Teleport.createForPlayer(downedLocation, currentRotation)
                     commandBuffer.addComponent(ref, Teleport.getComponentType(), teleport)
-                    Log.verbose("PhantomBody", "Teleporting player back to $downedLocation")
+                    Log.finer("PhantomBody", "Teleporting player back to $downedLocation")
                 }
             }
         } else {
-            Log.verbose("PhantomBody", "Player entity being removed (logout) - skipping teleport")
+            Log.finer("PhantomBody", "Player entity being removed (logout) - skipping teleport")
         }
 
         // Always remove phantom body entity
         val phantomBodyRef = component.phantomBodyRef
         if (phantomBodyRef != null && phantomBodyRef.isValid) {
             commandBuffer.removeEntity(phantomBodyRef, RemoveReason.UNLOAD)
-            Log.verbose("PhantomBody", "Removed phantom body entity")
+            Log.finer("PhantomBody", "Removed phantom body entity")
         }
     }
 }

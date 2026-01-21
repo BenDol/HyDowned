@@ -1,7 +1,6 @@
 package com.hydowned.util
 
 import com.hydowned.config.DownedConfig
-import com.hydowned.util.Log
 
 
 class AnimationManager(private val config: DownedConfig) {
@@ -16,7 +15,7 @@ class AnimationManager(private val config: DownedConfig) {
         // originalAnimations[player] = player.currentAnimation
         // player.setAnimation(AnimationType.DEATH)
 
-        Log.verbose("Animation", "Setting downed animation for player")
+        Log.finer("Animation", "Setting downed animation for player")
     }
 
     fun restoreNormalAnimation(player: Any) {
@@ -29,7 +28,7 @@ class AnimationManager(private val config: DownedConfig) {
         //     player.resetToDefaultAnimation()
         // }
 
-        Log.verbose("Animation", "Restoring normal animation for player")
+        Log.finer("Animation", "Restoring normal animation for player")
     }
 
     fun cleanup() {

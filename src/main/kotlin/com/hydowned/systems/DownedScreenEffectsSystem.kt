@@ -44,8 +44,8 @@ class DownedScreenEffectsSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        Log.verbose("ScreenEffects", "============================================")
-        Log.verbose("ScreenEffects", "Applying disorientation effects to downed player")
+        Log.finer("ScreenEffects", "============================================")
+        Log.finer("ScreenEffects", "Applying disorientation effects to downed player")
 
         try {
             // Get PlayerRef to send packets
@@ -62,7 +62,7 @@ class DownedScreenEffectsSystem(
                     AccumulationMode.Set
                 )
                 playerRef.packetHandler.writeNoCache(cameraShake as Packet)
-                Log.verbose("ScreenEffects", "Applied camera shake (intensity: 0.15)")
+                Log.finer("ScreenEffects", "Applied camera shake (intensity: 0.15)")
             } catch (e: Exception) {
                 Log.warning("ScreenEffects", "Failed to apply camera shake: ${e.message}")
                 e.printStackTrace()
@@ -78,7 +78,7 @@ class DownedScreenEffectsSystem(
                     0.0f  // sunshaftIntensity - no sun shafts
                 )
                 playerRef.packetHandler.writeNoCache(postFx as Packet)
-                Log.verbose("ScreenEffects", "Applied post-FX (reduced brightness/intensity)")
+                Log.finer("ScreenEffects", "Applied post-FX (reduced brightness/intensity)")
             } catch (e: Exception) {
                 Log.warning("ScreenEffects", "Failed to apply post-FX: ${e.message}")
                 e.printStackTrace()
@@ -89,7 +89,7 @@ class DownedScreenEffectsSystem(
             e.printStackTrace()
         }
 
-        Log.verbose("ScreenEffects", "============================================")
+        Log.finer("ScreenEffects", "============================================")
     }
 
     override fun onComponentSet(
@@ -108,8 +108,8 @@ class DownedScreenEffectsSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        Log.verbose("ScreenEffects", "============================================")
-        Log.verbose("ScreenEffects", "Removing disorientation effects from player")
+        Log.finer("ScreenEffects", "============================================")
+        Log.finer("ScreenEffects", "Removing disorientation effects from player")
 
         try {
             // Get PlayerRef to send packets
@@ -126,7 +126,7 @@ class DownedScreenEffectsSystem(
                     AccumulationMode.Set
                 )
                 playerRef.packetHandler.writeNoCache(cameraShake as Packet)
-                Log.verbose("ScreenEffects", "Removed camera shake")
+                Log.finer("ScreenEffects", "Removed camera shake")
             } catch (e: Exception) {
                 Log.warning("ScreenEffects", "Failed to remove camera shake: ${e.message}")
                 e.printStackTrace()
@@ -142,7 +142,7 @@ class DownedScreenEffectsSystem(
                     1.0f  // sunshaftIntensity - normal sun shafts
                 )
                 playerRef.packetHandler.writeNoCache(postFx as Packet)
-                Log.verbose("ScreenEffects", "Reset post-FX to normal")
+                Log.finer("ScreenEffects", "Reset post-FX to normal")
             } catch (e: Exception) {
                 Log.warning("ScreenEffects", "Failed to reset post-FX: ${e.message}")
                 e.printStackTrace()
@@ -153,6 +153,6 @@ class DownedScreenEffectsSystem(
             e.printStackTrace()
         }
 
-        Log.verbose("ScreenEffects", "============================================")
+        Log.finer("ScreenEffects", "============================================")
     }
 }

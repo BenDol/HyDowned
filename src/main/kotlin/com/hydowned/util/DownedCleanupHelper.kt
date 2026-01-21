@@ -5,22 +5,16 @@ import com.hypixel.hytale.component.Ref
 import com.hypixel.hytale.component.RemoveReason
 import com.hypixel.hytale.protocol.AnimationSlot
 import com.hypixel.hytale.server.core.entity.AnimationUtils
-import com.hypixel.hytale.server.core.entity.UUIDComponent
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent
 import com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
-import com.hypixel.hytale.server.core.modules.entity.damage.Damage
-import com.hypixel.hytale.server.core.modules.entity.damage.DamageSystems
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes
-import com.hypixel.hytale.server.core.modules.interaction.Interactions
 import com.hypixel.hytale.server.core.universe.PlayerRef
-import com.hypixel.hytale.server.core.universe.Universe
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.network.DownedStateTracker
-import com.hydowned.util.Log
 
 
 /**
@@ -57,9 +51,9 @@ object DownedCleanupHelper {
         reason: String,
         forceHealthToZero: Boolean = false
     ) {
-        Log.verbose("CleanupHelper", "============================================")
-        Log.verbose("CleanupHelper", "Executing death: $reason")
-        Log.verbose("CleanupHelper", "============================================")
+        Log.finer("CleanupHelper", "============================================")
+        Log.finer("CleanupHelper", "Executing death: $reason")
+        Log.finer("CleanupHelper", "============================================")
 
         // CRITICAL: Set timer to 0 BEFORE executing death
         // This makes the damage immunity system allow the killing damage through
@@ -91,12 +85,12 @@ object DownedCleanupHelper {
             } else {
                 // For timer expiry/giveup: directly set health to 0 for reliable death
                 // Using damage system is unreliable because of complex interaction with other systems
-                Log.verbose("CleanupHelper", "Setting health to 0 for timer/giveup death")
+                Log.finer("CleanupHelper", "Setting health to 0 for timer/giveup death")
 
                 val entityStatMap = commandBuffer.getComponent(ref, EntityStatMap.getComponentType())
                 if (entityStatMap != null) {
                     entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), 0.0f)
-                    Log.verbose("CleanupHelper", "Health set to 0")
+                    Log.finer("CleanupHelper", "Health set to 0")
                 } else {
                     Log.warning("CleanupHelper", "EntityStatMap not found, cannot set health to 0")
                 }
@@ -108,7 +102,7 @@ object DownedCleanupHelper {
                         val cameraSystem = com.hydowned.HyDownedPlugin.instance?.getCameraSystem()
                         if (cameraSystem != null) {
                             cameraSystem.resetCameraForPlayer(playerRef, commandBuffer)
-                            Log.verbose("CleanupHelper", "Reset camera to normal view")
+                            Log.finer("CleanupHelper", "Reset camera to normal view")
                         }
                     }
                 } catch (e: Exception) {
@@ -120,7 +114,7 @@ object DownedCleanupHelper {
                 commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
                 DownedStateTracker.setNotDowned(ref)
 
-                Log.verbose("CleanupHelper", "Removed DownedComponent - player should die from 0 HP")
+                Log.finer("CleanupHelper", "Removed DownedComponent - player should die from 0 HP")
             }
 
         } catch (e: Exception) {
@@ -150,9 +144,9 @@ object DownedCleanupHelper {
         downedComponent: DownedComponent,
         healthPercent: Double
     ): Boolean {
-        Log.verbose("CleanupHelper", "============================================")
-        Log.verbose("CleanupHelper", "Executing revive")
-        Log.verbose("CleanupHelper", "============================================")
+        Log.finer("CleanupHelper", "============================================")
+        Log.finer("CleanupHelper", "Executing revive")
+        Log.finer("CleanupHelper", "============================================")
 
         // Teleport player back to downed location
         teleportToDownedLocation(ref, commandBuffer, downedComponent)
@@ -168,7 +162,7 @@ object DownedCleanupHelper {
             if (healthStat != null) {
                 val restoreAmount = healthStat.max * healthPercent.toFloat()
                 entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), restoreAmount)
-                Log.verbose("CleanupHelper", "Restored health to ${restoreAmount} (${healthPercent * 100}%)")
+                Log.finer("CleanupHelper", "Restored health to ${restoreAmount} (${healthPercent * 100}%)")
             } else {
                 Log.warning("CleanupHelper", "Health stat not found")
                 return false
@@ -201,7 +195,7 @@ object DownedCleanupHelper {
             val transformComponent = commandBuffer.getComponent(ref, TransformComponent.getComponentType())
             if (transformComponent != null) {
                 transformComponent.teleportPosition(downedLocation)
-                Log.verbose("CleanupHelper", "Teleported player back to downed location")
+                Log.finer("CleanupHelper", "Teleported player back to downed location")
             } else {
                 Log.warning("CleanupHelper", "TransformComponent not found")
             }
@@ -231,7 +225,7 @@ object DownedCleanupHelper {
             val phantomBodyRef = downedComponent.phantomBodyRef
             if (phantomBodyRef != null && phantomBodyRef.isValid) {
                 commandBuffer.removeEntity(phantomBodyRef, RemoveReason.UNLOAD)
-                Log.verbose("CleanupHelper", "Manually removed phantom body entity (logout scenario)")
+                Log.finer("CleanupHelper", "Manually removed phantom body entity (logout scenario)")
             } else {
                 Log.warning("CleanupHelper", "Phantom body ref is null or invalid")
             }
@@ -241,7 +235,7 @@ object DownedCleanupHelper {
                 val scaleComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.EntityScaleComponent.getComponentType())
                 if (scaleComponent != null) {
                     scaleComponent.scale = downedComponent.originalScale
-                    Log.verbose("CleanupHelper", "Restored scale to ${downedComponent.originalScale} (logout scenario)")
+                    Log.finer("CleanupHelper", "Restored scale to ${downedComponent.originalScale} (logout scenario)")
                 } else {
                     Log.warning("CleanupHelper", "EntityScaleComponent not found, cannot restore scale")
                 }
@@ -257,7 +251,7 @@ object DownedCleanupHelper {
                 if (originalDisplayName != null) {
                     commandBuffer.removeComponent(ref, DisplayNameComponent.getComponentType())
                     commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), originalDisplayName)
-                    Log.verbose("CleanupHelper", "Restored original DisplayNameComponent (logout scenario)")
+                    Log.finer("CleanupHelper", "Restored original DisplayNameComponent (logout scenario)")
                 } else {
                     // No original stored - ensure component exists
                     commandBuffer.ensureComponent(ref, DisplayNameComponent.getComponentType())
@@ -273,7 +267,7 @@ object DownedCleanupHelper {
             try {
                 if (downedComponent.wasVisibleBefore) {
                     commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
-                    Log.verbose("CleanupHelper", "Removed HiddenFromAdventurePlayers (logout scenario)")
+                    Log.finer("CleanupHelper", "Removed HiddenFromAdventurePlayers (logout scenario)")
                 }
             } catch (e: Exception) {
                 Log.warning("CleanupHelper", "Failed to remove HiddenFromAdventurePlayers: ${e.message}")
@@ -287,7 +281,7 @@ object DownedCleanupHelper {
                 if (collisionResult != null && downedComponent.hadCollisionEnabled) {
                     // Note: API method has typo - "Collsions" instead of "Collisions"
                     collisionResult.collisionResult.enableCharacterCollsions()
-                    Log.verbose("CleanupHelper", "Re-enabled character collisions (logout scenario)")
+                    Log.finer("CleanupHelper", "Re-enabled character collisions (logout scenario)")
                 }
             } catch (e: Exception) {
                 Log.warning("CleanupHelper", "Failed to re-enable character collisions: ${e.message}")
@@ -305,7 +299,7 @@ object DownedCleanupHelper {
             // DownedRemoveInteractionsSystem removes this when downed, but won't restore it during logout
             // Ensuring it exists allows the player to interact after respawn
             commandBuffer.ensureComponent(ref, Interactable.getComponentType())
-            Log.verbose("CleanupHelper", "Ensured Interactable component exists (logout scenario)")
+            Log.finer("CleanupHelper", "Ensured Interactable component exists (logout scenario)")
         }
 
         // Reset camera to normal view
@@ -315,7 +309,7 @@ object DownedCleanupHelper {
                 val cameraSystem = com.hydowned.HyDownedPlugin.instance?.getCameraSystem()
                 if (cameraSystem != null) {
                     cameraSystem.resetCameraForPlayer(playerRef, commandBuffer)
-                    Log.verbose("CleanupHelper", "Reset camera to normal view")
+                    Log.finer("CleanupHelper", "Reset camera to normal view")
                 } else {
                     Log.warning("CleanupHelper", "Camera system not available")
                 }
@@ -333,7 +327,7 @@ object DownedCleanupHelper {
         // Clear downed state tracking
         DownedStateTracker.setNotDowned(ref)
 
-        Log.verbose("CleanupHelper", "Cleaned up DownedComponent and state tracker")
+        Log.finer("CleanupHelper", "Cleaned up DownedComponent and state tracker")
     }
 
     /**
@@ -354,7 +348,7 @@ object DownedCleanupHelper {
             true, // sendToSelf
             commandBuffer
         )
-        Log.verbose("CleanupHelper", "Played death animation")
+        Log.finer("CleanupHelper", "Played death animation")
 
         // Set movement state to sleeping
         val movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType())
@@ -375,7 +369,7 @@ object DownedCleanupHelper {
             sentStates.sleeping = false
             sentStates.idle = true
 
-            Log.verbose("CleanupHelper", "Set movement state to sleeping")
+            Log.finer("CleanupHelper", "Set movement state to sleeping")
         } else {
             Log.warning("CleanupHelper", "MovementStatesComponent not found")
         }

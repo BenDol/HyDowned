@@ -55,13 +55,13 @@ class GiveUpCommand(
             return
         }
 
-        Log.verbose("GiveUpCommand", "Player used /giveup while downed")
+        Log.finer("GiveUpCommand", "Player used /giveup while downed")
 
         // Queue this give-up request for processing by DownedTimerSystem
         // The timer system has access to the ECS commandBuffer and can safely execute death
         pendingGiveUps[ref] = true
 
-        Log.verbose("GiveUpCommand", "Queued give-up in pendingGiveUps map")
+        Log.finer("GiveUpCommand", "Queued give-up in pendingGiveUps map")
 
         // Send message immediately
         playerRef.sendMessage(Message.raw("Giving up... You will respawn shortly."))

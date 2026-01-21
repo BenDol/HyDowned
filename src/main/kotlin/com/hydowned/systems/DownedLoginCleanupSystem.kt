@@ -19,6 +19,10 @@ import com.hydowned.util.PendingDeathTracker
 import com.hydowned.network.DownedStateTracker
 import com.hypixel.hytale.server.core.entity.UUIDComponent
 import com.hydowned.util.Log
+import com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers
+import com.hypixel.hytale.server.core.modules.entity.component.Intangible
+import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
+import com.hypixel.hytale.server.core.universe.PlayerRef
 
 
 /**
@@ -64,13 +68,15 @@ class DownedLoginCleanupSystem(
     ) {
         val ref = archetypeChunk.getReferenceTo(index)
 
-        // CRITICAL CRASH FIX: Always remove HiddenFromAdventurePlayers for ALL players
+        // CRITICAL CRASH FIX: Remove HiddenFromAdventurePlayers for NON-DOWNED players
         // This component causes client crashes when combined with camera system
         // Must happen BEFORE any queue-based cleanup to fix broken characters
-        val hadHiddenCrashFix = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType()) != null
-        if (hadHiddenCrashFix) {
-            commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
-            Log.verbose("LoginCleanup", "Removed HiddenFromAdventurePlayers (crash fix)")
+        // BUT: Don't remove from currently downed players (they need to be invisible!)
+        val isDowned = commandBuffer.getComponent(ref, DownedComponent.getComponentType()) != null
+        val hadHiddenCrashFix = commandBuffer.getComponent(ref, HiddenFromAdventurePlayers.getComponentType()) != null
+        if (hadHiddenCrashFix && !isDowned) {
+            commandBuffer.tryRemoveComponent(ref, HiddenFromAdventurePlayers.getComponentType())
+            Log.finer("LoginCleanup", "Removed HiddenFromAdventurePlayers (crash fix - player not downed)")
         }
 
         // Check if this player has pending login cleanup for full processing
@@ -79,7 +85,7 @@ class DownedLoginCleanupSystem(
             return // No additional cleanup needed for this player
         }
 
-        Log.verbose("LoginCleanup", "Processing login cleanup for player...")
+        Log.finer("LoginCleanup", "Processing login cleanup for player...")
 
         var issuesFound = false
 
@@ -92,13 +98,13 @@ class DownedLoginCleanupSystem(
             when (val action = PendingDeathTracker.checkAndClearAction(playerUuid)) {
                 is PendingDeathTracker.RestoreAction.ExecuteDeath -> {
                     // Player intentionally logged out while downed → execute death
-                    Log.verbose("LoginCleanup", "Player logged out while downed - executing death")
+                    Log.finer("LoginCleanup", "Player logged out while downed - executing death")
 
                     // Create a minimal DownedComponent for death execution
                     val tempDownedComponent = DownedComponent(downedTimeRemaining = 0) // Timer expired (logout counts as expiry)
 
                     // Get current location for downed location (they'll die here)
-                    val transformComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.TransformComponent.getComponentType())
+                    val transformComponent = commandBuffer.getComponent(ref, TransformComponent.getComponentType())
                     tempDownedComponent.downedLocation = transformComponent?.position
 
                     DownedCleanupHelper.executeDeath(
@@ -108,28 +114,28 @@ class DownedLoginCleanupSystem(
                         "Logged out while downed (executing death on login)"
                     )
 
-                    Log.verbose("LoginCleanup", "Death executed - player will respawn")
+                    Log.finer("LoginCleanup", "Death executed - player will respawn")
                     return // Exit early - player will die and respawn
                 }
                 is PendingDeathTracker.RestoreAction.RestoreDowned -> {
                     // Player crashed/unloaded while downed → restore downed state
-                    Log.verbose("LoginCleanup", "Player crashed while downed - restoring downed state")
-                    Log.verbose("LoginCleanup", "  Time remaining: ${action.timeRemaining}s")
-                    Log.verbose("LoginCleanup", "  Downed location: ${action.downedLocation}")
+                    Log.finer("LoginCleanup", "Player crashed while downed - restoring downed state")
+                    Log.finer("LoginCleanup", "  Time remaining: ${action.timeRemaining}s")
+                    Log.finer("LoginCleanup", "  Downed location: ${action.downedLocation}")
 
                     // CRITICAL: Remove any lingering invisibility/collision components BEFORE restoring downed state
                     // If these are present, the invisibility/collision systems will think the player was already hidden/intangible
                     // and won't properly restore visibility/collision on revival
-                    val hadHiddenComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType()) != null
+                    val hadHiddenComponent = commandBuffer.getComponent(ref, HiddenFromAdventurePlayers.getComponentType()) != null
                     if (hadHiddenComponent) {
-                        commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
-                        Log.verbose("LoginCleanup", "Removed lingering HiddenFromAdventurePlayers before restore")
+                        commandBuffer.tryRemoveComponent(ref, HiddenFromAdventurePlayers.getComponentType())
+                        Log.finer("LoginCleanup", "Removed lingering HiddenFromAdventurePlayers before restore")
                     }
 
-                    val hadIntangibleComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType()) != null
+                    val hadIntangibleComponent = commandBuffer.getComponent(ref, Intangible.getComponentType()) != null
                     if (hadIntangibleComponent) {
-                        commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType())
-                        Log.verbose("LoginCleanup", "Removed lingering Intangible before restore")
+                        commandBuffer.tryRemoveComponent(ref, Intangible.getComponentType())
+                        Log.finer("LoginCleanup", "Removed lingering Intangible before restore")
                     }
 
                     // Create fresh DownedComponent with saved timer and location
@@ -138,13 +144,13 @@ class DownedLoginCleanupSystem(
                     // Use the saved downed location (where they were originally downed)
                     // Fallback to current location if not found in restore file
                     restoredComponent.downedLocation = action.downedLocation ?: run {
-                        val transformComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.TransformComponent.getComponentType())
+                        val transformComponent = commandBuffer.getComponent(ref, TransformComponent.getComponentType())
                         transformComponent?.position
                     }
 
                     // Save current scale/displayname before systems modify them
-                    val currentScale = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.EntityScaleComponent.getComponentType())?.scale ?: 1.0f
-                    val currentDisplayName = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent.getComponentType())?.clone() as? com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent
+                    val currentScale = commandBuffer.getComponent(ref, EntityScaleComponent.getComponentType())?.scale ?: 1.0f
+                    val currentDisplayName = commandBuffer.getComponent(ref, DisplayNameComponent.getComponentType())?.clone() as? DisplayNameComponent
 
                     restoredComponent.originalScale = currentScale
                     restoredComponent.originalDisplayName = currentDisplayName
@@ -156,7 +162,7 @@ class DownedLoginCleanupSystem(
                     // Update state tracker (needed for network threads to know player is downed)
                     DownedStateTracker.setDowned(ref)
 
-                    Log.verbose("LoginCleanup", "Downed state restored - all systems triggered")
+                    Log.finer("LoginCleanup", "Downed state restored - all systems triggered")
 
                     // Exit early - the component callbacks will handle all setup
                     return
@@ -174,7 +180,7 @@ class DownedLoginCleanupSystem(
             val scaleComponent = commandBuffer.getComponent(ref, EntityScaleComponent.getComponentType())
             if (scaleComponent != null) {
                 if (scaleComponent.scale != 1.0f) {
-                    Log.verbose("LoginCleanup", "Found scale ${scaleComponent.scale}, restoring to 1.0 (crash safety)")
+                    Log.finer("LoginCleanup", "Found scale ${scaleComponent.scale}, restoring to 1.0 (crash safety)")
                     scaleComponent.scale = 1.0f
                     issuesFound = true
                 }
@@ -184,7 +190,7 @@ class DownedLoginCleanupSystem(
         // 3. Ensure DisplayNameComponent exists
         val displayNameComponent = commandBuffer.getComponent(ref, DisplayNameComponent.getComponentType())
         if (displayNameComponent == null) {
-            Log.verbose("LoginCleanup", "DisplayNameComponent missing, ensuring it exists")
+            Log.finer("LoginCleanup", "DisplayNameComponent missing, ensuring it exists")
             commandBuffer.ensureComponent(ref, DisplayNameComponent.getComponentType())
             issuesFound = true
         }
@@ -192,24 +198,24 @@ class DownedLoginCleanupSystem(
         // 4. Ensure Interactable component exists
         val interactable = commandBuffer.getComponent(ref, Interactable.getComponentType())
         if (interactable == null) {
-            Log.verbose("LoginCleanup", "Interactable component missing, ensuring it exists")
+            Log.finer("LoginCleanup", "Interactable component missing, ensuring it exists")
             commandBuffer.ensureComponent(ref, Interactable.getComponentType())
             issuesFound = true
         }
 
         // 5. Remove HiddenFromAdventurePlayers if present (invisibility mode cleanup)
-        val hiddenComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
+        val hiddenComponent = commandBuffer.getComponent(ref, HiddenFromAdventurePlayers.getComponentType())
         if (hiddenComponent != null) {
-            Log.verbose("LoginCleanup", "Found HiddenFromAdventurePlayers, removing")
-            commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
+            Log.finer("LoginCleanup", "Found HiddenFromAdventurePlayers, removing")
+            commandBuffer.tryRemoveComponent(ref, HiddenFromAdventurePlayers.getComponentType())
             issuesFound = true
         }
 
         // 6. Remove Intangible if present (collision cleanup)
-        val intangibleComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType())
+        val intangibleComponent = commandBuffer.getComponent(ref, Intangible.getComponentType())
         if (intangibleComponent != null) {
-            Log.verbose("LoginCleanup", "Found Intangible, removing")
-            commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType())
+            Log.finer("LoginCleanup", "Found Intangible, removing")
+            commandBuffer.tryRemoveComponent(ref, Intangible.getComponentType())
             issuesFound = true
         }
 
@@ -218,21 +224,21 @@ class DownedLoginCleanupSystem(
         commandBuffer.ensureComponent(ref, PlayerSkinComponent.getComponentType())
         val playerSkinComponent = commandBuffer.getComponent(ref, PlayerSkinComponent.getComponentType())
         if (playerSkinComponent != null) {
-            Log.verbose("LoginCleanup", "PlayerSkinComponent verified")
+            Log.finer("LoginCleanup", "PlayerSkinComponent verified")
         } else {
-            Log.verbose("LoginCleanup", "PlayerSkinComponent could not be ensured")
+            Log.finer("LoginCleanup", "PlayerSkinComponent could not be ensured")
             issuesFound = true
         }
 
         // 8. Reset camera tracking (in case player logged out with camera active in PLAYER mode)
         try {
-            val playerRefComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.universe.PlayerRef.getComponentType())
+            val playerRefComponent = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
             if (playerRefComponent != null) {
                 val cameraSystem = com.hydowned.HyDownedPlugin.instance?.getCameraSystem()
                 if (cameraSystem != null) {
                     // Remove from tracking set (don't call full reset since camera should already be normal)
                     cameraSystem.clearCameraTracking(playerRefComponent)
-                    Log.verbose("LoginCleanup", "Cleared camera tracking state")
+                    Log.finer("LoginCleanup", "Cleared camera tracking state")
                 }
             }
         } catch (e: Exception) {
@@ -240,9 +246,9 @@ class DownedLoginCleanupSystem(
         }
 
         if (issuesFound) {
-            Log.verbose("LoginCleanup", "Fixed player state issues on login")
+            Log.finer("LoginCleanup", "Fixed player state issues on login")
         } else {
-            Log.verbose("LoginCleanup", "Player state is clean")
+            Log.finer("LoginCleanup", "Player state is clean")
         }
     }
 }

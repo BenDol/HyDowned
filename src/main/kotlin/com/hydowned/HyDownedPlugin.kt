@@ -16,7 +16,6 @@ import com.hydowned.systems.DownedInteractionBlockingSystem
 import com.hydowned.systems.DownedInvisibilitySystem
 import com.hydowned.systems.DownedLoginCleanupSystem
 import com.hydowned.systems.DownedLogoutHandlerSystem
-import com.hydowned.systems.DownedMobAggroSystem
 import com.hydowned.systems.DownedMovementStateOverrideSystem
 import com.hydowned.systems.DownedMovementSuppressionSystem
 import com.hydowned.systems.DownedPacketInterceptorSystem
@@ -26,7 +25,6 @@ import com.hydowned.systems.DownedPlayerModeSyncSystem
 import com.hydowned.systems.DownedPlayerScaleSystem
 import com.hydowned.systems.DownedRadiusConstraintSystem
 import com.hydowned.systems.DownedRemoveInteractionsSystem
-import com.hydowned.systems.DownedScreenEffectsSystem
 import com.hydowned.systems.DownedTimerSystem
 import com.hydowned.systems.PhantomBodyAnimationSystem
 import com.hydowned.systems.ReviveInteractionSystem
@@ -36,6 +34,7 @@ import com.hypixel.hytale.server.core.plugin.JavaPlugin
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.util.Log
+import java.util.logging.Level
 
 /**
  * HyDowned - Downed State Mod for Hytale
@@ -71,20 +70,19 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
     override fun setup() {
         instance = this
 
-        // Initialize logging system with Hytale logger
-        Log.init(logger)
-
-        // Initialize configuration
+        // Initialize configuration FIRST (we need logLevel from config)
         val pluginDataFolder = java.io.File("plugins/HyDowned")
         try {
             config = DownedConfig.load(pluginDataFolder)
-            Log.setLogLevel(config.logLevel)
-            Log.info("Plugin", "Configuration loaded - Mode: ${config.downedMode}, LogLevel: ${config.logLevel}")
         } catch (e: Exception) {
-            Log.error("Plugin", "Failed to load configuration: ${e.message}")
+            // If config fails, use default and continue
+            config = DownedConfig()
             e.printStackTrace()
-            throw e
         }
+
+        // Initialize logging system with Hytale logger and config log level
+        Log.init(logger, config.logLevel)
+        Log.info("Plugin", "Configuration loaded - Mode: ${config.downedMode}")
 
         // Register components
         downedComponentType = entityStoreRegistry.registerComponent(
@@ -202,58 +200,59 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
     }
 
     override fun start() {
-        Log.separator("Plugin")
-        Log.verbose("Plugin", "Start Phase")
-        Log.separator("Plugin")
+        Log.separator("Plugin", Level.FINER)
+        Log.finer("Plugin", "Start Phase")
+        Log.separator("Plugin", Level.FINER)
+        Log.finer("Plugin", "")
 
-        Log.separator("Plugin")
-        Log.verbose("Plugin", "HyDowned plugin started successfully!")
-        Log.verbose("Plugin", "Downed Mode: ${config.downedMode}")
-        Log.verbose("Plugin", "Invisibility Mode: ${config.invisibilityMode}")
-        Log.separator("Plugin")
-        Log.verbose("Plugin", "FEATURES:")
+        Log.separator("Plugin", Level.FINER)
+        Log.finer("Plugin", "HyDowned plugin started successfully!")
+        Log.finer("Plugin", "Downed Mode: ${config.downedMode}")
+        Log.finer("Plugin", "Invisibility Mode: ${config.invisibilityMode}")
+        Log.separator("Plugin", Level.FINER)
+        Log.finer("Plugin", "FEATURES:")
 
         if (config.usePlayerMode) {
-            Log.verbose("Plugin", "PLAYER MODE:")
-            Log.verbose("Plugin", "  ✓ Player body stays in place (lays down)")
-            Log.verbose("Plugin", "  ✓ Death animation plays on player")
-            Log.verbose("Plugin", "  ✓ Camera looks down from above")
-            Log.verbose("Plugin", "  ✓ Screen effects: camera shake + darkened vision")
-            Log.verbose("Plugin", "  ✓ Movement locked (player in sleep state)")
+            Log.finer("Plugin", "PLAYER MODE:")
+            Log.finer("Plugin", "  ✓ Player body stays in place (lays down)")
+            Log.finer("Plugin", "  ✓ Death animation plays on player")
+            Log.finer("Plugin", "  ✓ Camera looks down from above")
+            Log.finer("Plugin", "  ✓ Screen effects: camera shake + darkened vision")
+            Log.finer("Plugin", "  ✓ Movement locked (player in sleep state)")
         } else if (config.usePhantomMode) {
-            Log.verbose("Plugin", "PHANTOM MODE:")
-            Log.verbose("Plugin", "  ✓ Phantom body spawned at downed location (visible to all)")
-            Log.verbose("Plugin", "  ✓ Death animation plays on phantom body")
+            Log.finer("Plugin", "PHANTOM MODE:")
+            Log.finer("Plugin", "  ✓ Phantom body spawned at downed location (visible to all)")
+            Log.finer("Plugin", "  ✓ Death animation plays on phantom body")
 
             if (config.useScaleMode) {
-                Log.verbose("Plugin", "  ✓ Downed player: SCALE mode (0.01% size, nameplate hidden)")
+                Log.finer("Plugin", "  ✓ Downed player: SCALE mode (0.01% size, nameplate hidden)")
             } else if (config.useInvisibleMode) {
-                Log.verbose("Plugin", "  ✓ Downed player: INVISIBLE mode (VisibilityComponent, nameplate hidden)")
+                Log.finer("Plugin", "  ✓ Downed player: INVISIBLE mode (VisibilityComponent, nameplate hidden)")
             }
 
-            Log.verbose("Plugin", "  ✓ Character collision disabled (no pushing/attacking players)")
-            Log.verbose("Plugin", "  ✓ Block collision enabled (can't walk through walls)")
-            Log.verbose("Plugin", "  ✓ 7 block movement radius from phantom body")
-            Log.verbose("Plugin", "  ✓ Player teleports back to body on revive")
+            Log.finer("Plugin", "  ✓ Character collision disabled (no pushing/attacking players)")
+            Log.finer("Plugin", "  ✓ Block collision enabled (can't walk through walls)")
+            Log.finer("Plugin", "  ✓ 7 block movement radius from phantom body")
+            Log.finer("Plugin", "  ✓ Player teleports back to body on revive")
         }
 
-        Log.verbose("Plugin", "")
-        Log.verbose("Plugin", "GENERAL:")
-        Log.verbose("Plugin", "  ✓ Interactions blocked while downed")
-        Log.verbose("Plugin", "  ✓ Immune to damage while downed")
-        Log.verbose("Plugin", "  ✓ Healing blocked while downed")
-        Log.verbose("Plugin", "  ✓ Mobs lose aggro and cannot target downed players")
-        Log.verbose("Plugin", "  ✓ All active effects cleared when downed")
-        Log.verbose("Plugin", "  ✓ Timer: ${config.downedTimerSeconds}s until death")
-        Log.verbose("Plugin", "  ✓ Revive: CROUCH near body (${config.reviveRange} blocks)")
-        Log.verbose("Plugin", "  ✓ Logout while downed: auto-death + visibility restoration")
-        Log.verbose("Plugin", "  ✓ Command: /giveup to instantly die while downed")
-        Log.separator("Plugin")
+        Log.finer("Plugin", "")
+        Log.finer("Plugin", "GENERAL:")
+        Log.finer("Plugin", "  ✓ Interactions blocked while downed")
+        Log.finer("Plugin", "  ✓ Immune to damage while downed")
+        Log.finer("Plugin", "  ✓ Healing blocked while downed")
+        Log.finer("Plugin", "  ✓ Mobs lose aggro and cannot target downed players")
+        Log.finer("Plugin", "  ✓ All active effects cleared when downed")
+        Log.finer("Plugin", "  ✓ Timer: ${config.downedTimerSeconds}s until death")
+        Log.finer("Plugin", "  ✓ Revive: CROUCH near body (${config.reviveRange} blocks)")
+        Log.finer("Plugin", "  ✓ Logout while downed: auto-death + visibility restoration")
+        Log.finer("Plugin", "  ✓ Command: /giveup to instantly die while downed")
+        Log.separator("Plugin", Level.FINER)
     }
 
     override fun shutdown() {
-        Log.verbose("Plugin", "Shutting down...")
+        Log.finer("Plugin", "Shutting down...")
         instance = null
-        Log.verbose("Plugin", "Shutdown complete")
+        Log.finer("Plugin", "Shutdown complete")
     }
 }

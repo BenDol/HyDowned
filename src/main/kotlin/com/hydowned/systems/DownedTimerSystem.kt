@@ -44,8 +44,8 @@ class DownedTimerSystem(
         // Process any pending give-up commands for this entity
         val pendingGiveUp = GiveUpCommand.pendingGiveUps.remove(ref)
         if (pendingGiveUp != null && pendingGiveUp) {
-            Log.verbose("TimerSystem", "Processing giveup command")
-            Log.verbose("TimerSystem", "Timer before death: ${downedComponent.downedTimeRemaining}")
+            Log.finer("TimerSystem", "Processing giveup command")
+            Log.finer("TimerSystem", "Timer before death: ${downedComponent.downedTimeRemaining}")
 
             // Execute death immediately
             DownedCleanupHelper.executeDeath(
@@ -55,7 +55,7 @@ class DownedTimerSystem(
                 reason = "gave up"
             )
 
-            Log.verbose("TimerSystem", "Giveup death executed")
+            Log.finer("TimerSystem", "Giveup death executed")
             return // Exit early - player gave up
         }
 
@@ -183,7 +183,7 @@ class DownedTimerSystem(
                 "Timer expired"
             )
 
-            Log.verbose("TimerSystem", "Death executed, normal respawn flow will proceed")
+            Log.finer("TimerSystem", "Death executed, normal respawn flow will proceed")
         }
     }
 

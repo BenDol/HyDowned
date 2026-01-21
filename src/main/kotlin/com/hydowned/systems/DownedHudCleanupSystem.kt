@@ -64,15 +64,15 @@ class DownedHudCleanupSystem(
         val playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
             ?: return
 
-        Log.verbose("HudCleanup", "Cleaning up event title HUD for exiting downed state")
+        Log.finer("HudCleanup", "Cleaning up event title HUD for exiting downed state")
 
         // Hide event title
         try {
             val hideTitle = HideEventTitle()
             playerRef.packetHandler.write(hideTitle)
-            Log.verbose("HudCleanup", "Event title hidden")
+            Log.finer("HudCleanup", "Event title hidden")
         } catch (e: Exception) {
-            Log.verbose("HudCleanup", "Error hiding event title: ${e.message}")
+            Log.finer("HudCleanup", "Error hiding event title: ${e.message}")
         }
     }
 }

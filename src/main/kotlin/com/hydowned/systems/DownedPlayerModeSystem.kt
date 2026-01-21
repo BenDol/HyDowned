@@ -61,8 +61,8 @@ class DownedPlayerModeSystem(
             return
         }
 
-        Log.verbose("PlayerMode", "============================================")
-        Log.verbose("PlayerMode", "PLAYER MODE: Putting player into sleep state")
+        Log.finer("PlayerMode", "============================================")
+        Log.finer("PlayerMode", "PLAYER MODE: Putting player into sleep state")
 
         try {
             // CRITICAL: Stop ALL animations on ALL slots first to clear weapon/item animations
@@ -71,7 +71,7 @@ class DownedPlayerModeSystem(
                 AnimationUtils.stopAnimation(ref, AnimationSlot.Movement, commandBuffer)
                 AnimationUtils.stopAnimation(ref, AnimationSlot.Action, commandBuffer)
                 AnimationUtils.stopAnimation(ref, AnimationSlot.Emote, commandBuffer)
-                Log.verbose("PlayerMode", "Cleared all animation slots")
+                Log.finer("PlayerMode", "Cleared all animation slots")
             } catch (e: Exception) {
                 Log.warning("PlayerMode", "Failed to clear animations: ${e.message}")
             }
@@ -84,7 +84,7 @@ class DownedPlayerModeSystem(
                 true, // sendToSelf
                 commandBuffer
             )
-            Log.verbose("PlayerMode", "Playing Death animation on player")
+            Log.finer("PlayerMode", "Playing Death animation on player")
 
             // Set movement state to sleeping (laying down)
             val movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType())
@@ -120,7 +120,7 @@ class DownedPlayerModeSystem(
                     sentStates.sleeping = false
                     sentStates.idle = true
                 }
-                Log.verbose("PlayerMode", "Set player to sleeping state (laying down)")
+                Log.finer("PlayerMode", "Set player to sleeping state (laying down)")
             } else {
                 Log.warning("PlayerMode", "MovementStatesComponent not found")
             }
@@ -130,7 +130,7 @@ class DownedPlayerModeSystem(
             e.printStackTrace()
         }
 
-        Log.verbose("PlayerMode", "============================================")
+        Log.finer("PlayerMode", "============================================")
     }
 
     override fun onComponentSet(
@@ -154,8 +154,8 @@ class DownedPlayerModeSystem(
             return
         }
 
-        Log.verbose("PlayerMode", "============================================")
-        Log.verbose("PlayerMode", "PLAYER MODE: Removing sleep state from player")
+        Log.finer("PlayerMode", "============================================")
+        Log.finer("PlayerMode", "PLAYER MODE: Removing sleep state from player")
 
         try {
             // Check if player is at 0 HP (death scenario) or >0 HP (revive scenario)
@@ -168,7 +168,7 @@ class DownedPlayerModeSystem(
             if (isDying) {
                 // Player is dying - DO NOT reset movement states
                 // The respawn system will handle movement state initialization
-                Log.verbose("PlayerMode", "Player is dying (0 HP) - skipping movement state reset (respawn will handle it)")
+                Log.finer("PlayerMode", "Player is dying (0 HP) - skipping movement state reset (respawn will handle it)")
             } else {
                 // Player is being revived - reset movement state to normal
                 val movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType())
@@ -179,7 +179,7 @@ class DownedPlayerModeSystem(
                     states.onGround = true
                     movementStatesComponent.movementStates = states
                     movementStatesComponent.sentMovementStates = states
-                    Log.verbose("PlayerMode", "Reset player to normal movement state (revive scenario)")
+                    Log.finer("PlayerMode", "Reset player to normal movement state (revive scenario)")
                 }
             }
 
@@ -189,14 +189,14 @@ class DownedPlayerModeSystem(
                 AnimationSlot.Movement,
                 commandBuffer
             )
-            Log.verbose("PlayerMode", "Stopped Death animation")
+            Log.finer("PlayerMode", "Stopped Death animation")
 
         } catch (e: Exception) {
             Log.warning("PlayerMode", "Failed to reset player mode: ${e.message}")
             e.printStackTrace()
         }
 
-        Log.verbose("PlayerMode", "============================================")
+        Log.finer("PlayerMode", "============================================")
     }
 }
 

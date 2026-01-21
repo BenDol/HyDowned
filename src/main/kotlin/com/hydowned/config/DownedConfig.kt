@@ -19,7 +19,7 @@ data class DownedConfig(
     val enableActionBar: Boolean = true,
     val invisibilityMode: String = "SCALE", // SCALE or INVISIBLE
     val downedMode: String = "PLAYER", // PHANTOM or PLAYER
-    val logLevel: String = "INFO" // ERROR, WARNING, INFO, VERBOSE, DEBUG
+    val logLevel: String = "INFO" // SEVERE, WARNING, INFO, FINE, FINER, FINEST
 ) {
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()

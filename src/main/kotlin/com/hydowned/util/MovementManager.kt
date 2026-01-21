@@ -1,7 +1,5 @@
 package com.hydowned.util
 
-import com.hydowned.util.Log
-
 class MovementManager {
 
     // Cache for storing original speeds to restore later
@@ -18,7 +16,7 @@ class MovementManager {
         //     stats.set(EntityStatType.MOVEMENT_SPEED, currentSpeed * multiplier)
         // }
 
-        Log.verbose("Movement", "Applying downed speed multiplier: $multiplier for player")
+        Log.finer("Movement", "Applying downed speed multiplier: $multiplier for player")
     }
 
     fun restoreNormalSpeed(player: Any) {
@@ -30,7 +28,7 @@ class MovementManager {
         //     stats?.set(EntityStatType.MOVEMENT_SPEED, originalSpeed)
         // }
 
-        Log.verbose("Movement", "Restoring normal speed for player")
+        Log.finer("Movement", "Restoring normal speed for player")
     }
 
     fun cleanup() {
