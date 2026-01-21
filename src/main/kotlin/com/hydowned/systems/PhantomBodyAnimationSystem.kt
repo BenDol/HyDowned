@@ -84,7 +84,7 @@ class PhantomBodyAnimationSystem(
                         update.equipment = equipmentData
 
                         // Queue equipment update to all viewers
-                        for ((viewerRef, viewer) in visible.visibleTo) {
+                        for ((_, viewer) in visible.visibleTo) {
                             try {
                                 viewer.queueUpdate(ref, update)
                             } catch (e: Exception) {
@@ -113,7 +113,7 @@ class PhantomBodyAnimationSystem(
                         skinUpdate.skin = playerSkinData
 
                         // Queue skin update to all viewers
-                        for ((viewerRef, viewer) in visible.visibleTo) {
+                        for ((_, viewer) in visible.visibleTo) {
                             try {
                                 viewer.queueUpdate(ref, skinUpdate)
                             } catch (e: Exception) {

@@ -32,6 +32,10 @@ class DownedAnimationLoopSystem(
     private val config: DownedConfig
 ) : EntityTickingSystem<EntityStore>() {
 
+    companion object {
+        private const val ANIMATION_RESEND_INTERVAL = 10 // ticks
+    }
+
     private val query = Query.and(
         Player.getComponentType(),
         DownedComponent.getComponentType(),
@@ -39,7 +43,8 @@ class DownedAnimationLoopSystem(
         NetworkId.getComponentType()
     )
 
-    private var tickCounter = 0
+    // Per-entity tick tracking
+    private val entityTickCounters = mutableMapOf<Int, Int>()
 
     override fun getQuery(): Query<EntityStore> = query
 
@@ -50,22 +55,23 @@ class DownedAnimationLoopSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        // PLAYER mode only
+        // Early return if not PLAYER mode (no config check needed every tick per entity)
         if (!config.usePlayerMode) {
             return
         }
 
-        // Re-send animation every 10 ticks (~0.5 seconds) to keep it looping
-        tickCounter++
-        if (tickCounter < 10) {
-            return
-        }
-        tickCounter = 0
-
-        // Get player's network ID
+        // Get network ID early for tick tracking
         val networkIdComponent = archetypeChunk.getComponent(index, NetworkId.getComponentType())
             ?: return
         val networkId = networkIdComponent.id
+
+        // Per-entity tick tracking
+        val currentTicks = entityTickCounters.getOrDefault(networkId, 0) + 1
+        if (currentTicks < ANIMATION_RESEND_INTERVAL) {
+            entityTickCounters[networkId] = currentTicks
+            return
+        }
+        entityTickCounters[networkId] = 0
 
         // Get player's packet handler to send directly to their client
         val playerRefComponent = archetypeChunk.getComponent(index, PlayerRef.getComponentType())
@@ -80,7 +86,5 @@ class DownedAnimationLoopSystem(
 
         // Send ONLY to this player's client (not to other players)
         packetHandler.write(animationPacket)
-
-        Log.verbose("AnimationLoop", "Re-sent Death animation directly to downed player's client only")
     }
 }

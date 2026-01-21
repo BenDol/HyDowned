@@ -4,7 +4,6 @@
   "downedSpeedMultiplier": 0.1,
   "reviveHealthPercent": 0.2,
   "reviveRange": 2.0,
-  "downedAnimationType": "LAYING",
   "multipleReviversMode": "SPEEDUP",
   "reviveSpeedupPerPlayer": 0.5,
   "enableParticles": true,
@@ -12,5 +11,5 @@
   "enableActionBar": true,
   "invisibilityMode": "SCALE",
   "downedMode": "PLAYER",
-  "logLevel": "VERBOSE"
+  "logLevel": "INFO"
 }

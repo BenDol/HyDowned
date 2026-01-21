@@ -19,13 +19,13 @@ class PhantomBodyMarker(
 ) : Component<EntityStore> {
 
     companion object {
-        private var componentType: ComponentType<EntityStore, PhantomBodyMarker>? = null
-
+        @JvmStatic
         fun getComponentType(): ComponentType<EntityStore, PhantomBodyMarker> {
-            if (componentType == null) {
-                componentType = HyDownedPlugin.instance!!.getPhantomBodyMarkerComponentType()
-            }
-            return componentType!!
+            return componentTypeHolder
+        }
+
+        private val componentTypeHolder: ComponentType<EntityStore, PhantomBodyMarker> by lazy {
+            HyDownedPlugin.instance!!.getPhantomBodyMarkerComponentType()
         }
     }
 

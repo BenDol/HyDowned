@@ -105,7 +105,7 @@ class DownedCollisionDisableSystem(
         try {
             val collisionResult = commandBuffer.getComponent(ref, CollisionResultComponent.getComponentType())
             if (collisionResult != null && component.hadCollisionEnabled) {
-                // Note: API method has typo - "Collsions" instead of "Collisions"
+                // Note: API method has typo - "Collisions" instead of "Collisions"
                 collisionResult.collisionResult.enableCharacterCollsions()
                 Log.verbose("CollisionDisable", "Re-enabled character collisions")
             }

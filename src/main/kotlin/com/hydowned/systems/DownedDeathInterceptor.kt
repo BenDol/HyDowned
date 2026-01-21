@@ -45,7 +45,7 @@ class DownedDeathInterceptor(
 
     // Run in FilterDamageGroup, BEFORE ApplyDamage
     private val dependencies = setOf(
-        SystemDependency<EntityStore, DamageSystems.ApplyDamage>(Order.BEFORE, DamageSystems.ApplyDamage::class.java)
+        SystemDependency(Order.BEFORE, DamageSystems.ApplyDamage::class.java)
     )
 
     override fun getQuery(): Query<EntityStore> = query
@@ -117,9 +117,9 @@ class DownedDeathInterceptor(
             // This damage would bring player below 1 HP - intercept it!
             Log.separator("DeathInterceptor")
             Log.warning("DeathInterceptor", "INTERCEPTING DAMAGE - Would bring ${playerComponent?.displayName} below 1 HP safety threshold!")
-            Log.info("DeathInterceptor", "  Current: ${currentHealth} HP")
+            Log.info("DeathInterceptor", "  Current: $currentHealth HP")
             Log.info("DeathInterceptor", "  Damage: ${damage.amount}")
-            Log.info("DeathInterceptor", "  Result: ${newHealth} HP < 1.0 HP threshold")
+            Log.info("DeathInterceptor", "  Result: $newHealth HP < 1.0 HP threshold")
             Log.separator("DeathInterceptor")
 
             // Modify damage to leave player at EXACTLY 1 HP (not 0.5, not 0)
@@ -128,7 +128,7 @@ class DownedDeathInterceptor(
             val modifiedDamage = currentHealth - 1.0f
             damage.amount = modifiedDamage.coerceAtLeast(0.0f)
 
-            Log.info("DeathInterceptor", "  Modified damage from ${originalDamageAmount} to ${damage.amount} (leaves player at 1 HP)")
+            Log.info("DeathInterceptor", "  Modified damage from $originalDamageAmount to ${damage.amount} (leaves player at 1 HP)")
 
             // Get location for downed state (optional - will be null if TransformComponent missing)
             val transform = archetypeChunk.getComponent(index, TransformComponent.getComponentType())
@@ -196,7 +196,8 @@ class DownedDeathInterceptor(
             }
         } else {
             // Damage is NOT lethal - allowing through
-            Log.warning("DeathInterceptor", "[NON-LETHAL] Allowing damage through for ${playerComponent?.displayName}: ${currentHealth} HP -> ${newHealth} HP")
+            Log.warning("DeathInterceptor",
+                "[NON-LETHAL] Allowing damage through for ${playerComponent?.displayName}: $currentHealth HP -> $newHealth HP")
         }
     }
 }

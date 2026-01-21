@@ -185,6 +185,32 @@ class DownedPlayerModeSyncSystem(
     private val config: DownedConfig
 ) : EntityTickingSystem<EntityStore>() {
 
+    companion object {
+        // Cached sleeping states to avoid setting 40+ properties every tick
+        private val SLEEPING_STATES = MovementStates().apply {
+            sleeping = true
+            idle = false
+            horizontalIdle = false
+            walking = false
+            running = false
+            sprinting = false
+            jumping = false
+            falling = false
+            crouching = false
+            forcedCrouching = false
+            climbing = false
+            flying = false
+            swimming = false
+            swimJumping = false
+            mantling = false
+            sliding = false
+            mounting = false
+            rolling = false
+            sitting = false
+            gliding = false
+        }
+    }
+
     private val query = Query.and(
         Player.getComponentType(),
         DownedComponent.getComponentType(),
@@ -213,9 +239,6 @@ class DownedPlayerModeSyncSystem(
             return
         }
 
-        val ref = archetypeChunk.getReferenceTo(index)
-        val player = archetypeChunk.getComponent(index, Player.getComponentType())
-
         // Ensure player stays in sleeping state
         val movementStatesComponent = archetypeChunk.getComponent(index, MovementStatesComponent.getComponentType())
             ?: return
@@ -228,64 +251,11 @@ class DownedPlayerModeSyncSystem(
                          states.sprinting || !sentStates.sleeping || sentStates.idle ||
                          sentStates.walking || sentStates.running || sentStates.sprinting
 
-        // Log current state for debugging
         if (needsReset) {
-            Log.warning("PlayerModeSync", "${player?.displayName} - DETECTED NON-SLEEPING STATE:")
-            Log.warning("PlayerModeSync", "  states: sleeping=${states.sleeping}, idle=${states.idle}, walking=${states.walking}, running=${states.running}")
-            Log.warning("PlayerModeSync", "  sentStates: sleeping=${sentStates.sleeping}, idle=${sentStates.idle}, walking=${sentStates.walking}, running=${sentStates.running}")
-        }
-
-        if (needsReset) {
-            // Force both states and sentStates to sleeping - MAKE THEM IDENTICAL
-            // Making them different was causing MovementStatesSystems to override states with sentStates
-            states.sleeping = true
-            states.idle = false
-            states.horizontalIdle = false
-            states.walking = false
-            states.running = false
-            states.sprinting = false
-            states.jumping = false
-            states.falling = false
-            states.crouching = false
-            states.forcedCrouching = false
-            states.climbing = false
-            states.flying = false
-            states.swimming = false
-            states.swimJumping = false
-            states.mantling = false
-            states.sliding = false
-            states.mounting = false
-            states.rolling = false
-            states.sitting = false
-            states.gliding = false
-
-            // Make sentStates IDENTICAL to states (not different)
-            sentStates.sleeping = true
-            sentStates.idle = false
-            sentStates.horizontalIdle = false
-            sentStates.walking = false
-            sentStates.running = false
-            sentStates.sprinting = false
-            sentStates.jumping = false
-            sentStates.falling = false
-            sentStates.crouching = false
-            sentStates.forcedCrouching = false
-            sentStates.climbing = false
-            sentStates.flying = false
-            sentStates.swimming = false
-            sentStates.swimJumping = false
-            sentStates.mantling = false
-            sentStates.sliding = false
-            sentStates.mounting = false
-            sentStates.rolling = false
-            sentStates.sitting = false
-            sentStates.gliding = false
-
-            // Update both states using the component methods
-            movementStatesComponent.movementStates = states
-            movementStatesComponent.sentMovementStates = sentStates
-
-            Log.verbose("PlayerMode", "Force-synced sleeping state (states and sentStates IDENTICAL)")
+            // Force both states and sentStates to sleeping using cached object
+            // This avoids setting 40+ individual properties every tick
+            movementStatesComponent.movementStates = SLEEPING_STATES
+            movementStatesComponent.sentMovementStates = SLEEPING_STATES
         }
     }
 }

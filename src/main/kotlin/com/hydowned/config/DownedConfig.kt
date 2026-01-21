@@ -12,15 +12,14 @@ data class DownedConfig(
     val downedSpeedMultiplier: Double = 0.1,
     val reviveHealthPercent: Double = 0.2,
     val reviveRange: Double = 2.0,
-    val downedAnimationType: String = "LAYING",
     val multipleReviversMode: String = "SPEEDUP",
     val reviveSpeedupPerPlayer: Double = 0.5,
     val enableParticles: Boolean = true,
     val enableSounds: Boolean = true,
     val enableActionBar: Boolean = true,
     val invisibilityMode: String = "SCALE", // SCALE or INVISIBLE
-    val downedMode: String = "PHANTOM", // PHANTOM or PLAYER
-    val logLevel: String = "VERBOSE" // ERROR, WARNING, INFO, VERBOSE, DEBUG
+    val downedMode: String = "PLAYER", // PHANTOM or PLAYER
+    val logLevel: String = "INFO" // ERROR, WARNING, INFO, VERBOSE, DEBUG
 ) {
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
@@ -62,9 +61,6 @@ data class DownedConfig(
 
     val isSpeedupMode: Boolean
         get() = multipleReviversMode.equals("SPEEDUP", ignoreCase = true)
-
-    val isLayingAnimation: Boolean
-        get() = downedAnimationType.equals("LAYING", ignoreCase = true)
 
     val useScaleMode: Boolean
         get() = invisibilityMode.equals("SCALE", ignoreCase = true)

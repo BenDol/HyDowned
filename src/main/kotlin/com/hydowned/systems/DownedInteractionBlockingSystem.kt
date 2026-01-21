@@ -49,8 +49,6 @@ class DownedInteractionBlockingSystem(
     ) {
         // Get the InteractionManager component and clear it to block all interactions
         val interactionManager = archetypeChunk.getComponent(index, interactionManagerComponentType)
-        if (interactionManager != null) {
-            interactionManager.clear()
-        }
+        interactionManager?.clear()
     }
 }

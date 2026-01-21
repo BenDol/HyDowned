@@ -59,7 +59,7 @@ class DownedPacketInterceptorSystem(
         val playerRefComponent = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
             ?: return
 
-        val packetHandler = playerRefComponent.getPacketHandler()
+        val packetHandler = playerRefComponent.packetHandler
 
         // Check if it's a GenericPacketHandler (it should be)
         if (packetHandler !is GenericPacketHandler) {
@@ -159,7 +159,7 @@ class DownedPacketInterceptorSystem(
         try {
             val playerRefComponent = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
             if (playerRefComponent != null) {
-                val packetHandler = playerRefComponent.getPacketHandler()
+                val packetHandler = playerRefComponent.packetHandler
                 if (packetHandler is GenericPacketHandler) {
                     val channel = packetHandler.channel
                     val pipeline = channel.pipeline()

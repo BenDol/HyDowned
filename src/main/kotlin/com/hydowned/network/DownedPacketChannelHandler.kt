@@ -37,17 +37,14 @@ class DownedPacketChannelHandler(
                 is EntityUpdates -> {
                     // Modify the packet to force sleeping movement state
                     handleEntityUpdates(msg)
-                    Log.verbose("ChannelHandler", "Intercepted and modified EntityUpdates packet")
                 }
                 is PlayAnimation -> {
                     // Block any non-Death animations in Movement or Status slots
                     if (msg.slot == AnimationSlot.Movement || msg.slot == AnimationSlot.Status) {
                         val animationId = msg.animationId
-                        Log.verbose("ChannelHandler", "Intercepted PlayAnimation: slot=${msg.slot}, animationId=$animationId")
 
                         if (animationId != null && !animationId.contains("Death", ignoreCase = true)) {
                             // BLOCK non-death animations - don't send to client
-                            Log.verbose("ChannelHandler", "BLOCKED non-Death animation in ${msg.slot} slot: $animationId")
                             return // Don't call super.write - packet is blocked
                         }
                     }
@@ -106,8 +103,6 @@ class DownedPacketChannelHandler(
                             movementStates.rolling = false
                             movementStates.sitting = false
                             movementStates.gliding = false
-
-                            Log.verbose("ChannelHandler", "Modified MovementStates in EntityUpdates - forced sleeping = true")
                         }
                     }
                 }

@@ -13,15 +13,10 @@ class AnimationManager(private val config: DownedConfig) {
         // TODO: Implement with actual Hytale animation API
         // This is a placeholder that will need to be updated with the actual API
         // Example pseudocode:
-        // val animationType = if (config.isLayingAnimation) {
-        //     AnimationType.LAYING
-        // } else {
-        //     AnimationType.CRAWLING
-        // }
         // originalAnimations[player] = player.currentAnimation
-        // player.setAnimation(animationType)
+        // player.setAnimation(AnimationType.DEATH)
 
-        Log.verbose("Animation", "Setting downed animation for player (type: ${if (config.isLayingAnimation) "LAYING" else "CRAWLING"})")
+        Log.verbose("Animation", "Setting downed animation for player")
     }
 
     fun restoreNormalAnimation(player: Any) {

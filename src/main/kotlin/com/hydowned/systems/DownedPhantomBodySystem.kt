@@ -135,8 +135,8 @@ class DownedPhantomBodySystem(
         movementStates.idle = false
         movementStates.onGround = true
         val movementStatesComponent = MovementStatesComponent()
-        movementStatesComponent.setMovementStates(movementStates)
-        movementStatesComponent.setSentMovementStates(movementStates)
+        movementStatesComponent.movementStates = movementStates
+        movementStatesComponent.sentMovementStates = movementStates
         holder.addComponent(MovementStatesComponent.getComponentType(), movementStatesComponent)
         Log.verbose("PhantomBody", "Added MovementStatesComponent (sleeping=true) to phantom body")
 
@@ -201,11 +201,11 @@ class DownedPhantomBodySystem(
                 val itemInHand = inventory.itemInHand
                 Log.verbose("PhantomBody", "DEBUG: Item in hand (final): ${itemInHand?.itemId ?: "null"}")
 
-                equipment.rightHandItemId = if (itemInHand != null) itemInHand.itemId else "Empty"
+                equipment.rightHandItemId = itemInHand?.itemId ?: "Empty"
 
                 val utilityItem = inventory.utilityItem
                 Log.verbose("PhantomBody", "DEBUG: Utility item: ${utilityItem?.itemId ?: "null"}")
-                equipment.leftHandItemId = if (utilityItem != null) utilityItem.itemId else "Empty"
+                equipment.leftHandItemId = utilityItem?.itemId ?: "Empty"
 
                 // DEBUG: Also try to iterate all inventory slots
                 Log.verbose("PhantomBody", "DEBUG: Hotbar capacity: ${inventory.hotbar.capacity}")
@@ -312,7 +312,7 @@ class DownedPhantomBodySystem(
                 val transformComponent = commandBuffer.getComponent(ref, TransformComponent.getComponentType())
                 if (transformComponent != null) {
                     // Use Teleport component for proper client-side teleportation
-                    val currentRotation = transformComponent.getRotation()
+                    val currentRotation = transformComponent.rotation
                     val teleport = Teleport.createForPlayer(downedLocation, currentRotation)
                     commandBuffer.addComponent(ref, Teleport.getComponentType(), teleport)
                     Log.verbose("PhantomBody", "Teleporting player back to $downedLocation")

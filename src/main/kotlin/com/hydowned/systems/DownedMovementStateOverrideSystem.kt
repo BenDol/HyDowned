@@ -35,6 +35,34 @@ class DownedMovementStateOverrideSystem(
     private val config: DownedConfig
 ) : EntityTickingSystem<EntityStore>() {
 
+    companion object {
+        // Cached MovementStates object to avoid creating new objects every tick
+        private val SLEEPING_MOVEMENT_STATES = MovementStates().apply {
+            sleeping = true
+            idle = false
+            horizontalIdle = false
+            walking = false
+            running = false
+            sprinting = false
+            jumping = false
+            falling = false
+            crouching = false
+            forcedCrouching = false
+            climbing = false
+            flying = false
+            inFluid = false
+            swimming = false
+            swimJumping = false
+            mantling = false
+            sliding = false
+            mounting = false
+            rolling = false
+            sitting = false
+            gliding = false
+            onGround = true
+        }
+    }
+
     private val query = Query.and(
         Player.getComponentType(),
         DownedComponent.getComponentType(),
@@ -51,49 +79,23 @@ class DownedMovementStateOverrideSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        // PLAYER mode only
+        // PLAYER mode only - early return
         if (!config.usePlayerMode) {
             return
         }
 
-        val ref = archetypeChunk.getReferenceTo(index)
         val playerRefComponent = archetypeChunk.getComponent(index, PlayerRef.getComponentType())
             ?: return
 
-        // Get player's network ID (from query, so use archetypeChunk not commandBuffer)
+        // Get player's network ID
         val networkIdComponent = archetypeChunk.getComponent(index, NetworkId.getComponentType())
             ?: return
         val networkId = networkIdComponent.id
 
-        // Create MovementStates with sleeping=true and all other states false
-        val movementStates = MovementStates()
-        movementStates.sleeping = true
-        movementStates.idle = false
-        movementStates.horizontalIdle = false
-        movementStates.walking = false
-        movementStates.running = false
-        movementStates.sprinting = false
-        movementStates.jumping = false
-        movementStates.falling = false
-        movementStates.crouching = false
-        movementStates.forcedCrouching = false
-        movementStates.climbing = false
-        movementStates.flying = false
-        movementStates.inFluid = false
-        movementStates.swimming = false
-        movementStates.swimJumping = false
-        movementStates.mantling = false
-        movementStates.sliding = false
-        movementStates.mounting = false
-        movementStates.rolling = false
-        movementStates.sitting = false
-        movementStates.gliding = false
-        movementStates.onGround = true
-
-        // Create ComponentUpdate for MovementStates
+        // Create ComponentUpdate for MovementStates (using cached object)
         val componentUpdate = ComponentUpdate()
         componentUpdate.type = ComponentUpdateType.MovementStates
-        componentUpdate.movementStates = movementStates
+        componentUpdate.movementStates = SLEEPING_MOVEMENT_STATES
 
         // Create EntityUpdate for this player
         val entityUpdate = EntityUpdate()
@@ -108,7 +110,5 @@ class DownedMovementStateOverrideSystem(
 
         // Send to the player about THEMSELVES - CRITICAL for self-view
         playerRefComponent.packetHandler.writeNoCache(entityUpdatesPacket)
-
-        Log.verbose("MovementStateOverride", "Sent EntityUpdates with sleeping=true to client (self-view)")
     }
 }

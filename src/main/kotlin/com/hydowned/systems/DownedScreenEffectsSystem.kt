@@ -135,11 +135,11 @@ class DownedScreenEffectsSystem(
             // Reset post-processing effects to default
             try {
                 val postFx = UpdatePostFxSettings(
-                    1.0f,  // globalIntensity - normal brightness
-                    1.0f,  // power - normal bloom/glow
-                    1.0f,  // sunshaftScale - normal god rays
-                    1.0f,  // sunIntensity - normal sun
-                    1.0f   // sunshaftIntensity - normal sun shafts
+                    1.0f,   // globalIntensity - normal brightness
+                    1.0f,          // power - normal bloom/glow
+                    1.0f,   // sunshaftScale - normal god rays
+                    1.0f,     // sunIntensity - normal sun
+                    1.0f  // sunshaftIntensity - normal sun shafts
                 )
                 playerRef.packetHandler.writeNoCache(postFx as Packet)
                 Log.verbose("ScreenEffects", "Reset post-FX to normal")

@@ -119,9 +119,9 @@ class DownedCameraSystem(
                 // Use Custom rotation for absolute angle, not relative to player's rotation
                 rotationType = RotationType.Custom
                 rotation = Direction(
-                    0f,      // yaw (0 = north)
-                    -89f,    // pitch (-90 = straight down, -89 for slight angle)
-                    0f       // roll (0 = no tilt)
+                    0f,     // yaw (0 = north)
+                    -89f,  // pitch (-90 = straight down, -89 for slight angle)
+                    0f      // roll (0 = no tilt)
                 )
 
                 // Lock camera rotation (player can't move it)
@@ -137,7 +137,7 @@ class DownedCameraSystem(
                 // Small distance for proper top-down view
                 distance = 1.0f
 
-                // Keep reticle hidden, hide cursor too (can't interact anyway)
+                // Keep reticule hidden, hide cursor too (can't interact anyway)
                 displayReticle = false
                 displayCursor = false
 

@@ -17,6 +17,10 @@ import com.hypixel.hytale.server.core.util.PositionUtil
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.util.Log
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 
 /**
@@ -62,12 +66,12 @@ class DownedRadiusConstraintSystem(
             ?: return
 
         val downedLocation = downedComponent.downedLocation ?: return
-        val currentLocation = transformComponent.getPosition()
+        val currentLocation = transformComponent.position
 
         // Calculate horizontal distance (ignore Y to allow vertical movement)
         val dx = currentLocation.x - downedLocation.x
         val dz = currentLocation.z - downedLocation.z
-        val horizontalDistance = Math.sqrt(dx * dx + dz * dz)
+        val horizontalDistance = sqrt(dx * dx + dz * dz)
 
         // Debug logging (uncomment to verify distance tracking)
         // println("[HyDowned] [RadiusConstraint] Distance: %.2f / %.2f blocks".format(horizontalDistance, MAX_DISTANCE_FROM_BODY))
@@ -75,12 +79,12 @@ class DownedRadiusConstraintSystem(
         // Check if player has exceeded the radius
         if (horizontalDistance > MAX_DISTANCE_FROM_BODY) {
             // Calculate direction from body to player
-            val angle = Math.atan2(dz, dx)
+            val angle = atan2(dz, dx)
 
             // Set position at TELEPORT_BACK_DISTANCE (not max) to prevent jittering
             // Teleporting to 8 blocks instead of 10 creates a buffer zone
-            val newX = downedLocation.x + Math.cos(angle) * TELEPORT_BACK_DISTANCE
-            val newZ = downedLocation.z + Math.sin(angle) * TELEPORT_BACK_DISTANCE
+            val newX = downedLocation.x + cos(angle) * TELEPORT_BACK_DISTANCE
+            val newZ = downedLocation.z + sin(angle) * TELEPORT_BACK_DISTANCE
 
             // Keep current Y position (allow vertical movement)
             val constrainedLocation = downedLocation.clone()
@@ -89,7 +93,7 @@ class DownedRadiusConstraintSystem(
             constrainedLocation.y = currentLocation.y
 
             // Get current rotation to preserve it
-            val currentRotation = transformComponent.getRotation()
+            val currentRotation = transformComponent.rotation
 
             // Get reference to entity
             val ref = archetypeChunk.getReferenceTo(index)
@@ -115,9 +119,10 @@ class DownedRadiusConstraintSystem(
                 false // Don't reset velocity
             )
 
-            playerRefComponent.getPacketHandler().write(teleportPacket)
+            playerRefComponent.packetHandler.write(teleportPacket)
 
-            Log.verbose("RadiusConstraint", "Player exceeded ${MAX_DISTANCE_FROM_BODY}m radius, teleported back")
+            Log.verbose("RadiusConstraint",
+                "Player exceeded ${MAX_DISTANCE_FROM_BODY}m radius, teleported back")
         }
     }
 }

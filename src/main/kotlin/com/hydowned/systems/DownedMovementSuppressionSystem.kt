@@ -65,29 +65,51 @@ class DownedMovementSuppressionSystem(
         if (playerInput != null) {
             val queue = playerInput.movementUpdateQueue
 
-            // Remove only position-based movements, keep SetHead and SetBody for looking around
-            val filtered = queue.filter { input ->
+            // Early exit if queue is empty - avoid filter operation
+            if (queue.isEmpty()) {
+                return
+            }
+
+            // Check if any inputs need to be blocked before creating filtered list
+            var hasBlockedInputs = false
+            for (input in queue) {
                 when (input) {
-                    is PlayerInput.SetHead -> true  // ALLOW head rotation
-                    is PlayerInput.SetBody -> true  // ALLOW body rotation
-                    is PlayerInput.WishMovement -> false  // BLOCK wish movement
-                    is PlayerInput.RelativeMovement -> false  // BLOCK relative movement
-                    is PlayerInput.AbsoluteMovement -> false  // BLOCK absolute movement
-                    is PlayerInput.SetClientVelocity -> false  // BLOCK velocity
+                    is PlayerInput.WishMovement,
+                    is PlayerInput.RelativeMovement,
+                    is PlayerInput.AbsoluteMovement,
+                    is PlayerInput.SetClientVelocity -> {
+                        hasBlockedInputs = true
+                        break
+                    }
                     is PlayerInput.SetMovementStates -> {
-                        // BLOCK crouch states, allow others (for animations)
-                        val states = input.movementStates
-                        if (states.crouching || states.forcedCrouching) {
-                            false // Block crouching
-                        } else {
-                            true // Allow other movement states
+                        if (input.movementStates.crouching || input.movementStates.forcedCrouching) {
+                            hasBlockedInputs = true
+                            break
                         }
                     }
-                    else -> true  // ALLOW other inputs
                 }
             }
 
-            if (filtered.size != queue.size) {
+            // Only filter if there are actually blocked inputs
+            if (hasBlockedInputs) {
+                // Remove only position-based movements, keep SetHead and SetBody for looking around
+                val filtered = queue.filter { input ->
+                    when (input) {
+                        is PlayerInput.SetHead -> true  // ALLOW head rotation
+                        is PlayerInput.SetBody -> true  // ALLOW body rotation
+                        is PlayerInput.WishMovement -> false  // BLOCK wish movement
+                        is PlayerInput.RelativeMovement -> false  // BLOCK relative movement
+                        is PlayerInput.AbsoluteMovement -> false  // BLOCK absolute movement
+                        is PlayerInput.SetClientVelocity -> false  // BLOCK velocity
+                        is PlayerInput.SetMovementStates -> {
+                            // BLOCK crouch states, allow others (for animations)
+                            val states = input.movementStates
+                            !(states.crouching || states.forcedCrouching)
+                        }
+                        else -> true  // ALLOW other inputs
+                    }
+                }
+
                 queue.clear()
                 queue.addAll(filtered)
                 Log.verbose("MovementSuppression", "Filtered ${queue.size - filtered.size} movement inputs from queue")
