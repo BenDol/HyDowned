@@ -1,242 +1,228 @@
-# HyDowned - Hytale Downed State Mod
+# HyDowned
 
-A Hytale plugin that replaces player death with a "downed" state where players can be revived by teammates.
-
-## Features
-
-- **Downed State**: Players enter a downed state instead of dying immediately
-- **Configurable Timers**: Customize downed duration (default 3 minutes) and revive time (default 10 seconds)
-- **Multiple Revive Modes**:
-  - **SPEEDUP**: Multiple players can revive simultaneously, speeding up the process
-  - **FIRST_ONLY**: Only one player can revive at a time
-- **Configurable Animations**: Choose between laying down or crawling animations
-- **Movement Restrictions**: Downed players move at reduced speed (default 10%)
-- **Visual Feedback**: Action bars, particle effects, and sounds for immersive experience
-- **Health Restoration**: Revived players restore 20% HP by default
-
-## Configuration
-
-Edit `config.json` to customize the mod behavior:
-
-```json
-{
-  "downedTimerSeconds": 180,          // How long before downed player dies
-  "reviveTimerSeconds": 10,           // How long to revive a downed player
-  "downedSpeedMultiplier": 0.1,       // Movement speed when downed (10%)
-  "reviveHealthPercent": 0.2,         // HP restored on revive (20%)
-  "reviveRange": 3.0,                 // Distance to revive (blocks)
-  "downedAnimationType": "LAYING",    // LAYING or CRAWLING
-  "multipleReviversMode": "SPEEDUP",  // SPEEDUP or FIRST_ONLY
-  "reviveSpeedupPerPlayer": 0.5,      // Speed boost per additional reviver
-  "enableParticles": true,            // Show particle effects
-  "enableSounds": true,               // Play sound effects
-  "enableActionBar": true             // Display action bar timers
-}
-```
+A downed state system for Hytale that replaces instant death with a revivable state. When a player would normally die, they enter a downed state where teammates can revive them before a timer expires.
 
 ## How It Works
 
-### When a Player Dies
-1. Death is cancelled and player enters downed state
-2. Player animation changes to laying/crawling
-3. Movement speed is reduced to 10% (configurable)
-4. Downed timer starts counting down from 3 minutes (configurable)
-5. Player sees countdown in action bar
+When a player takes fatal damage:
+1. Death is intercepted and replaced with a downed state
+2. Player is set to 1 HP and given damage immunity
+3. Player is made intangible - mobs lose aggro and cannot target them
+4. A countdown timer starts (default 180 seconds)
+5. Teammates can revive by crouching near the downed player
+6. If the timer expires, death is executed normally
+7. If player intentionally logs out, death is executed on login
+8. If player crashes/disconnects, downed state is restored on login (with timer)
 
-### Reviving a Downed Player
-1. Another player interacts with the downed player
-2. Revive timer starts (10 seconds default)
-3. Both players see progress in action bar
-4. If revive completes, downed player is restored with 20% HP
-5. If downed timer expires first, player dies normally
+The mod uses an ECS (Entity Component System) architecture with systems that manage different aspects of the downed state.
 
-### Multiple Revivers
-- **SPEEDUP Mode**: Each additional reviver speeds up the process
-  - 1 reviver: 10 seconds
-  - 2 revivers: 6.67 seconds (1.5x speed with 0.5 speedup config)
-  - 3 revivers: 5 seconds (2x speed)
-- **FIRST_ONLY Mode**: Only first reviver can revive, others are blocked
+## Modes
 
-### Edge Cases
-- **Player logs out while downed**: Executes death immediately
-- **Reviver moves away**: Revive is cancelled
-- **Downed timer expires during revive**: All revivers are notified, player dies
-- **Reviver logs out**: Removed from reviver set, others continue
+### PLAYER Mode (Default)
 
-## Project Structure
+The player's body stays in place and lays down. This is the simpler approach but has some client-side challenges.
 
-```
-HyDowned/
-├── build.gradle                    # Gradle build configuration
-├── gradle.properties               # Gradle properties
-├── settings.gradle                 # Project settings
-├── src/
-│   └── main/
-│       ├── kotlin/
-│       │   └── com/
-│       │       └── hydowned/
-│       │           ├── HyDownedPlugin.kt              # Main plugin class
-│       │           ├── state/
-│       │           │   ├── DownedState.kt             # Player state data
-│       │           │   └── DownedStateManager.kt      # State manager
-│       │           ├── config/
-│       │           │   └── DownedConfig.kt            # Configuration
-│       │           ├── listeners/
-│       │           │   ├── PlayerDeathListener.kt     # Death events
-│       │           │   ├── PlayerInteractListener.kt  # Revive interactions
-│       │           │   └── PlayerQuitListener.kt      # Player logout
-│       │           ├── timers/
-│       │           │   └── DownedTimerTask.kt         # Timer system
-│       │           └── util/
-│       │               ├── AnimationManager.kt        # Animations
-│       │               ├── MovementManager.kt         # Movement speed
-│       │               └── FeedbackManager.kt         # Visual/audio feedback
-│       └── resources/
-│           ├── manifest.json                          # Plugin metadata
-│           └── config.json                            # Default config
-```
+**Technical Details:**
 
-## Building
+The client runs movement prediction locally, meaning it constantly tries to update the player's movement state based on input. This causes problems when we want the player to stay laying down:
 
-This project uses Gradle with Kotlin and includes an automatic Hytale Server JAR import task.
+- Client predicts movement → sends `ClientMovement` packets
+- Server has to block these packets entirely
+- Client's animation system defaults back to idle/walking when animations end
+- Movement state constantly resets to non-sleeping
 
-### Automatic Hytale Server Import
+**Solution:**
 
-The build system automatically imports the Hytale Server JAR from your installation:
+We use multiple layers to force the player to stay laying down:
 
-```bash
-# Manually run the import task
-./gradlew importHytaleServer
-```
+1. **Packet Interception** - Block all `ClientMovement` packets from the client
+2. **Movement State Override** - Send `sleeping=true` state updates every tick
+3. **Animation Loop** - Re-send the Death animation every 0.5s to prevent reversion to idle
+4. **Input Suppression** - Filter PlayerInput queue to remove movement commands
+5. **Sleep State Sync** - Force movement states to sleeping after Hytale's movement systems run
 
-The task:
-- ✅ Automatically finds the JAR in `%APPDATA%\Roaming\Hytale\install\release\package\game\latest\Server`
-- ✅ Only copies if the file has changed (checks timestamp and size)
-- ✅ Runs automatically before compilation
-- ✅ Creates the `libs/` directory if needed
+This creates a constant "battle" with the client's prediction logic, but keeps the player locked in the downed animation from their own perspective.
 
-Output example:
-```
-> Task :importHytaleServer
-Successfully imported: HytaleServer.jar
-  Source: C:\Users\...\Hytale\...\Server\HytaleServer.jar
-  Destination: C:\Projects\...\HyDowned\libs\HytaleServer.jar
-  Size: 79.77 MB
+**Camera:**
+- Camera moves to a position above and behind the player looking down
+- Uses ServerCameraSettings to control client camera
+
+### PHANTOM Mode
+
+Spawns a phantom body (NPC) at the downed location while the player becomes invisible and can move within a 7 block radius (teleported back to 5 blocks if exceeded).
+
+**Technical Details:**
+
+- Player becomes invisible (SCALE mode shrinks to 0.01% or INVISIBLE mode uses HiddenFromAdventurePlayers)
+- Phantom body is a spawned NPC entity with the player's equipment and skin
+- Player collision is disabled for character-to-character but blocks/world collision remains
+- Player is teleported back to phantom body location on revive
+
+No client-side prediction issues since player movement isn't being suppressed.
+
+## Configuration
+
+Config file: `plugins/HyDowned/config.json`
+
+### Core Settings
+
+```json
+{
+  "downedTimerSeconds": 180,        // How long until downed player dies
+  "reviveTimerSeconds": 10,         // How long to revive a downed player
+  "reviveHealthPercent": 0.2,       // Health % restored on revive
+  "reviveRange": 2.0,               // Distance to start revive
+  "downedMode": "PLAYER",           // PLAYER or PHANTOM
+  "logLevel": "INFO"                // ERROR, WARNING, INFO, VERBOSE, DEBUG
+}
 ```
 
-### Building the Plugin
+### Revive Settings
+
+```json
+{
+  "multipleReviversMode": "SPEEDUP",    // SPEEDUP or FIRST_ONLY
+  "reviveSpeedupPerPlayer": 0.5         // Speed multiplier per additional reviver
+}
+```
+
+**How it works:**
+- `SPEEDUP` mode: Each additional reviver speeds up the process
+  - 1 reviver: 10s (1.0x speed)
+  - 2 revivers: 6.67s (1.5x speed with 0.5 multiplier)
+  - 3 revivers: 5s (2.0x speed)
+- `FIRST_ONLY` mode: Only first reviver counts, others are blocked
+
+### Visual/Audio Settings (NOT IMPLEMENTED)
+
+```json
+{
+  "enableParticles": true,     // NOT IMPLEMENTED - FeedbackManager has placeholders
+  "enableSounds": true,        // NOT IMPLEMENTED - FeedbackManager has placeholders
+  "enableActionBar": true      // NOT IMPLEMENTED - FeedbackManager has placeholders
+}
+```
+
+These exist in config and FeedbackManager checks them, but FeedbackManager itself is dead code with TODO placeholders. The actual systems (DownedTimerSystem, ReviveInteractionSystem) send direct chat messages instead.
+
+### Movement Settings (NOT IMPLEMENTED)
+
+```json
+{
+  "downedSpeedMultiplier": 0.1   // NOT IMPLEMENTED - config field exists but unused
+}
+```
+
+Was planned for PHANTOM mode to slow down the invisible player. Config field exists but no system uses it.
+
+### PHANTOM Mode Settings
+
+```json
+{
+  "invisibilityMode": "SCALE"    // SCALE or INVISIBLE
+}
+```
+
+- `SCALE`: Shrinks player to 0.01% size (EntityScaleComponent)
+- `INVISIBLE`: Uses HiddenFromAdventurePlayers component
+
+## Commands
+
+### /giveup
+
+Instantly die while downed. Useful if you don't want to wait for the timer or teammates aren't around.
+
+## Architecture Notes
+
+### Systems
+
+The mod uses multiple specialized systems:
+
+**Shared (both modes):**
+- `DownedDeathInterceptor` - Catches fatal damage and enters downed state
+- `DownedTimerSystem` - Manages countdown timer and chat notifications
+- `ReviveInteractionSystem` - Handles crouch-to-revive logic
+- `DownedDamageImmunitySystem` - Blocks damage while downed
+- `DownedHealingSuppressionSystem` - Blocks healing while downed
+- `DownedMobAggroSystem` - Makes player intangible to prevent mob targeting/aggro
+- `DownedPacketInterceptorSystem` - Intercepts and modifies packets per player
+
+**PLAYER mode only:**
+- `DownedPlayerModeSystem` - Sets player to sleeping state
+- `DownedPlayerModeSyncSystem` - Maintains sleeping state every tick
+- `DownedAnimationLoopSystem` - Re-sends Death animation every 0.5s
+- `DownedMovementSuppressionSystem` - Filters movement from PlayerInput queue
+- `DownedMovementStateOverrideSystem` - Sends sleeping=true EntityUpdates every tick
+- `DownedCameraSystem` - Controls camera position
+
+**PHANTOM mode only:**
+- `DownedPhantomBodySystem` - Spawns and manages phantom NPC
+- `PhantomBodyAnimationSystem` - Applies Death animation to phantom
+- `DownedCollisionDisableSystem` - Disables character collision
+- `DownedRadiusConstraintSystem` - Keeps player within 7 blocks of body (teleports to 5 blocks if exceeded)
+- `DownedPlayerScaleSystem` or `DownedInvisibilitySystem` - Makes player invisible
+
+### Component Types
+
+- `DownedComponent` - Main state component attached to downed players
+- `PhantomBodyMarker` - Temporary marker on phantom bodies for deferred initialization
+
+### State Management
+
+- `DownedStateTracker` - Thread-safe tracker for network threads (packet handlers)
+- `PendingDeathTracker` - File-based tracking for intentional logout (death on login) vs crash/disconnect (restore state on login)
+- `DownedCleanupHelper` - Centralized cleanup for death/revive operations
+
+### Packet Handling
+
+The mod uses Netty channel handlers to intercept packets:
+
+- **Incoming**: `DownedPacketInterceptor` wraps incoming packet handlers to block client input
+- **Outgoing**: `DownedPacketChannelHandler` inserts into Netty pipeline to modify EntityUpdates
+
+This is necessary because Hytale's server-side systems don't have direct control over client prediction.
+
+## Development
+
+### Hot Reload Workflow
+
+1. Start server: `./gradlew startDevServerDebug`
+2. Attach debugger when IntelliJ shows the blue "Attach debugger" link
+3. Edit code (method bodies only)
+4. Press Ctrl+Shift+F9 to reload changed classes
+5. Changes apply in 1-2 seconds without restart
+
+For structural changes (new methods/classes), restart the server through the Hytale client.
+
+### Building
 
 ```bash
 ./gradlew build
 ```
 
-The build process:
-1. ✅ `importHytaleServer` - Imports Hytale Server JAR (if needed)
-2. ✅ Compiles Kotlin code
-3. ✅ Packages into JAR: `build/libs/HyDowned-1.0.0.jar`
-4. ✅ `deployToHytale` - **Automatically deploys to Hytale mods folder!**
+Auto-deploys to `Saves/<WorldName>/mods/` folders.
 
-Output example:
-```
-> Task :deployToHytale
-============================================================
-✓ Mod deployed successfully!
-============================================================
-  Source: ...\build\libs\HyDowned-1.0.0.jar
-  Destination: %APPDATA%\Hytale\UserData\Mods\HyDowned-1.0.0.jar
-  Size: 1.68 MB
-============================================================
-  Ready to use in Hytale!
-============================================================
-```
+## Known Issues
 
-### Manual Deployment
+### PLAYER Mode
 
-You can also deploy manually without rebuilding:
+- Camera position sometimes desyncs if player was moving when downed
+- Death animation occasionally gets stuck after respawn (commenting out animation code in cleanup prevents this)
+- Very slight delay between entering downed state and camera movement
 
-```bash
-./gradlew deployToHytale
-```
+### PHANTOM Mode
 
-## Installation
+- Phantom body equipment sometimes doesn't show immediately (deferred via PhantomBodyMarker to next tick)
+- Player can still see their own nameplate briefly when going invisible
+- Radius constraint teleport can feel jarring
 
-### Automatic (Recommended)
+### General
 
-Simply build the project - the mod is automatically deployed!
-
-```bash
-./gradlew build
-```
-
-The mod JAR is automatically copied to `%APPDATA%\Hytale\UserData\Mods\HyDowned-1.0.0.jar`
-
-### Manual
-
-1. Build the plugin: `./gradlew build`
-2. Find the JAR in `build/libs/HyDowned-1.0.0.jar`
-3. Copy to your Hytale mods directory:
-   - **Client mods**: `%APPDATA%\Hytale\UserData\Mods`
-   - **Server plugins**: Your server's plugins directory
-4. Configure `config.json` in the plugin data folder
-5. Restart Hytale or reload the plugin
-
-## Requirements
-
-- **No manual Java installation required!** Java 21 is automatically downloaded by Gradle
-- Hytale Server (Early Access or later) installed at the default location
-- KTale library (optional, commented out by default)
-
-### About Java 21 Auto-Provisioning
-
-This project uses Gradle's toolchain auto-provisioning feature:
-- ✅ **Automatically downloads** Java 21 (Azul Zulu) when you first build
-- ✅ **Project-specific** - doesn't affect your system Java installation
-- ✅ **No configuration needed** - just run `./gradlew build`
-- ✅ **Cached** in `~/.gradle/jdks/` for reuse across projects
-
-You can verify installed toolchains with:
-```bash
-./gradlew javaToolchains
-```
-
-## Development Status
-
-**IMPORTANT**: This is a template implementation with placeholder code. The actual Hytale API integration needs to be completed. All source files contain `TODO` comments indicating where real API calls should be implemented.
-
-### What's Implemented
-- ✅ Complete project structure
-- ✅ Configuration system
-- ✅ State management logic
-- ✅ Event listener structure
-- ✅ Timer system logic
-- ✅ Manager classes (Animation, Movement, Feedback)
-
-### What Needs Hytale API
-- ⚠️ Player death event handling
-- ⚠️ Player interaction events
-- ⚠️ Animation API integration
-- ⚠️ Movement speed modification
-- ⚠️ Particle and sound effects
-- ⚠️ Action bar and chat messages
-- ⚠️ Health modification
-- ⚠️ Location/distance calculations
-
-## Contributing
-
-To integrate with the Hytale API:
-
-1. Search for `TODO` comments in the source code
-2. Replace placeholder implementations with actual Hytale API calls
-3. Test each feature thoroughly
-4. Update this README with actual API usage examples
+- Downed state persists across server restarts and crashes via file-based PendingDeathTracker
+- Intentional logout results in death on rejoin, crashes/disconnects restore downed state on rejoin
+- Config reload via plugin command not implemented
+- No integration with other death-related mods
 
 ## License
 
-This project is provided as-is for educational and modding purposes.
-
-## Credits
-
-Built using:
-- [Hytale Plugin Template](https://github.com/realBritakee/hytale-template-plugin)
-- [KTale](https://github.com/ModLabsCC/ktale) - Kotlin helpers for Hytale
-- [Hytale Modding Documentation](https://britakee-studios.gitbook.io/hytale-modding-documentation)
+MIT

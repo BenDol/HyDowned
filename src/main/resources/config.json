@@ -9,7 +9,7 @@
   "enableParticles": true,
   "enableSounds": true,
   "enableActionBar": true,
-  "invisibilityMode": "SCALE",
+  "invisibilityMode": "INVISIBLE",
   "downedMode": "PLAYER",
   "logLevel": "INFO"
 }

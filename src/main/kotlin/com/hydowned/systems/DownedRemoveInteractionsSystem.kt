@@ -67,7 +67,7 @@ class DownedRemoveInteractionsSystem(
             commandBuffer.removeComponent(ref, interactionsComponentType)
             Log.verbose("RemoveInteractions", "Removed Interactions component")
         } else {
-            Log.warning("RemoveInteractions", "No Interactions component found")
+            Log.debug("RemoveInteractions", "No Interactions component found")
         }
 
         // Remove the Interactable component (and track if it existed)

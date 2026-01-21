@@ -12,6 +12,7 @@ import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import java.util.concurrent.ConcurrentHashMap
 import com.hydowned.util.Log
+import com.hypixel.hytale.protocol.GameMode
 
 
 /**
@@ -30,6 +31,11 @@ class GiveUpCommand(
     private val config: DownedConfig
 ) : AbstractPlayerCommand("giveup", "hydowned.commands.giveup.desc") {
 
+    init {
+        // Allow all adventure mode players to use this command
+        this.setPermissionGroup(GameMode.Adventure)
+    }
+
     companion object {
         // Queue of pending give-up requests (playerRef -> true)
         val pendingGiveUps = ConcurrentHashMap<Ref<EntityStore>, Boolean>()
@@ -45,7 +51,7 @@ class GiveUpCommand(
         // Check if player is downed
         val downedComponent = store.getComponent(ref, DownedComponent.getComponentType())
         if (downedComponent == null) {
-            playerRef.sendMessage(Message.raw("§cYou are not downed!"))
+            playerRef.sendMessage(Message.raw("You are not knocked out!"))
             return
         }
 
@@ -58,6 +64,6 @@ class GiveUpCommand(
         Log.verbose("GiveUpCommand", "Queued give-up in pendingGiveUps map")
 
         // Send message immediately
-        playerRef.sendMessage(Message.raw("§eGiving up... You will respawn shortly."))
+        playerRef.sendMessage(Message.raw("Giving up... You will respawn shortly."))
     }
 }

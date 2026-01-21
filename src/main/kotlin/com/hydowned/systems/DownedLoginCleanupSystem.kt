@@ -64,10 +64,19 @@ class DownedLoginCleanupSystem(
     ) {
         val ref = archetypeChunk.getReferenceTo(index)
 
-        // Check if this player has pending login cleanup
+        // CRITICAL CRASH FIX: Always remove HiddenFromAdventurePlayers for ALL players
+        // This component causes client crashes when combined with camera system
+        // Must happen BEFORE any queue-based cleanup to fix broken characters
+        val hadHiddenCrashFix = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType()) != null
+        if (hadHiddenCrashFix) {
+            commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
+            Log.verbose("LoginCleanup", "Removed HiddenFromAdventurePlayers (crash fix)")
+        }
+
+        // Check if this player has pending login cleanup for full processing
         val pendingUUID = PlayerReadyEventListener.pendingLoginCleanups.remove(ref)
         if (pendingUUID == null) {
-            return // No cleanup needed for this player
+            return // No additional cleanup needed for this player
         }
 
         Log.verbose("LoginCleanup", "Processing login cleanup for player...")
@@ -83,7 +92,7 @@ class DownedLoginCleanupSystem(
             when (val action = PendingDeathTracker.checkAndClearAction(playerUuid)) {
                 is PendingDeathTracker.RestoreAction.ExecuteDeath -> {
                     // Player intentionally logged out while downed → execute death
-                    Log.warning("LoginCleanup", "Player logged out while downed - executing death")
+                    Log.verbose("LoginCleanup", "Player logged out while downed - executing death")
 
                     // Create a minimal DownedComponent for death execution
                     val tempDownedComponent = DownedComponent(downedTimeRemaining = 0) // Timer expired (logout counts as expiry)
@@ -104,7 +113,7 @@ class DownedLoginCleanupSystem(
                 }
                 is PendingDeathTracker.RestoreAction.RestoreDowned -> {
                     // Player crashed/unloaded while downed → restore downed state
-                    Log.warning("LoginCleanup", "Player crashed while downed - RESTORING downed state")
+                    Log.verbose("LoginCleanup", "Player crashed while downed - restoring downed state")
                     Log.verbose("LoginCleanup", "  Time remaining: ${action.timeRemaining}s")
                     Log.verbose("LoginCleanup", "  Downed location: ${action.downedLocation}")
 
@@ -165,7 +174,7 @@ class DownedLoginCleanupSystem(
             val scaleComponent = commandBuffer.getComponent(ref, EntityScaleComponent.getComponentType())
             if (scaleComponent != null) {
                 if (scaleComponent.scale != 1.0f) {
-                    Log.warning("LoginCleanup", "Found scale ${scaleComponent.scale}, restoring to 1.0 (crash safety)...")
+                    Log.verbose("LoginCleanup", "Found scale ${scaleComponent.scale}, restoring to 1.0 (crash safety)")
                     scaleComponent.scale = 1.0f
                     issuesFound = true
                 }
@@ -175,7 +184,7 @@ class DownedLoginCleanupSystem(
         // 3. Ensure DisplayNameComponent exists
         val displayNameComponent = commandBuffer.getComponent(ref, DisplayNameComponent.getComponentType())
         if (displayNameComponent == null) {
-            Log.warning("LoginCleanup", "DisplayNameComponent missing, ensuring it exists...")
+            Log.verbose("LoginCleanup", "DisplayNameComponent missing, ensuring it exists")
             commandBuffer.ensureComponent(ref, DisplayNameComponent.getComponentType())
             issuesFound = true
         }
@@ -183,7 +192,7 @@ class DownedLoginCleanupSystem(
         // 4. Ensure Interactable component exists
         val interactable = commandBuffer.getComponent(ref, Interactable.getComponentType())
         if (interactable == null) {
-            Log.warning("LoginCleanup", "Interactable component missing, ensuring it exists...")
+            Log.verbose("LoginCleanup", "Interactable component missing, ensuring it exists")
             commandBuffer.ensureComponent(ref, Interactable.getComponentType())
             issuesFound = true
         }
@@ -191,7 +200,7 @@ class DownedLoginCleanupSystem(
         // 5. Remove HiddenFromAdventurePlayers if present (invisibility mode cleanup)
         val hiddenComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
         if (hiddenComponent != null) {
-            Log.warning("LoginCleanup", "Found HiddenFromAdventurePlayers, removing...")
+            Log.verbose("LoginCleanup", "Found HiddenFromAdventurePlayers, removing")
             commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventurePlayers.getComponentType())
             issuesFound = true
         }
@@ -199,7 +208,7 @@ class DownedLoginCleanupSystem(
         // 6. Remove Intangible if present (collision cleanup)
         val intangibleComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType())
         if (intangibleComponent != null) {
-            Log.warning("LoginCleanup", "Found Intangible, removing...")
+            Log.verbose("LoginCleanup", "Found Intangible, removing")
             commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.Intangible.getComponentType())
             issuesFound = true
         }
@@ -211,7 +220,7 @@ class DownedLoginCleanupSystem(
         if (playerSkinComponent != null) {
             Log.verbose("LoginCleanup", "PlayerSkinComponent verified")
         } else {
-            Log.warning("LoginCleanup", "PlayerSkinComponent could not be ensured")
+            Log.verbose("LoginCleanup", "PlayerSkinComponent could not be ensured")
             issuesFound = true
         }
 

@@ -28,7 +28,8 @@ class DownedComponent(
     var originalScale: Float = 1.0f, // Store original scale for restoration (SCALE mode)
     var originalDisplayName: DisplayNameComponent? = null, // Store original display name for restoration
     var wasVisibleBefore: Boolean = true, // Store original visibility state (INVISIBLE mode)
-    var hadCollisionEnabled: Boolean = true // Store original collision state
+    var hadCollisionEnabled: Boolean = true, // Store original collision state
+    var wasTargetable: Boolean = true // Store whether player was targetable by mobs (for aggro restoration)
 ) : Component<EntityStore> {
 
     companion object {
@@ -51,7 +52,8 @@ class DownedComponent(
             originalScale, // Copy original scale
             originalDisplayName?.clone() as? DisplayNameComponent, // Clone display name
             wasVisibleBefore, // Copy visibility state
-            hadCollisionEnabled // Copy collision state
+            hadCollisionEnabled, // Copy collision state
+            wasTargetable // Copy targetable state
         )
     }
 }

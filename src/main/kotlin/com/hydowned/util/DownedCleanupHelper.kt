@@ -81,32 +81,47 @@ object DownedCleanupHelper {
                 val entityStatMap = commandBuffer.getComponent(ref, EntityStatMap.getComponentType())
                 if (entityStatMap != null) {
                     entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), 0.0f)
-                    Log.verbose("CleanupHelper", "Forced health to 0 (logout scenario)")
+                    Log.warning("CleanupHelper", "Forced health to 0 (logout scenario)")
                 } else {
                     Log.warning("CleanupHelper", "EntityStatMap not found, cannot force health to 0")
                 }
+
+                // Clean up downed state after setting health to 0
+                cleanupDownedState(ref, commandBuffer, downedComponent, forceHealthToZero)
             } else {
-                // For timer expiry: use damage system for proper death flow
-                val damageCauseIndex = if (downedComponent.originalDamageCause != null) {
-                    downedComponent.originalDamage?.damageCauseIndex ?: 0
+                // For timer expiry/giveup: directly set health to 0 for reliable death
+                // Using damage system is unreliable because of complex interaction with other systems
+                Log.verbose("CleanupHelper", "Setting health to 0 for timer/giveup death")
+
+                val entityStatMap = commandBuffer.getComponent(ref, EntityStatMap.getComponentType())
+                if (entityStatMap != null) {
+                    entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), 0.0f)
+                    Log.verbose("CleanupHelper", "Health set to 0")
                 } else {
-                    0 // Default fallback
+                    Log.warning("CleanupHelper", "EntityStatMap not found, cannot set health to 0")
                 }
 
-                val killDamage = Damage(
-                    downedComponent.originalDamage?.source ?: Damage.NULL_SOURCE,
-                    damageCauseIndex,
-                    999999.0f // Massive damage to ensure death
-                )
+                // Reset camera to normal view BEFORE removing component
+                try {
+                    val playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
+                    if (playerRef != null) {
+                        val cameraSystem = com.hydowned.HyDownedPlugin.instance?.getCameraSystem()
+                        if (cameraSystem != null) {
+                            cameraSystem.resetCameraForPlayer(playerRef, commandBuffer)
+                            Log.verbose("CleanupHelper", "Reset camera to normal view")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.warning("CleanupHelper", "Failed to reset camera: ${e.message}")
+                }
 
-                // Execute death - this will add DeathComponent and trigger normal death flow
-                DamageSystems.executeDamage(ref, commandBuffer, killDamage)
+                // Remove DownedComponent and state tracker
+                // This will trigger onComponentRemoved callbacks which handle movement state cleanup
+                commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
+                DownedStateTracker.setNotDowned(ref)
 
-                Log.verbose("CleanupHelper", "Death damage executed")
+                Log.verbose("CleanupHelper", "Removed DownedComponent - player should die from 0 HP")
             }
-
-            // Clean up downed state AFTER death is processed
-            cleanupDownedState(ref, commandBuffer, downedComponent, forceHealthToZero)
 
         } catch (e: Exception) {
             Log.warning("CleanupHelper", "Failed to execute death: ${e.message}")

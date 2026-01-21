@@ -66,24 +66,33 @@ class DownedDeathInterceptor(
         val ref = archetypeChunk.getReferenceTo(index)
         val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
 
-        // LOG EVERY DAMAGE EVENT (even non-lethal) to catch what's happening
-        Log.warning("DeathInterceptor", "[ENTRY] Processing damage for ${playerComponent?.displayName}, amount: ${damage.amount}, source: ${damage.source}")
+        // Log damage processing for debugging
+        Log.debug("DeathInterceptor", "[ENTRY] Processing damage for ${playerComponent?.displayName}, amount: ${damage.amount}, source: ${damage.source}")
 
         // Check if player already downed (or being downed in this tick's command buffer)
         if (commandBuffer.getArchetype(ref).contains(DownedComponent.getComponentType())) {
             // Get the DownedComponent to check timer status
             val downedComponent = commandBuffer.getComponent(ref, DownedComponent.getComponentType())
 
+            Log.debug("DeathInterceptor", "Player HAS DownedComponent - timer: ${downedComponent?.downedTimeRemaining}, damage: ${damage.amount}")
+
+            // Check if this is intentional death damage (from executeDeath)
+            // executeDeath uses 999999.0f as kill damage - allow it through
+            if (damage.amount >= 999999.0f) {
+                Log.verbose("DeathInterceptor", "INTENTIONAL KILL DAMAGE (999999+) - Allowing through for ${playerComponent?.displayName}")
+                return // Don't block this damage - player should die
+            }
+
             // Check if timer has expired - allow timeout/giveup kill damage through
             if (downedComponent != null && downedComponent.downedTimeRemaining <= 0) {
-                Log.warning("DeathInterceptor", "TIMEOUT/GIVEUP KILL DAMAGE - Allowing through for ${playerComponent?.displayName}, damage: ${damage.amount}")
+                Log.verbose("DeathInterceptor", "TIMEOUT/GIVEUP KILL DAMAGE - Allowing through for ${playerComponent?.displayName}, damage: ${damage.amount}")
                 return // Don't block this damage - player should die
             }
 
             // CRITICAL: Player is already downed (or will be after command buffer applies)
             // We MUST block all damage, not just return early!
             // If we return early without blocking, damage passes through and kills them
-            Log.warning("DeathInterceptor", "DAMAGE BLOCKED - Player already downed/being downed: ${playerComponent?.displayName}, damage blocked: ${damage.amount}")
+            Log.debug("DeathInterceptor", "DAMAGE BLOCKED - Player already downed/being downed: ${playerComponent?.displayName}, damage blocked: ${damage.amount}")
 
             // Block ALL damage to already-downed players
             damage.amount = 0.0f
@@ -108,7 +117,7 @@ class DownedDeathInterceptor(
         // Calculate if this damage would be lethal
         val newHealth = currentHealth - damage.amount
 
-        Log.warning("DeathInterceptor", "[HEALTH CHECK] ${playerComponent?.displayName}: current=${currentHealth}, damage=${damage.amount}, result=${newHealth}, min=${healthStat.min}")
+        Log.debug("DeathInterceptor", "[HEALTH CHECK] ${playerComponent?.displayName}: current=${currentHealth}, damage=${damage.amount}, result=${newHealth}, min=${healthStat.min}")
 
         // CRITICAL: Check if damage would bring health below 1 HP (lethal threshold)
         // We use 1 HP instead of min (0) to prevent edge cases where Hytale's internal
@@ -116,10 +125,10 @@ class DownedDeathInterceptor(
         if (newHealth < 1.0f) {
             // This damage would bring player below 1 HP - intercept it!
             Log.separator("DeathInterceptor")
-            Log.warning("DeathInterceptor", "INTERCEPTING DAMAGE - Would bring ${playerComponent?.displayName} below 1 HP safety threshold!")
-            Log.info("DeathInterceptor", "  Current: $currentHealth HP")
-            Log.info("DeathInterceptor", "  Damage: ${damage.amount}")
-            Log.info("DeathInterceptor", "  Result: $newHealth HP < 1.0 HP threshold")
+            Log.debug("DeathInterceptor", "INTERCEPTING DAMAGE - Would bring ${playerComponent?.displayName} below 1 HP safety threshold!")
+            Log.debug("DeathInterceptor", "  Current: $currentHealth HP")
+            Log.debug("DeathInterceptor", "  Damage: ${damage.amount}")
+            Log.debug("DeathInterceptor", "  Result: $newHealth HP < 1.0 HP threshold")
             Log.separator("DeathInterceptor")
 
             // Modify damage to leave player at EXACTLY 1 HP (not 0.5, not 0)
@@ -128,7 +137,7 @@ class DownedDeathInterceptor(
             val modifiedDamage = currentHealth - 1.0f
             damage.amount = modifiedDamage.coerceAtLeast(0.0f)
 
-            Log.info("DeathInterceptor", "  Modified damage from $originalDamageAmount to ${damage.amount} (leaves player at 1 HP)")
+            Log.debug("DeathInterceptor", "  Modified damage from $originalDamageAmount to ${damage.amount} (leaves player at 1 HP)")
 
             // Get location for downed state (optional - will be null if TransformComponent missing)
             val transform = archetypeChunk.getComponent(index, TransformComponent.getComponentType())
@@ -153,13 +162,18 @@ class DownedDeathInterceptor(
             // Track downed state for network threads
             DownedStateTracker.setDowned(ref)
 
-            Log.info("DeathInterceptor", "Player entered downed state")
-            Log.debug("DeathInterceptor", "Timer: ${config.downedTimerSeconds} seconds")
-            Log.debug("DeathInterceptor", "Location: $location")
-            Log.separator("DeathInterceptor")
+            if (Log.isEnabled(Log.LogLevel.DEBUG)) {
+                Log.debug("DeathInterceptor", "Player entered downed state")
+                Log.debug("DeathInterceptor", "Timer: ${config.downedTimerSeconds} seconds")
+                Log.debug("DeathInterceptor", "Location: $location")
+                Log.separator("DeathInterceptor")
+            }
+
+            // Notify the downed player
+            val downedPlayer = archetypeChunk.getComponent(index, Player.getComponentType())
+            downedPlayer?.sendMessage(Message.raw("You've been knocked out! Wait for a teammate to revive you by crouching next to you, or use /giveup to respawn."))
 
             // Notify nearby players
-            val downedPlayer = archetypeChunk.getComponent(index, Player.getComponentType())
             val downedPlayerName = downedPlayer?.displayName ?: "A player"
 
             if (location != null) {
@@ -187,7 +201,7 @@ class DownedDeathInterceptor(
 
                     // Send message if within range
                     if (distanceSquared <= notifyRangeSquared) {
-                        nearbyPlayer.sendMessage(Message.raw("$downedPlayerName is downed - crouch near their body to revive"))
+                        nearbyPlayer.sendMessage(Message.raw("$downedPlayerName is knocked out - crouch near their body to revive"))
                         notifiedCount++
                     }
                 }
@@ -196,7 +210,7 @@ class DownedDeathInterceptor(
             }
         } else {
             // Damage is NOT lethal - allowing through
-            Log.warning("DeathInterceptor",
+            Log.debug("DeathInterceptor",
                 "[NON-LETHAL] Allowing damage through for ${playerComponent?.displayName}: $currentHealth HP -> $newHealth HP")
         }
     }

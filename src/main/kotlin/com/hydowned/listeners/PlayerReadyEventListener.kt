@@ -27,7 +27,14 @@ class PlayerReadyEventListener(
         // Get player's entity reference and UUID
         val playerRef = event.playerRef
         val player = event.player
-        val playerUUID = player.uuid.toString()
+
+        // Get UUID from UUIDComponent instead of deprecated player.uuid
+        val store = playerRef.store
+        val uuidComponent = store.getComponent(playerRef, UUIDComponent.getComponentType())
+        val playerUUID = uuidComponent?.uuid?.toString() ?: run {
+            Log.warning("PlayerReady", "Failed to get UUID for player - UUIDComponent missing")
+            return
+        }
 
         // Safe access to display name (may be null at login time)
         val playerName = try {

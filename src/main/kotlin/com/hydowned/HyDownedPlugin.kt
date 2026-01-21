@@ -16,6 +16,7 @@ import com.hydowned.systems.DownedInteractionBlockingSystem
 import com.hydowned.systems.DownedInvisibilitySystem
 import com.hydowned.systems.DownedLoginCleanupSystem
 import com.hydowned.systems.DownedLogoutHandlerSystem
+import com.hydowned.systems.DownedMobAggroSystem
 import com.hydowned.systems.DownedMovementStateOverrideSystem
 import com.hydowned.systems.DownedMovementSuppressionSystem
 import com.hydowned.systems.DownedPacketInterceptorSystem
@@ -96,7 +97,7 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         ) { PhantomBodyMarker(null, null, null) }
 
         // ========== SHARED SYSTEMS (Both modes) ==========
-        // Register login cleanup system (runs sanity checks when player logs in)
+        // Register login cleanup system (runs sanity checks + crash fix when player logs in)
         entityStoreRegistry.registerSystem(DownedLoginCleanupSystem(config))
 
         // Register death interception system
@@ -107,6 +108,10 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
         // Healing suppression for downed players
         entityStoreRegistry.registerSystem(DownedHealingSuppressionSystem(config))
+
+        // Remove mob targeting/aggro for downed players
+        // TODO: Disabled for now since we have no way of dealing with the mob AI state properly
+        //entityStoreRegistry.registerSystem(DownedMobAggroSystem(config))
 
         // Clear effects when downed
         entityStoreRegistry.registerSystem(DownedClearEffectsSystem(config))
@@ -125,7 +130,7 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         entityStoreRegistry.registerSystem(DownedInteractionBlockingSystem(config))
 
         // Screen effects (camera shake, post-fx)
-        entityStoreRegistry.registerSystem(DownedScreenEffectsSystem(config))
+        //entityStoreRegistry.registerSystem(DownedScreenEffectsSystem(config))
 
         // Logout handler
         entityStoreRegistry.registerSystem(DownedLogoutHandlerSystem(config))
@@ -228,7 +233,7 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
             Log.verbose("Plugin", "  ✓ Character collision disabled (no pushing/attacking players)")
             Log.verbose("Plugin", "  ✓ Block collision enabled (can't walk through walls)")
-            Log.verbose("Plugin", "  ✓ 10 block movement radius from phantom body")
+            Log.verbose("Plugin", "  ✓ 7 block movement radius from phantom body")
             Log.verbose("Plugin", "  ✓ Player teleports back to body on revive")
         }
 
@@ -237,6 +242,7 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         Log.verbose("Plugin", "  ✓ Interactions blocked while downed")
         Log.verbose("Plugin", "  ✓ Immune to damage while downed")
         Log.verbose("Plugin", "  ✓ Healing blocked while downed")
+        Log.verbose("Plugin", "  ✓ Mobs lose aggro and cannot target downed players")
         Log.verbose("Plugin", "  ✓ All active effects cleared when downed")
         Log.verbose("Plugin", "  ✓ Timer: ${config.downedTimerSeconds}s until death")
         Log.verbose("Plugin", "  ✓ Revive: CROUCH near body (${config.reviveRange} blocks)")

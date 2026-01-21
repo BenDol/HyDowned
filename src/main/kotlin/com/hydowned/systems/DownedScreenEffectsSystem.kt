@@ -58,7 +58,7 @@ class DownedScreenEffectsSystem(
             try {
                 val cameraShake = CameraShakeEffect(
                     0,      // cameraShakeId (0 = generic shake)
-                    0.15f,  // intensity (subtle shake)
+                    3.15f,  // intensity (subtle shake)
                     AccumulationMode.Set
                 )
                 playerRef.packetHandler.writeNoCache(cameraShake as Packet)
@@ -71,11 +71,11 @@ class DownedScreenEffectsSystem(
             // Reduce post-processing effects (darker, less vibrant vision)
             try {
                 val postFx = UpdatePostFxSettings(
-                    0.5f,  // globalIntensity - reduced brightness
-                    0.8f,  // power - affects bloom/glow
-                    0.0f,  // sunshaftScale - no god rays
-                    0.5f,  // sunIntensity - dimmed sun
-                    0.0f   // sunshaftIntensity - no sun shafts
+                    0.5f,   // globalIntensity - reduced brightness
+                    0.8f,          // power - affects bloom/glow
+                    0.0f,   // sunshaftScale - no god rays
+                    0.5f,     // sunIntensity - dimmed sun
+                    0.0f  // sunshaftIntensity - no sun shafts
                 )
                 playerRef.packetHandler.writeNoCache(postFx as Packet)
                 Log.verbose("ScreenEffects", "Applied post-FX (reduced brightness/intensity)")
@@ -121,8 +121,8 @@ class DownedScreenEffectsSystem(
             // Remove camera shake
             try {
                 val cameraShake = CameraShakeEffect(
-                    0,      // cameraShakeId
-                    0.0f,   // intensity (no shake)
+                    0,   // cameraShakeId
+                    0.0f,     // intensity (no shake)
                     AccumulationMode.Set
                 )
                 playerRef.packetHandler.writeNoCache(cameraShake as Packet)
@@ -136,7 +136,7 @@ class DownedScreenEffectsSystem(
             try {
                 val postFx = UpdatePostFxSettings(
                     1.0f,   // globalIntensity - normal brightness
-                    1.0f,          // power - normal bloom/glow
+                    1.0f,         // power - normal bloom/glow
                     1.0f,   // sunshaftScale - normal god rays
                     1.0f,     // sunIntensity - normal sun
                     1.0f  // sunshaftIntensity - normal sun shafts

@@ -110,13 +110,14 @@ class ReviveInteractionSystem(
                 // Check if this reviver is already reviving
                 if (!downedComponent.reviverPlayerIds.contains(reviverUUID)) {
                     val downedPlayerName = downedPlayer.displayName ?: "Player"
-                    Log.separator("ReviveInteraction")
-                    Log.verbose("ReviveInteraction", "CROUCH REVIVE DETECTED!")
-                    Log.verbose("ReviveInteraction", "  Reviver: ${alivePlayerRef.username} (${alivePlayerRef.uuid})")
-                    Log.verbose("ReviveInteraction", "  Downed: $downedPlayerName (${downedUuidComponent.uuid})")
-                    Log.verbose("ReviveInteraction", "  Distance: ${Math.sqrt(distanceSquared)} blocks")
-                    Log.verbose("ReviveInteraction", "  Crouching: $isCrouching")
-                    Log.separator("ReviveInteraction")
+                    // PERFORMANCE: Commented out expensive logging (runs every 0.5s with string operations)
+                    // Log.separator("ReviveInteraction")
+                    // Log.verbose("ReviveInteraction", "CROUCH REVIVE DETECTED!")
+                    // Log.verbose("ReviveInteraction", "  Reviver: ${alivePlayerRef.username} (${alivePlayerRef.uuid})")
+                    // Log.verbose("ReviveInteraction", "  Downed: $downedPlayerName (${downedUuidComponent.uuid})")
+                    // Log.verbose("ReviveInteraction", "  Distance: ${Math.sqrt(distanceSquared)} blocks")
+                    // Log.verbose("ReviveInteraction", "  Crouching: $isCrouching")
+                    // Log.separator("ReviveInteraction")
 
                     // Add reviver
                     downedComponent.reviverPlayerIds.add(reviverUUID)
@@ -124,7 +125,8 @@ class ReviveInteractionSystem(
                     // Initialize revive timer if this is the first reviver
                     if (downedComponent.reviverPlayerIds.size == 1) {
                         downedComponent.reviveTimeRemaining = config.reviveTimerSeconds.toDouble()
-                        Log.verbose("ReviveInteraction", "Initialized revive timer: ${config.reviveTimerSeconds}s")
+                        // PERFORMANCE: Commented out (runs every 0.5s)
+                        // Log.verbose("ReviveInteraction", "Initialized revive timer: ${config.reviveTimerSeconds}s")
                     }
 
                     // Send feedback
@@ -140,7 +142,8 @@ class ReviveInteractionSystem(
             val reviverUUID = iterator.next()
             if (!nearbyAlivePlayerUUIDs.contains(reviverUUID)) {
                 iterator.remove()
-                Log.verbose("ReviveInteraction", "Reviver stopped reviving (not crouching or out of range): $reviverUUID")
+                // PERFORMANCE: Commented out (runs every 0.5s)
+                // Log.verbose("ReviveInteraction", "Reviver stopped reviving (not crouching or out of range): $reviverUUID")
 
                 // Try to send message to the reviver if they're still online
                 for (player in allPlayers) {

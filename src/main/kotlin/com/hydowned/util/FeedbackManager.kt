@@ -64,7 +64,7 @@ class FeedbackManager(private val config: DownedConfig) {
         // TODO: Implement with actual Hytale API
         // Example using KTale:
         // player.send("<green>You have been revived!</green>")
-        Log.debug("Feedback", "Chat -> Player: §aYou have been revived!")
+        Log.debug("Feedback", "Chat -> Player: You have been revived!")
 
         if (config.enableParticles) {
             // TODO: Implement particle burst
@@ -81,20 +81,20 @@ class FeedbackManager(private val config: DownedConfig) {
         // TODO: Implement with actual Hytale API
         // Example using KTale:
         // reviver.send("<red>Revive cancelled: $reason</red>")
-        Log.debug("Feedback", "Chat -> Reviver: §cRevive cancelled: $reason")
+        Log.debug("Feedback", "Chat -> Reviver: Revive cancelled: $reason")
     }
 
     fun sendDownedMessage(player: Any, timeSeconds: Int) {
         // TODO: Implement with actual Hytale API
         // Example using KTale:
         // player.send("<yellow>You are downed! Wait for revival or respawn in $timeSeconds seconds</yellow>")
-        Log.debug("Feedback", "Chat -> Player: §eYou are downed! Wait for revival or respawn in $timeSeconds seconds")
+        Log.debug("Feedback", "Chat -> Player: You are downed! Wait for revival or respawn in $timeSeconds seconds")
     }
 
     fun sendReviveStartedFeedback(reviver: Any, downedPlayerName: String) {
         // TODO: Implement with actual Hytale API
         // Example using KTale:
         // reviver.send("<green>Reviving $downedPlayerName...</green>")
-        Log.debug("Feedback", "Chat -> Reviver: §aReviving $downedPlayerName...")
+        Log.debug("Feedback", "Chat -> Reviver: Reviving $downedPlayerName...")
     }
 }

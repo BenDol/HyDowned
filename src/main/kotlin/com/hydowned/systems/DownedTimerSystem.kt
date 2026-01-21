@@ -44,7 +44,8 @@ class DownedTimerSystem(
         // Process any pending give-up commands for this entity
         val pendingGiveUp = GiveUpCommand.pendingGiveUps.remove(ref)
         if (pendingGiveUp != null && pendingGiveUp) {
-            Log.verbose("TimerSystem", "Processing pending give-up command")
+            Log.verbose("TimerSystem", "Processing giveup command")
+            Log.verbose("TimerSystem", "Timer before death: ${downedComponent.downedTimeRemaining}")
 
             // Execute death immediately
             DownedCleanupHelper.executeDeath(
@@ -54,7 +55,7 @@ class DownedTimerSystem(
                 reason = "gave up"
             )
 
-            Log.info("TimerSystem", "Give-up processed, death executed")
+            Log.verbose("TimerSystem", "Giveup death executed")
             return // Exit early - player gave up
         }
 
@@ -66,18 +67,19 @@ class DownedTimerSystem(
 
         val timeRemaining = downedComponent.downedTimeRemaining
 
-        Log.debug("TimerSystem", "Timer tick: ${timeRemaining}s remaining")
+        // PERFORMANCE: Commented out (runs every 1s for every downed player)
+        // Log.debug("TimerSystem", "Timer tick: ${timeRemaining}s remaining")
 
         // Send chat messages at specific intervals (only if not being revived)
         if (playerComponent != null && downedComponent.reviverPlayerIds.isEmpty()) {
             when (timeRemaining) {
-                60 -> playerComponent.sendMessage(Message.raw("Downed - 60s remaining"))
+                60 -> playerComponent.sendMessage(Message.raw("Knocked out - 60s remaining"))
                 30 -> playerComponent.sendMessage(Message.raw("30s remaining"))
                 10 -> playerComponent.sendMessage(Message.raw("10s remaining"))
                 else -> {
                     // Every 30 seconds for longer timers
                     if (timeRemaining > 60 && timeRemaining % 30 == 0) {
-                        playerComponent.sendMessage(Message.raw("Downed - ${timeRemaining}s remaining"))
+                        playerComponent.sendMessage(Message.raw("Knocked out - ${timeRemaining}s remaining"))
                     }
                 }
             }
@@ -97,7 +99,8 @@ class DownedTimerSystem(
             val oldReviveTime = downedComponent.reviveTimeRemaining
             downedComponent.reviveTimeRemaining -= speedMultiplier
 
-            Log.debug("TimerSystem", "Revivers: ${reviverCount}, Speed: ${speedMultiplier}x, Remaining: ${downedComponent.reviveTimeRemaining}s")
+            // PERFORMANCE: Commented out (runs every 1s for every downed player being revived)
+            // Log.debug("TimerSystem", "Revivers: ${reviverCount}, Speed: ${speedMultiplier}x, Remaining: ${downedComponent.reviveTimeRemaining}s")
 
             // Send countdown messages (only on whole second changes)
             val oldSeconds = oldReviveTime.toInt()

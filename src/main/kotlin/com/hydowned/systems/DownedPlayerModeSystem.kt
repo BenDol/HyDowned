@@ -17,6 +17,8 @@ import com.hypixel.hytale.server.core.entity.entities.Player
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesSystems
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent
 import com.hypixel.hytale.server.core.modules.entity.player.PlayerProcessMovementSystem
+import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap
+import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
@@ -63,6 +65,17 @@ class DownedPlayerModeSystem(
         Log.verbose("PlayerMode", "PLAYER MODE: Putting player into sleep state")
 
         try {
+            // CRITICAL: Stop ALL animations on ALL slots first to clear weapon/item animations
+            // This prevents weapon animations from interfering with the Death animation
+            try {
+                AnimationUtils.stopAnimation(ref, AnimationSlot.Movement, commandBuffer)
+                AnimationUtils.stopAnimation(ref, AnimationSlot.Action, commandBuffer)
+                AnimationUtils.stopAnimation(ref, AnimationSlot.Emote, commandBuffer)
+                Log.verbose("PlayerMode", "Cleared all animation slots")
+            } catch (e: Exception) {
+                Log.warning("PlayerMode", "Failed to clear animations: ${e.message}")
+            }
+
             // Play death animation on the player
             AnimationUtils.playAnimation(
                 ref,
@@ -145,19 +158,32 @@ class DownedPlayerModeSystem(
         Log.verbose("PlayerMode", "PLAYER MODE: Removing sleep state from player")
 
         try {
-            // Reset movement state to normal
-            val movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType())
-            if (movementStatesComponent != null) {
-                val states = MovementStates()
-                states.sleeping = false
-                states.idle = false
-                states.onGround = true
-                movementStatesComponent.movementStates = states
-                movementStatesComponent.sentMovementStates = states
-                Log.verbose("PlayerMode", "Reset player to normal movement state")
+            // Check if player is at 0 HP (death scenario) or >0 HP (revive scenario)
+            val entityStatMap = commandBuffer.getComponent(ref, EntityStatMap.getComponentType())
+            val healthStat = entityStatMap?.get(DefaultEntityStatTypes.getHealth())
+            val currentHealth = healthStat?.get() ?: 0.0f
+
+            val isDying = currentHealth <= 0.0f
+
+            if (isDying) {
+                // Player is dying - DO NOT reset movement states
+                // The respawn system will handle movement state initialization
+                Log.verbose("PlayerMode", "Player is dying (0 HP) - skipping movement state reset (respawn will handle it)")
+            } else {
+                // Player is being revived - reset movement state to normal
+                val movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType())
+                if (movementStatesComponent != null) {
+                    val states = MovementStates()
+                    states.sleeping = false
+                    states.idle = false
+                    states.onGround = true
+                    movementStatesComponent.movementStates = states
+                    movementStatesComponent.sentMovementStates = states
+                    Log.verbose("PlayerMode", "Reset player to normal movement state (revive scenario)")
+                }
             }
 
-            // Stop death animation
+            // Stop death animation (do this in both scenarios)
             AnimationUtils.stopAnimation(
                 ref,
                 AnimationSlot.Movement,

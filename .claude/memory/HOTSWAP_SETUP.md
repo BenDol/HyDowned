@@ -126,8 +126,8 @@ Edit code → Reload Changed Classes (Ctrl+Shift+F9) → Test
 
 1. Start server and attach debugger
 2. Take lethal damage (enter downed state)
-3. See message: `"§c☠ DOWNED! 60 seconds until death... [HOT-RELOAD ACTIVE]"`
-4. Edit `DownedTimerSystem.kt` line 88, change message to: `"§c☠ YOU'RE DOWN! 60s left!"`
+3. See message: `"DOWNED! 60 seconds until death..."`
+4. Edit `DownedTimerSystem.kt` line 88, change message to: `"YOU'RE DOWN! 60s left!"`
 5. Press Ctrl+Shift+F9 (Reload Changed Classes)
 6. Take lethal damage again
 7. **New message appears instantly!** No restart needed!

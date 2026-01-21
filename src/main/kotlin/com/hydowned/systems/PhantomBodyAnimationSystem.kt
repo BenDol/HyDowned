@@ -45,17 +45,20 @@ class PhantomBodyAnimationSystem(
     ) {
         val ref = archetypeChunk.getReferenceTo(index)
 
-        Log.verbose("PhantomAnimation", "Checking phantom body entity...")
+        // PERFORMANCE: Commented out (runs every tick for every phantom body marker)
+        // Log.verbose("PhantomAnimation", "Checking phantom body entity...")
 
         // Check if entity is fully spawned (has NetworkId)
         val networkId = commandBuffer.getComponent(ref, NetworkId.getComponentType())
         if (networkId != null) {
-            Log.verbose("PhantomAnimation", "Entity has NetworkId: ${networkId.id}")
+            // PERFORMANCE: Commented out (runs every tick for every phantom body marker)
+            // Log.verbose("PhantomAnimation", "Entity has NetworkId: ${networkId.id}")
 
             // Check if entity is visible to clients (has Visible component)
             val visible = store.getComponent(ref, EntityTrackerSystems.Visible.getComponentType())
             if (visible != null && visible.visibleTo.isNotEmpty()) {
-                Log.verbose("PhantomAnimation", "Entity is visible to ${visible.visibleTo.size} viewers")
+                // PERFORMANCE: Commented out (runs every tick for every phantom body marker)
+                // Log.verbose("PhantomAnimation", "Entity is visible to ${visible.visibleTo.size} viewers")
 
                 // Get the marker component to access equipment data
                 val marker = commandBuffer.getComponent(ref, PhantomBodyMarker.getComponentType())
@@ -93,9 +96,10 @@ class PhantomBodyAnimationSystem(
                         }
 
                         Log.verbose("PhantomAnimation", "Queued equipment update to ${visible.visibleTo.size} viewers")
-                        Log.verbose("PhantomAnimation", "  - Armor: ${equipmentData.armorIds?.joinToString(", ")}")
-                        Log.verbose("PhantomAnimation", "  - Right hand: ${equipmentData.rightHandItemId}")
-                        Log.verbose("PhantomAnimation", "  - Left hand: ${equipmentData.leftHandItemId}")
+                        // PERFORMANCE: Commented out expensive string operations (joinToString on every phantom body spawn)
+                        // Log.verbose("PhantomAnimation", "  - Armor: ${equipmentData.armorIds?.joinToString(", ")}")
+                        // Log.verbose("PhantomAnimation", "  - Right hand: ${equipmentData.rightHandItemId}")
+                        // Log.verbose("PhantomAnimation", "  - Left hand: ${equipmentData.leftHandItemId}")
                     } catch (e: Exception) {
                         Log.error("PhantomAnimation", "Failed to send equipment update: ${e.message}")
                         e.printStackTrace()
