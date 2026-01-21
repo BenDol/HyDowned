@@ -3,10 +3,11 @@
   "Name": "HyDowned",
   "Version": "1.0.0",
   "Main": "com.hydowned.HyDownedPlugin",
-  "Description": "Replaces player death with a downed state that can be revived by other players (Template - Not Yet Functional)",
+  "Description": "Replaces player death with a downed state that can be revived by other players",
   "Authors": [
     {
-      "name": "HyDowned Team"
+      "Name": "BenDol (Bonfyre)"
     }
-  ]
+  ],
+  "DisabledByDefault": false
 }
