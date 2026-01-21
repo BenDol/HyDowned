@@ -5,17 +5,19 @@ import com.hydowned.components.DownedComponent
 import com.hydowned.components.PhantomBodyMarker
 import com.hydowned.config.DownedConfig
 import com.hydowned.listeners.PlayerReadyEventListener
+import com.hydowned.systems.DownedAnimationLoopSystem
 import com.hydowned.systems.DownedCameraSystem
 import com.hydowned.systems.DownedClearEffectsSystem
 import com.hydowned.systems.DownedCollisionDisableSystem
 import com.hydowned.systems.DownedDamageImmunitySystem
 import com.hydowned.systems.DownedDeathInterceptor
-import com.hydowned.systems.DownedDisableItemsSystem
 import com.hydowned.systems.DownedHealingSuppressionSystem
 import com.hydowned.systems.DownedInteractionBlockingSystem
 import com.hydowned.systems.DownedInvisibilitySystem
 import com.hydowned.systems.DownedLoginCleanupSystem
 import com.hydowned.systems.DownedLogoutHandlerSystem
+import com.hydowned.systems.DownedMovementStateOverrideSystem
+import com.hydowned.systems.DownedMovementSuppressionSystem
 import com.hydowned.systems.DownedPacketInterceptorSystem
 import com.hydowned.systems.DownedPhantomBodySystem
 import com.hydowned.systems.DownedPlayerModeSystem
@@ -129,6 +131,10 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         entityStoreRegistry.registerSystem(DownedPlayerModeSyncSystem(config))
         Log.verbose("Plugin", "Player mode sync system registered (PLAYER mode: prevents client from overriding sleep state)")
 
+        // Register animation loop system (re-sends Death animation every 0.5s to keep it playing - PLAYER mode only)
+        entityStoreRegistry.registerSystem(DownedAnimationLoopSystem(config))
+        Log.verbose("Plugin", "Animation loop system registered (PLAYER mode: continuously re-sends Death animation to prevent Idle)")
+
         // ========== PHANTOM MODE (Player goes invisible, phantom body spawned) ==========
         // Register player scale system (makes player tiny - PHANTOM mode with SCALE only)
         entityStoreRegistry.registerSystem(DownedPlayerScaleSystem(config))
@@ -179,6 +185,14 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         entityStoreRegistry.registerSystem(DownedPacketInterceptorSystem(config))
         Log.verbose("Plugin", "Packet interceptor system registered (interactions blocked, movement allowed)")
 
+        // Register movement suppression system (clears PlayerInput queue BEFORE processing - PLAYER mode)
+        entityStoreRegistry.registerSystem(DownedMovementSuppressionSystem(config))
+        Log.verbose("Plugin", "Movement suppression system registered (PLAYER mode: clears input queue before processing)")
+
+        // Register movement state override system (sends sleeping=true to client EVERY TICK - PLAYER mode)
+        entityStoreRegistry.registerSystem(DownedMovementStateOverrideSystem(config))
+        Log.verbose("Plugin", "Movement state override system registered (PLAYER mode: forces sleeping state every tick via EntityUpdates)")
+
         // Register interaction removal system (removes Interactions component completely)
         entityStoreRegistry.registerSystem(DownedRemoveInteractionsSystem(config))
         Log.verbose("Plugin", "Interaction removal system registered (removes Interactions + Interactable components)")
@@ -186,10 +200,6 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
         // Register interaction blocking system (clears InteractionManager every tick)
         entityStoreRegistry.registerSystem(DownedInteractionBlockingSystem(config))
         Log.verbose("Plugin", "Interaction blocking system registered (clears InteractionManager to block all interactions)")
-
-        // Register item disable system (removes items from hand to prevent combat crash)
-        entityStoreRegistry.registerSystem(DownedDisableItemsSystem(config))
-        Log.verbose("Plugin", "Item disable system registered (clears active hotbar slot to prevent combat)")
 
         // Register logout handler system (handles player disconnect while downed)
         entityStoreRegistry.registerSystem(DownedLogoutHandlerSystem(config))

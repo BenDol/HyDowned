@@ -11,6 +11,6 @@
   "enableSounds": true,
   "enableActionBar": true,
   "invisibilityMode": "SCALE",
-  "downedMode": "PHANTOM",
+  "downedMode": "PLAYER",
   "logLevel": "VERBOSE"
 }

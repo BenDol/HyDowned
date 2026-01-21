@@ -14,6 +14,7 @@ import com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.config.DownedConfig
 import com.hydowned.network.DownedPacketInterceptor
+import com.hydowned.network.DownedPacketChannelHandler
 import com.hydowned.network.DownedStateTracker
 import com.hydowned.util.Log
 
@@ -62,7 +63,7 @@ class DownedPacketInterceptorSystem(
 
         // Check if it's a GenericPacketHandler (it should be)
         if (packetHandler !is GenericPacketHandler) {
-            Log.verbose("PacketInterceptor", "Warning: PacketHandler is not GenericPacketHandler, cannot intercept")
+            Log.verbose("PacketInterceptor", "Warning: PacketHandler is not GenericPacketHandler (is ${packetHandler::class.java.name}), cannot intercept")
             return
         }
 
@@ -106,14 +107,37 @@ class DownedPacketInterceptorSystem(
                 }
             }
 
-            // 2. OUTGOING PACKET HANDLER WRAPPING - DISABLED
-            // ClassCastException: Game code expects GamePacketHandler specifically but our wrapper
-            // extends PacketHandler, causing classloader incompatibility issues
-            // The incoming packet wrapping + movement state system should be sufficient
+            // 2. INSTALL NETTY CHANNEL HANDLER FOR OUTGOING PACKETS
+            // We can't extend GamePacketHandler due to final methods, so we intercept at the
+            // Netty channel level instead. This gives us access to ALL outgoing packets.
+            try {
+                val channel = packetHandler.channel
+                val pipeline = channel.pipeline()
+
+                // Create our channel handler
+                val channelHandler = DownedPacketChannelHandler(ref, config.usePlayerMode)
+
+                // Add it to the pipeline BEFORE the encoder (so we can modify packets before encoding)
+                // Use a unique name based on player ref to avoid conflicts
+                val handlerName = "hydowned_packet_interceptor_${ref.hashCode()}"
+
+                if (pipeline.get(handlerName) == null) {
+                    // Add after "packet_handler" or at the end if not found
+                    if (pipeline.get("packet_handler") != null) {
+                        pipeline.addAfter("packet_handler", handlerName, channelHandler)
+                    } else {
+                        pipeline.addLast(handlerName, channelHandler)
+                    }
+                    Log.verbose("PacketInterceptor", "Installed Netty channel handler for outgoing packets")
+                }
+            } catch (e: Exception) {
+                Log.warning("PacketInterceptor", "Failed to install Netty channel handler: ${e.message}")
+                e.printStackTrace()
+            }
 
             Log.verbose("PacketInterceptor", "Installed packet interceptors for player:")
-            Log.verbose("PacketInterceptor", "  - Wrapped $wrappedCount incoming handlers")
-            Log.verbose("PacketInterceptor", "  - Outgoing wrapper disabled (ClassLoader limitations)")
+            Log.verbose("PacketInterceptor", "  - Wrapped $wrappedCount incoming handlers (ClientMovement BLOCKED)")
+            Log.verbose("PacketInterceptor", "  - Installed Netty channel handler (intercepts ALL outgoing EntityUpdates)")
             Log.verbose("PacketInterceptor", "  - NetworkId=$playerNetworkId stored in tracker")
 
         } catch (e: Exception) {
@@ -130,6 +154,26 @@ class DownedPacketInterceptorSystem(
     ) {
         // Clean up interceptor
         installedInterceptors.remove(ref)
+
+        // Clean up Netty channel handler
+        try {
+            val playerRefComponent = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
+            if (playerRefComponent != null) {
+                val packetHandler = playerRefComponent.getPacketHandler()
+                if (packetHandler is GenericPacketHandler) {
+                    val channel = packetHandler.channel
+                    val pipeline = channel.pipeline()
+                    val handlerName = "hydowned_packet_interceptor_${ref.hashCode()}"
+
+                    if (pipeline.get(handlerName) != null) {
+                        pipeline.remove(handlerName)
+                        Log.verbose("PacketInterceptor", "Removed Netty channel handler for disconnecting player")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.verbose("PacketInterceptor", "Failed to remove Netty channel handler: ${e.message}")
+        }
 
         // Clean up downed state tracking
         DownedStateTracker.remove(ref)

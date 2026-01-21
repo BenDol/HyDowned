@@ -4,6 +4,9 @@ import com.hypixel.hytale.component.ArchetypeChunk
 import com.hypixel.hytale.component.CommandBuffer
 import com.hypixel.hytale.component.Ref
 import com.hypixel.hytale.component.Store
+import com.hypixel.hytale.component.dependency.Dependency
+import com.hypixel.hytale.component.dependency.Order
+import com.hypixel.hytale.component.dependency.SystemDependency
 import com.hypixel.hytale.component.query.Query
 import com.hypixel.hytale.component.system.RefChangeSystem
 import com.hypixel.hytale.component.system.tick.EntityTickingSystem
@@ -11,7 +14,9 @@ import com.hypixel.hytale.protocol.AnimationSlot
 import com.hypixel.hytale.protocol.MovementStates
 import com.hypixel.hytale.server.core.entity.AnimationUtils
 import com.hypixel.hytale.server.core.entity.entities.Player
+import com.hypixel.hytale.server.core.entity.movement.MovementStatesSystems
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent
+import com.hypixel.hytale.server.core.modules.entity.player.PlayerProcessMovementSystem
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
@@ -186,7 +191,15 @@ class DownedPlayerModeSyncSystem(
         MovementStatesComponent.getComponentType()
     )
 
+    // Run AFTER all movement systems to override any state changes they make
+    private val dependencies = setOf<Dependency<EntityStore>>(
+        SystemDependency(Order.AFTER, MovementStatesSystems.TickingSystem::class.java),
+        SystemDependency(Order.AFTER, PlayerProcessMovementSystem::class.java)
+    )
+
     override fun getQuery(): Query<EntityStore> = query
+
+    override fun getDependencies(): Set<Dependency<EntityStore>> = dependencies
 
     override fun tick(
         dt: Float,
@@ -223,8 +236,8 @@ class DownedPlayerModeSyncSystem(
         }
 
         if (needsReset) {
-            // Force both states and sentStates to sleeping
-            // This ensures the client receives the correct state
+            // Force both states and sentStates to sleeping - MAKE THEM IDENTICAL
+            // Making them different was causing MovementStatesSystems to override states with sentStates
             states.sleeping = true
             states.idle = false
             states.horizontalIdle = false
@@ -246,15 +259,33 @@ class DownedPlayerModeSyncSystem(
             states.sitting = false
             states.gliding = false
 
-            // Force sentStates to be different so MovementStatesSystems.TickingSystem detects change
-            sentStates.sleeping = false
-            sentStates.idle = true
+            // Make sentStates IDENTICAL to states (not different)
+            sentStates.sleeping = true
+            sentStates.idle = false
+            sentStates.horizontalIdle = false
+            sentStates.walking = false
+            sentStates.running = false
+            sentStates.sprinting = false
+            sentStates.jumping = false
+            sentStates.falling = false
+            sentStates.crouching = false
+            sentStates.forcedCrouching = false
+            sentStates.climbing = false
+            sentStates.flying = false
+            sentStates.swimming = false
+            sentStates.swimJumping = false
+            sentStates.mantling = false
+            sentStates.sliding = false
+            sentStates.mounting = false
+            sentStates.rolling = false
+            sentStates.sitting = false
+            sentStates.gliding = false
 
             // Update both states using the component methods
             movementStatesComponent.movementStates = states
             movementStatesComponent.sentMovementStates = sentStates
 
-            Log.verbose("PlayerMode", "Force-synced sleeping state (both states and sentStates)")
+            Log.verbose("PlayerMode", "Force-synced sleeping state (states and sentStates IDENTICAL)")
         }
     }
 }

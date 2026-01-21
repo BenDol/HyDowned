@@ -51,13 +51,19 @@ class DownedPacketInterceptor(
         return Consumer { packet ->
             val isDowned = isPlayerDowned()
 
+            if (packet is ClientMovement) {
+                Log.verbose("PacketInterceptor", "ClientMovement received - isDowned=$isDowned, usePlayerMode=$usePlayerMode")
+            }
+
             if (isDowned) {
                 when (packet) {
                     is ClientMovement -> {
                         if (usePlayerMode) {
-                            // PLAYER mode - MODIFY ClientMovement (allow rotation, block position, force sleeping)
-                            // This is critical! The server needs to process movement packets with sleeping=true
-                            handleClientMovement(packet, originalHandler)
+                            // PLAYER mode - COMPLETELY BLOCK ClientMovement packets
+                            // Don't call handleClientMovement - it allows rotation through which might cause issues
+                            // Just block the packet entirely - position locking handled by other systems
+                            Log.verbose("PacketInterceptor", "BLOCKED ClientMovement (PLAYER mode)")
+                            // Don't call original handler - packet is completely blocked
                         } else {
                             // PHANTOM mode - allow movement freely
                             originalHandler.accept(packet)
@@ -91,7 +97,7 @@ class DownedPacketInterceptor(
     }
 
     /**
-     * Creates a wrapped PacketHandler for outgoing packets
+     * Creates a wrapped PacketHandler for outgoing packets (NOT CURRENTLY USED)
      */
     fun createOutgoingWrapper(): PacketHandlerWrapper {
         return PacketHandlerWrapper(originalPacketHandler, playerRef, usePlayerMode)
@@ -167,6 +173,10 @@ class DownedPacketInterceptor(
 
     /**
      * Wrapper for outgoing PacketHandler that intercepts packets being sent to client
+     *
+     * NOTE: This extends PacketHandler (not GamePacketHandler) because GamePacketHandler has
+     * final methods and incompatible signatures that prevent extension.
+     * This wrapper is NOT CURRENTLY USED - we use DownedMovementStateOverrideSystem instead.
      */
     class PacketHandlerWrapper(
         private val delegate: PacketHandler,
@@ -175,7 +185,7 @@ class DownedPacketInterceptor(
     ) : PacketHandler(delegate.channel, delegate.protocolVersion) {
 
         override fun getIdentifier(): String {
-            return delegate.getIdentifier()
+            return delegate.identifier
         }
 
         override fun accept(packet: Packet) {
@@ -191,6 +201,7 @@ class DownedPacketInterceptor(
                         // Block any animations that aren't Death in Movement or Status slots
                         if (packet.slot == AnimationSlot.Movement || packet.slot == AnimationSlot.Status) {
                             val animationId = packet.animationId
+                            Log.verbose("PacketInterceptor", "Movement animation ID: $animationId")
                             if (animationId != null && !animationId.contains("Death", ignoreCase = true)) {
                                 // Block non-death animations
                                 Log.verbose("PacketInterceptor", "Blocked non-death animation in ${packet.slot} slot: $animationId")
