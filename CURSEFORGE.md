@@ -17,15 +17,16 @@ The mod has two modes you can switch between in the config:
 
 **PLAYER Mode (Default)**
 - Your body stays where you went down (laying down)
-- Death animation plays continuously
 - Camera moves 5 blocks above, looking down at your body
-- Movement is completely locked (can't move or interact)
+- Movement is completely locked (can't move or interact)   
+  _Known limitation: the player that is knocked out will see their character animations change to idle and move and sometimes spam the death animation, this is only visible to the downed player due to client side movement prediction that we can't control via mods right now_
 
 **PHANTOM Mode**
 - A phantom body spawns where you went down
 - You become invisible and can move around (7 block radius, configurable)
 - Teammates revive the phantom body
-- You're teleported back to your body when revived
+- You're teleported back to your body when revived  
+  _Known limitation: This can cause client crashes when invisibilityMode is set to INVISIBLE, this is a bug with the client_
 
 ## Configuration
 
@@ -54,7 +55,7 @@ With `SPEEDUP` mode:
 - 1 person reviving: 10 seconds
 - 2 people reviving: 6.7 seconds
 - 3 people reviving: 5 seconds  
-_Note: the revival speed is configurable_
+  _Note: the revival speed is configurable_
 
 With `FIRST_ONLY` mode:
 - Only the first person can revive
@@ -120,20 +121,21 @@ INVISIBLE uses a visibility component to make you invisible. SCALE shrinks you t
 - State persists across server restarts using file-based tracking
 - Restoration includes your timer position and downed location
 
-**Mob Targeting (Known Limitation):**
-- **PLAYER Mode**: Mobs will continue to target and attack downed players
-  - The Hytale modding API does not expose mob AI or targeting systems
-  - No components exist for controlling mob aggro or targeting behavior
-  - Intangible and RespondToHit removal only prevent collision/knockback, not AI targeting
-  - Invisibility components would prevent targeting but cause client crashes in PLAYER mode
-  - You remain immune to all damage, so attacks won't kill you
+**Mob Targeting (Known Limitations):**
 
-- **PHANTOM Mode with INVISIBLE/SCALE**: More effective at preventing mob targeting
-  - Player becomes physically imperceptible (invisible or 0.01% scale)
-  - Mobs generally cannot target what they cannot perceive
-  - Not guaranteed to work for all mob types due to API limitations
+**PLAYER Mode**: Mobs will continue to target and attack downed players
+- The Hytale modding API does not expose mob AI or targeting systems
+- No components exist for controlling mob aggro or targeting behavior
+- Intangible and RespondToHit removal only prevent collision/knockback, not AI targeting
+- Invisibility components would prevent targeting but cause client crashes in PLAYER mode
+- You remain immune to all damage, so attacks won't kill you
 
-- **Bottom Line**: If mob targeting is critical for your use case, use PHANTOM mode. PLAYER mode cannot reliably prevent mob aggro due to Hytale API limitations.
+**PHANTOM Mode with INVISIBLE/SCALE**: More effective at preventing mob targeting
+- Player becomes physically imperceptible (invisible or 0.01% scale)
+- Mobs generally cannot target what they cannot perceive
+- Not guaranteed to work for all mob types due to API limitations
+
+**Bottom Line**: If mob targeting is critical for your use case, use PHANTOM mode. PLAYER mode cannot reliably prevent mob aggro due to Hytale API limitations.
 
 **Other Notes:**
 - Uses chat messages for feedback (action bar not yet implemented)
