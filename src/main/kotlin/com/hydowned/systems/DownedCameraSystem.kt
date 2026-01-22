@@ -27,6 +27,7 @@ import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.util.Log
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Level
 
 /**
  * Controls the camera for downed players to look down at their phantom body.
@@ -92,9 +93,11 @@ class DownedCameraSystem(
         val targetEntityId = playerNetworkId.id
 
         try {
-            Log.finer("DownedCamera", "============================================")
-            Log.finer("DownedCamera", "PLAYER MODE: Setting up camera for ${playerRef.username}")
-            Log.finer("DownedCamera", "Attaching camera to player's own entity ID: $targetEntityId")
+            if (Log.isEnabled(Level.FINER)) {
+                Log.finer("DownedCamera", "============================================")
+                Log.finer("DownedCamera", "PLAYER MODE: Setting up camera for ${playerRef.username}")
+                Log.finer("DownedCamera", "Attaching camera to player's own entity ID: $targetEntityId")
+            }
 
             // Create camera settings to look down at player's body from above (top-down view)
             val cameraSettings = ServerCameraSettings().apply {
@@ -164,9 +167,10 @@ class DownedCameraSystem(
             // Mark camera as set up for this player
             cameraSetupComplete.add(playerUuid)
 
-            Log.finer("DownedCamera", "Camera attached to player's entity (ID: $targetEntityId), positioned 5 blocks above, looking down at -89° pitch (top-down view)")
-            Log.finer("DownedCamera", "============================================")
-
+            if (Log.isEnabled(Level.FINER)) {
+                Log.finer("DownedCamera", "Camera attached to player's entity (ID: $targetEntityId), positioned 5 blocks above, looking down at -89° pitch (top-down view)")
+                Log.finer("DownedCamera", "============================================")
+            }
         } catch (e: Exception) {
             Log.warning("DownedCamera", "Failed to set camera: ${e.message}")
             e.printStackTrace()
@@ -184,8 +188,10 @@ class DownedCameraSystem(
         cameraSetupComplete.remove(playerUuid)
 
         try {
-            Log.finer("DownedCamera", "============================================")
-            Log.finer("DownedCamera", "Resetting camera to normal first-person view for ${playerRef.username}")
+            if (Log.isEnabled(Level.FINER)) {
+                Log.finer("DownedCamera", "============================================")
+                Log.finer("DownedCamera", "Resetting camera to normal first-person view for ${playerRef.username}")
+            }
 
             val playerEntityRef = playerRef.reference
             if (playerEntityRef != null) {

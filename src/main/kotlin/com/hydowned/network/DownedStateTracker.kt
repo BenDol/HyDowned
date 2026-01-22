@@ -17,6 +17,8 @@ import com.hydowned.util.Log
 object DownedStateTracker {
     private val downedPlayers = ConcurrentHashMap.newKeySet<Ref<EntityStore>>()
     private val networkIds = ConcurrentHashMap<Ref<EntityStore>, Int>()
+    // Maps phantom body network ID -> player ref who owns it
+    private val phantomBodies = ConcurrentHashMap<Int, Ref<EntityStore>>()
 
     /**
      * Marks a player as downed. Called from world thread.
@@ -57,10 +59,43 @@ object DownedStateTracker {
     }
 
     /**
+     * Registers a phantom body for a player. Called from world thread.
+     */
+    fun setPhantomBody(phantomNetworkId: Int, ownerPlayerRef: Ref<EntityStore>) {
+        phantomBodies[phantomNetworkId] = ownerPlayerRef
+        Log.finer("StateTracker", "StateTracker: Phantom body $phantomNetworkId registered for player")
+    }
+
+    /**
+     * Gets the owner of a phantom body. Thread-safe, can be called from any thread.
+     * Returns the player ref who owns this phantom body, or null if not a phantom body.
+     */
+    fun getPhantomBodyOwner(phantomNetworkId: Int): Ref<EntityStore>? {
+        return phantomBodies[phantomNetworkId]
+    }
+
+    /**
+     * Checks if a network ID is a phantom body. Thread-safe, can be called from any thread.
+     */
+    fun isPhantomBody(networkId: Int): Boolean {
+        return phantomBodies.containsKey(networkId)
+    }
+
+    /**
+     * Removes phantom body tracking. Called from world thread.
+     */
+    fun removePhantomBody(phantomNetworkId: Int) {
+        phantomBodies.remove(phantomNetworkId)
+        Log.finer("StateTracker", "StateTracker: Phantom body $phantomNetworkId unregistered")
+    }
+
+    /**
      * Removes a player from tracking (called when player disconnects)
      */
     fun remove(playerRef: Ref<EntityStore>) {
         downedPlayers.remove(playerRef)
         networkIds.remove(playerRef)
+        // Also remove any phantom bodies owned by this player
+        phantomBodies.values.removeIf { it == playerRef }
     }
 }

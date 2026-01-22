@@ -1,1217 +1,1290 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+import java.nio.file.Files
+import java.util.concurrent.TimeUnit
+
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.9.22'
-    id 'java'
+  id 'org.jetbrains.kotlin.jvm' version '1.9.22'
+  id 'java'
 }
 
 group = 'com.hydowned'
 version = '1.1.0'
 
 repositories {
-    mavenCentral()
-    // KTale repository (optional - uncomment when available)
-    // maven {
-    //     name = 'ModLabs'
-    //     url = 'https://nexus.modlabs.cc/repository/maven-public/'
-    // }
+  mavenCentral()
 }
 
 dependencies {
-    // Kotlin standard library
-    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+  // Kotlin standard library
+  implementation "org.jetbrains.kotlin:kotlin-stdlib"
 
-    // KTale - Kotlin helpers for Hytale (optional - uncomment when repository is accessible)
-    // implementation "cc.modlabs:ktale:2026.1.15.2109"
-
-    // Hytale Server API (provided at runtime)
-    compileOnly files('libs/HytaleServer.jar')
+  // Hytale Server API (provided at runtime)
+  compileOnly files('libs/HytaleServer.jar')
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-        vendor = JvmVendorSpec.AZUL  // Use Azul Zulu builds
-    }
+  sourceCompatibility = JavaVersion.VERSION_21
+  targetCompatibility = JavaVersion.VERSION_21
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(21)
+    vendor = JvmVendorSpec.AZUL  // Use Azul Zulu builds
+  }
 }
 
 kotlin {
-    jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-        vendor = JvmVendorSpec.AZUL
-    }
+  jvmToolchain {
+    languageVersion = JavaLanguageVersion.of(21)
+    vendor = JvmVendorSpec.AZUL
+  }
 }
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    kotlinOptions {
-        jvmTarget = "21"
-    }
+tasks.withType(KotlinCompile).configureEach {
+  kotlinOptions {
+    jvmTarget = "21"
+  }
 }
 
 // Custom task to import Hytale Server JAR from AppData
-task importHytaleServer {
-    description = 'Imports the Hytale Server JAR from AppData if it has changed'
-    group = 'hytale'
+tasks.register('importHytaleServer') {
+  description = 'Imports the Hytale Server JAR from AppData if it has changed'
+  group = 'hytale'
 
-    doLast {
-        // Get AppData path
-        def appData = System.getenv('APPDATA')
-        if (appData == null) {
-            logger.warn('APPDATA environment variable not found, skipping Hytale Server import')
-            return
-        }
-
-        // Source: Hytale installation directory
-        def sourceDir = file("${appData}/Hytale/install/release/package/game/latest/Server")
-        def sourceJar = null
-
-        // Find the JAR file in the Server directory
-        if (sourceDir.exists() && sourceDir.isDirectory()) {
-            sourceDir.listFiles().each { file ->
-                if (file.name.endsWith('.jar') && !file.name.contains('sources')) {
-                    sourceJar = file
-                }
-            }
-        }
-
-        if (sourceJar == null || !sourceJar.exists()) {
-            logger.warn("Hytale Server JAR not found in: ${sourceDir}")
-            logger.warn('Please ensure Hytale is installed and the server JAR is available')
-            return
-        }
-
-        // Destination: libs directory in project
-        def libsDir = file('libs')
-        def destJar = file('libs/HytaleServer.jar')
-
-        // Create libs directory if it doesn't exist
-        if (!libsDir.exists()) {
-            libsDir.mkdirs()
-            logger.lifecycle('Created libs directory')
-        }
-
-        // Check if we need to copy (file doesn't exist or has changed)
-        def needsCopy = false
-        if (!destJar.exists()) {
-            needsCopy = true
-            logger.lifecycle('Hytale Server JAR not found in libs, copying...')
-        } else if (sourceJar.lastModified() > destJar.lastModified()) {
-            needsCopy = true
-            logger.lifecycle('Hytale Server JAR has been updated, copying new version...')
-        } else if (sourceJar.length() != destJar.length()) {
-            needsCopy = true
-            logger.lifecycle('Hytale Server JAR size differs, copying...')
-        } else {
-            logger.lifecycle('Hytale Server JAR is up to date')
-        }
-
-        if (needsCopy) {
-            // Copy the file
-            destJar.delete()
-            java.nio.file.Files.copy(sourceJar.toPath(), destJar.toPath())
-            logger.lifecycle("Successfully imported: ${sourceJar.name}")
-            logger.lifecycle("  Source: ${sourceJar}")
-            logger.lifecycle("  Destination: ${destJar}")
-            logger.lifecycle("  Size: ${String.format('%.2f MB', destJar.length() / 1024.0 / 1024.0)}")
-        }
+  doLast {
+    // Get AppData path
+    def appData = System.getenv('APPDATA')
+    if (appData == null) {
+      logger.warn('APPDATA environment variable not found, skipping Hytale Server import')
+      return
     }
+
+    // Source: Hytale installation directory
+    def sourceDir = file("${appData}/Hytale/install/release/package/game/latest/Server")
+    def sourceJar = null
+
+    // Find the JAR file in the Server directory
+    if (sourceDir.exists() && sourceDir.isDirectory()) {
+      sourceDir.listFiles().each { file ->
+        if (file.name.endsWith('.jar') && !file.name.contains('sources')) {
+          sourceJar = file
+        }
+      }
+    }
+
+    if (sourceJar == null || !sourceJar.exists()) {
+      logger.warn("Hytale Server JAR not found in: ${sourceDir}")
+      logger.warn('Please ensure Hytale is installed and the server JAR is available')
+      return
+    }
+
+    // Destination: libs directory in project
+    def libsDir = file('libs')
+    def destJar = file('libs/HytaleServer.jar')
+
+    // Create libs directory if it doesn't exist
+    if (!libsDir.exists()) {
+      libsDir.mkdirs()
+      logger.lifecycle('Created libs directory')
+    }
+
+    // Check if we need to copy (file doesn't exist or has changed)
+    def needsCopy = false
+    if (!destJar.exists()) {
+      needsCopy = true
+      logger.lifecycle('Hytale Server JAR not found in libs, copying...')
+    } else if (sourceJar.lastModified() > destJar.lastModified()) {
+      needsCopy = true
+      logger.lifecycle('Hytale Server JAR has been updated, copying new version...')
+    } else if (sourceJar.length() != destJar.length()) {
+      needsCopy = true
+      logger.lifecycle('Hytale Server JAR size differs, copying...')
+    } else {
+      logger.lifecycle('Hytale Server JAR is up to date')
+    }
+
+    if (needsCopy) {
+      // Copy the file
+      destJar.delete()
+      Files.copy(sourceJar.toPath(), destJar.toPath())
+      logger.lifecycle("Successfully imported: ${sourceJar.name}")
+      logger.lifecycle("  Source: ${sourceJar}")
+      logger.lifecycle("  Destination: ${destJar}")
+      logger.lifecycle("  Size: ${String.format('%.2f MB', destJar.length() / 1024.0 / 1024.0)}")
+    }
+  }
 }
 
 // Run importHytaleServer before compiling
-tasks.withType(JavaCompile) {
-    dependsOn importHytaleServer
+tasks.withType(JavaCompile).configureEach {
+  dependsOn importHytaleServer
 }
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
-    dependsOn importHytaleServer
+tasks.withType(KotlinCompile).configureEach {
+  dependsOn importHytaleServer
 }
 
 jar {
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  from {
+    configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+  }
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 
 // Custom task to deploy mod to world-specific mods folders (no file locking!)
-task deployToHytale {
-    description = 'Copies the built mod JAR to all Saves/**/mods folders for hot-reload'
-    group = 'hytale'
-    dependsOn jar
+tasks.register('deployToHytale') {
+  description = 'Copies the built mod JAR to all Saves/**/mods folders for hot-reload'
+  group = 'hytale'
+  dependsOn jar
 
-    doLast {
-        // Get AppData path
-        def appData = System.getenv('APPDATA')
-        if (appData == null) {
-            logger.warn('APPDATA environment variable not found, cannot deploy mod')
-            return
-        }
-
-        // Source: Built JAR file
-        def sourceJar = file("${buildDir}/libs/${project.name}-${project.version}.jar")
-
-        if (!sourceJar.exists()) {
-            logger.error("Built JAR not found: ${sourceJar}")
-            logger.error('Please run ./gradlew build first')
-            return
-        }
-
-        def savesDir = file("${appData}/Hytale/UserData/Saves")
-
-        if (!savesDir.exists() || !savesDir.isDirectory()) {
-            logger.warn("No Saves directory found at: ${savesDir}")
-            logger.warn('Create a world in Hytale first, then rebuild')
-            return
-        }
-
-        def deployedCount = 0
-        def failedCount = 0
-        def skippedCount = 0
-
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('🔥 DEPLOYING TO WORLD-SPECIFIC MODS FOLDERS')
-        logger.lifecycle('=' * 80)
-
-        // Deploy to each world's mods folder
-        savesDir.listFiles().each { worldDir ->
-            if (worldDir.isDirectory()) {
-                def worldModsDir = file("${worldDir}/mods")
-
-                // Create mods directory if it doesn't exist
-                if (!worldModsDir.exists()) {
-                    worldModsDir.mkdirs()
-                }
-
-                def destJar = file("${worldModsDir}/${project.name}-${project.version}.jar")
-
-                try {
-                    // Check if already up to date (unless forceDeploy is set)
-                    def forceDeploy = project.hasProperty('forceDeploy')
-                    if (!forceDeploy && destJar.exists() && destJar.length() == sourceJar.length()) {
-                        logger.lifecycle("⏭  Skipped '${worldDir.name}' (already up to date)")
-                        skippedCount++
-                        return
-                    }
-
-                    // Use Ant copy task (mimics Windows Explorer behavior)
-                    ant.copy(file: sourceJar.absolutePath, tofile: destJar.absolutePath, overwrite: true)
-
-                    logger.lifecycle("✓ Deployed to '${worldDir.name}'")
-                    deployedCount++
-                } catch (Exception e) {
-                    logger.error("✗ Failed to deploy to '${worldDir.name}': ${e.message}")
-                    logger.error("    You may need to run as administrator or check file permissions")
-                    failedCount++
-                }
-            }
-        }
-
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('📊 DEPLOYMENT SUMMARY')
-        logger.lifecycle('=' * 80)
-        logger.lifecycle("  Source: ${sourceJar}")
-        logger.lifecycle("  Size: ${String.format('%.2f MB', sourceJar.length() / 1024.0 / 1024.0)}")
-        logger.lifecycle('')
-        logger.lifecycle("  ✓ Deployed: ${deployedCount} world(s)")
-        if (skippedCount > 0) {
-            logger.lifecycle("  ⏭  Skipped: ${skippedCount} world(s) (up to date)")
-        }
-        if (failedCount > 0) {
-            logger.lifecycle("  ✗ Failed: ${failedCount} world(s)")
-        }
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('')
-        logger.lifecycle('🎮 HOT-RELOAD WORKFLOW:')
-        logger.lifecycle('  1. Start server through Hytale client')
-        logger.lifecycle('  2. Make code changes')
-        logger.lifecycle('  3. Run: ./gradlew build')
-        logger.lifecycle('  4. Mod auto-deploys to Saves/**/mods (no file locking!)')
-        logger.lifecycle('  5. Server should detect and reload automatically')
-        logger.lifecycle('')
-        logger.lifecycle('💡 TIP: Use ./gradlew build -PforceDeploy to force deployment')
-        logger.lifecycle('   (useful when size unchanged but code changed)')
-        logger.lifecycle('=' * 80)
+  doLast {
+    // Get AppData path
+    def appData = System.getenv('APPDATA')
+    if (appData == null) {
+      logger.warn('APPDATA environment variable not found, cannot deploy mod')
+      return
     }
+
+    // Source: Built JAR file
+    def sourceJar = file("${buildDir}/libs/${project.name}-${project.version}.jar")
+
+    if (!sourceJar.exists()) {
+      logger.error("Built JAR not found: ${sourceJar}")
+      logger.error('Please run ./gradlew build first')
+      return
+    }
+
+    def savesDir = file("${appData}/Hytale/UserData/Saves")
+
+    if (!savesDir.exists() || !savesDir.isDirectory()) {
+      logger.warn("No Saves directory found at: ${savesDir}")
+      logger.warn('Create a world in Hytale first, then rebuild')
+      return
+    }
+
+    def deployedCount = 0
+    def failedCount = 0
+    def skippedCount = 0
+
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('🔥 DEPLOYING TO WORLD-SPECIFIC MODS FOLDERS')
+    logger.lifecycle('=' * 80)
+
+    // Deploy to each world's mods folder
+    savesDir.listFiles().each { worldDir ->
+      if (worldDir.isDirectory()) {
+        def worldModsDir = file("${worldDir}/mods")
+
+        // Create mods directory if it doesn't exist
+        if (!worldModsDir.exists()) {
+          worldModsDir.mkdirs()
+        }
+
+        def destJar = file("${worldModsDir}/${project.name}-${project.version}.jar")
+
+        try {
+          // CRITICAL: Remove ALL old versions of this plugin to prevent duplicate plugin errors
+          worldModsDir.listFiles().each { existingFile ->
+            if (existingFile.name.startsWith("${project.name}-") && existingFile.name.endsWith('.jar')) {
+              if (existingFile.absolutePath != destJar.absolutePath) {
+                existingFile.delete()
+                logger.lifecycle("   🧹 Removed old version: ${existingFile.name}")
+              }
+            }
+          }
+
+          // Check if already up to date (unless forceDeploy is set)
+          def forceDeploy = project.hasProperty('forceDeploy')
+          if (!forceDeploy && destJar.exists() && destJar.length() == sourceJar.length()) {
+            logger.lifecycle("⏭  Skipped '${worldDir.name}' (already up to date)")
+            skippedCount++
+            return
+          }
+
+          // Use Ant copy task (mimics Windows Explorer behavior)
+          ant.copy(file: sourceJar.absolutePath, tofile: destJar.absolutePath, overwrite: true)
+
+          logger.lifecycle("✓ Deployed to '${worldDir.name}'")
+          deployedCount++
+        } catch (Exception e) {
+          logger.error("✗ Failed to deploy to '${worldDir.name}': ${e.message}")
+          logger.error("    You may need to run as administrator or check file permissions")
+          failedCount++
+        }
+      }
+    }
+
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('📊 DEPLOYMENT SUMMARY')
+    logger.lifecycle('=' * 80)
+    logger.lifecycle("  Source: ${sourceJar}")
+    logger.lifecycle("  Size: ${String.format('%.2f MB', sourceJar.length() / 1024.0 / 1024.0)}")
+    logger.lifecycle('')
+    logger.lifecycle("  ✓ Deployed: ${deployedCount} world(s)")
+    if (skippedCount > 0) {
+      logger.lifecycle("  ⏭  Skipped: ${skippedCount} world(s) (up to date)")
+    }
+    if (failedCount > 0) {
+      logger.lifecycle("  ✗ Failed: ${failedCount} world(s)")
+    }
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('')
+    logger.lifecycle('🎮 HOT-RELOAD WORKFLOW:')
+    logger.lifecycle('  1. Start server through Hytale client')
+    logger.lifecycle('  2. Make code changes')
+    logger.lifecycle('  3. Run: ./gradlew build')
+    logger.lifecycle('  4. Mod auto-deploys to Saves/**/mods (no file locking!)')
+    logger.lifecycle('  5. Server should detect and reload automatically')
+    logger.lifecycle('')
+    logger.lifecycle('💡 TIP: Use ./gradlew build -PforceDeploy to force deployment')
+    logger.lifecycle('   (useful when size unchanged but code changed)')
+    logger.lifecycle('=' * 80)
+  }
 }
 
 // Task to prepare exploded directory (classes instead of JAR for hot-reload)
-task prepareExplodedPlugin {
-    description = 'Prepares exploded plugin directory for TRUE hot-reload (no server restart needed!)'
-    group = 'hytale'
-    dependsOn classes
+tasks.register('prepareExplodedPlugin') {
+  description = 'Prepares exploded plugin directory for TRUE hot-reload (no server restart needed!)'
+  group = 'hytale'
+  dependsOn classes
 
-    doLast {
-        def deployedCount = 0
-        def deployedLocations = []
+  doLast {
+    def deployedCount = 0
+    def deployedLocations = []
 
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('🔥 DEPLOYING EXPLODED PLUGIN (True Hot-Reload!)')
-        logger.lifecycle('=' * 80)
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('🔥 DEPLOYING EXPLODED PLUGIN (True Hot-Reload!)')
+    logger.lifecycle('=' * 80)
 
-        // 1. Deploy to dev-server/mods
-        def devServerModsDir = file("${projectDir}/dev-server/mods")
-        if (!devServerModsDir.exists()) {
-            devServerModsDir.mkdirs()
-        }
-
-        // Remove old JAR if it exists
-        def devServerOldJar = file("${devServerModsDir}/${project.name}-${project.version}.jar")
-        if (devServerOldJar.exists()) {
-            devServerOldJar.delete()
-            logger.lifecycle("   Removed old JAR from dev-server")
-        }
-
-        // Create plugin directory: dev-server/mods/com.hydowned.HyDowned/
-        def devServerPluginDir = file("${devServerModsDir}/com.hydowned.HyDowned")
-        devServerPluginDir.mkdirs()
-
-        // Copy compiled classes
-        copy {
-            from file("${buildDir}/classes/kotlin/main")
-            into devServerPluginDir
-        }
-
-        // Copy resources (manifest.json, config.json, etc.)
-        copy {
-            from file("${projectDir}/src/main/resources")
-            into devServerPluginDir
-        }
-
-        logger.lifecycle("✓ Deployed exploded plugin to 'dev-server'")
-        deployedCount++
-        deployedLocations << 'dev-server'
-
-        // 2. Deploy to Saves/*/mods/ (world-specific)
-        def appData = System.getenv('APPDATA')
-        if (appData != null) {
-            def savesDir = file("${appData}/Hytale/UserData/Saves")
-
-            if (savesDir.exists() && savesDir.isDirectory()) {
-                savesDir.listFiles().each { worldDir ->
-                    if (worldDir.isDirectory()) {
-                        def worldModsDir = file("${worldDir}/mods")
-                        if (!worldModsDir.exists()) {
-                            worldModsDir.mkdirs()
-                        }
-
-                        // Remove old JAR if it exists
-                        def oldJar = file("${worldModsDir}/${project.name}-${project.version}.jar")
-                        if (oldJar.exists()) {
-                            oldJar.delete()
-                            logger.lifecycle("   Removed old JAR from '${worldDir.name}'")
-                        }
-
-                        // Create plugin directory: mods/com.hydowned.HyDowned/
-                        def pluginDir = file("${worldModsDir}/com.hydowned.HyDowned")
-                        pluginDir.mkdirs()
-
-                        // Copy compiled classes
-                        copy {
-                            from file("${buildDir}/classes/kotlin/main")
-                            into pluginDir
-                        }
-
-                        // Copy resources (manifest.json, config.json, etc.)
-                        copy {
-                            from file("${projectDir}/src/main/resources")
-                            into pluginDir
-                        }
-
-                        logger.lifecycle("✓ Deployed exploded plugin to '${worldDir.name}'")
-                        deployedCount++
-                        deployedLocations << worldDir.name
-                    }
-                }
-            } else {
-                logger.warn("No Saves directory found at: ${savesDir}")
-            }
-        } else {
-            logger.warn('APPDATA environment variable not found - skipping world saves deployment')
-        }
-
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('📊 DEPLOYMENT SUMMARY')
-        logger.lifecycle('=' * 80)
-        logger.lifecycle("  ✓ Deployed to: ${deployedLocations.join(', ')}")
-        logger.lifecycle("  ✓ Total locations: ${deployedCount}")
-        logger.lifecycle('')
-        logger.lifecycle('🔥 TRUE HOT-RELOAD WORKFLOW:')
-        logger.lifecycle('   1. Start server (Hytale client or ./gradlew startDevServer)')
-        logger.lifecycle('   2. Make code changes')
-        logger.lifecycle('   3. Run: ./gradlew prepareExplodedPlugin')
-        logger.lifecycle('   4. Run in-game: /plugin reload com.hydowned:HyDowned')
-        logger.lifecycle('   5. Code changes apply WITHOUT server restart! 🎉')
-        logger.lifecycle('')
-        logger.lifecycle('💡 Classes load from directory - no JAR file locking!')
-        logger.lifecycle('💡 No --mods parameter = no dev mode requirement!')
-        logger.lifecycle('=' * 80)
+    // 1. Deploy to dev-server/mods
+    def devServerModsDir = file("${projectDir}/dev-server/mods")
+    if (!devServerModsDir.exists()) {
+      devServerModsDir.mkdirs()
     }
+
+    // Remove ALL old JAR versions to prevent duplicate plugin errors
+    devServerModsDir.listFiles().each { existingFile ->
+      if (existingFile.name.startsWith("${project.name}-") && existingFile.name.endsWith('.jar')) {
+        existingFile.delete()
+        logger.lifecycle("   🧹 Removed old JAR version from dev-server: ${existingFile.name}")
+      }
+    }
+
+    // Create plugin directory: dev-server/mods/com.hydowned.HyDowned/
+    def devServerPluginDir = file("${devServerModsDir}/com.hydowned.HyDowned")
+    devServerPluginDir.mkdirs()
+
+    // Copy compiled classes
+    copy {
+      from file("${buildDir}/classes/kotlin/main")
+      into devServerPluginDir
+    }
+
+    // Copy resources (manifest.json, config.json, etc.)
+    copy {
+      from file("${projectDir}/src/main/resources")
+      into devServerPluginDir
+    }
+
+    logger.lifecycle("✓ Deployed exploded plugin to 'dev-server'")
+    deployedCount++
+    deployedLocations << 'dev-server'
+
+    // 2. Deploy to Saves/*/mods/ (world-specific)
+    def appData = System.getenv('APPDATA')
+    if (appData != null) {
+      def savesDir = file("${appData}/Hytale/UserData/Saves")
+
+      if (savesDir.exists() && savesDir.isDirectory()) {
+        savesDir.listFiles().each { worldDir ->
+          if (worldDir.isDirectory()) {
+            def worldModsDir = file("${worldDir}/mods")
+            if (!worldModsDir.exists()) {
+              worldModsDir.mkdirs()
+            }
+
+            // Remove ALL old JAR versions to prevent duplicate plugin errors
+            worldModsDir.listFiles().each { existingFile ->
+              if (existingFile.name.startsWith("${project.name}-") && existingFile.name.endsWith('.jar')) {
+                existingFile.delete()
+                logger.lifecycle("   🧹 Removed old JAR version from '${worldDir.name}': ${existingFile.name}")
+              }
+            }
+
+            // Create plugin directory: mods/com.hydowned.HyDowned/
+            def pluginDir = file("${worldModsDir}/com.hydowned.HyDowned")
+            pluginDir.mkdirs()
+
+            // Copy compiled classes
+            copy {
+              from file("${buildDir}/classes/kotlin/main")
+              into pluginDir
+            }
+
+            // Copy resources (manifest.json, config.json, etc.)
+            copy {
+              from file("${projectDir}/src/main/resources")
+              into pluginDir
+            }
+
+            logger.lifecycle("✓ Deployed exploded plugin to '${worldDir.name}'")
+            deployedCount++
+            deployedLocations << worldDir.name
+          }
+        }
+      } else {
+        logger.warn("No Saves directory found at: ${savesDir}")
+      }
+    } else {
+      logger.warn('APPDATA environment variable not found - skipping world saves deployment')
+    }
+
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('📊 DEPLOYMENT SUMMARY')
+    logger.lifecycle('=' * 80)
+    logger.lifecycle("  ✓ Deployed to: ${deployedLocations.join(', ')}")
+    logger.lifecycle("  ✓ Total locations: ${deployedCount}")
+    logger.lifecycle('')
+    logger.lifecycle('🔥 TRUE HOT-RELOAD WORKFLOW:')
+    logger.lifecycle('   1. Start server (Hytale client or ./gradlew startDevServer)')
+    logger.lifecycle('   2. Make code changes')
+    logger.lifecycle('   3. Run: ./gradlew prepareExplodedPlugin')
+    logger.lifecycle('   4. Run in-game: /plugin reload com.hydowned:HyDowned')
+    logger.lifecycle('   5. Code changes apply WITHOUT server restart! 🎉')
+    logger.lifecycle('')
+    logger.lifecycle('💡 Classes load from directory - no JAR file locking!')
+    logger.lifecycle('💡 No --mods parameter = no dev mode requirement!')
+    logger.lifecycle('=' * 80)
+  }
 }
 
 // Automatically deploy after successful build (can be disabled for dev mode)
 if (!project.hasProperty('skipDeploy')) {
-    build.finalizedBy deployToHytale
+  build.finalizedBy deployToHytale
 }
 
 // Automatically build JAR and deploy after IntelliJ compiles (Ctrl+F9 / Build)
 // This enables quick iteration: Edit -> Build (Ctrl+F9) -> Creates JAR
 if (!project.hasProperty('skipAutoBuild')) {
-    classes.finalizedBy jar
+  classes.finalizedBy jar
 }
 
 // Task to start Hytale server with hot-reload development mode
-task startDevServer {
-    description = 'Starts Hytale server in dev environment (uses JAR in world-specific mods, no dev mode)'
-    group = 'hytale'
-    dependsOn jar
+tasks.register('startDevServer') {
+  description = 'Starts Hytale server in dev environment (uses JAR in world-specific mods, no dev mode)'
+  group = 'hytale'
+  dependsOn jar
 
-    doLast {
-        // Check if running in background mode (for startDevServerDebug)
-        def runInBackground = project.hasProperty('runInBackground')
+  doLast {
+    // Check if running in background mode (for startDevServerDebug)
+    def runInBackground = project.hasProperty('runInBackground')
 
-        // Check for and kill any existing Hytale server processes (unless skipped)
-        def skipProcessCheck = project.hasProperty('skipProcessCheck')
+    // Check for and kill any existing Hytale server processes (unless skipped)
+    def skipProcessCheck = project.hasProperty('skipProcessCheck')
 
-        if (!skipProcessCheck) {
-            logger.lifecycle('=' * 80)
-            logger.lifecycle('🔍 CHECKING FOR EXISTING HYTALE SERVERS')
-            logger.lifecycle('=' * 80)
+    if (!skipProcessCheck) {
+      logger.lifecycle('=' * 80)
+      logger.lifecycle('🔍 CHECKING FOR EXISTING HYTALE SERVERS')
+      logger.lifecycle('=' * 80)
 
-        def pidsToKill = []
+      def pidsToKill = []
 
-        // Method 1: Check port 24454 with netstat
-        try {
-            logger.lifecycle('   Checking port 24454...')
-            def portCheckProc = ['netstat', '-ano'].execute()
-            portCheckProc.waitForOrKill(5000)
-            def portOutput = portCheckProc.text
+      // Method 1: Check port 24454 with netstat
+      try {
+        logger.lifecycle('   Checking port 24454...')
+        def portCheckProc = ['netstat', '-ano'].execute()
+        portCheckProc.waitForOrKill(5000)
+        def portOutput = portCheckProc.text
 
-            portOutput.eachLine { line ->
-                if (line.contains(':24454') && line.contains('LISTENING')) {
-                    def parts = line.trim().split(/\s+/)
-                    if (parts.length >= 5) {
-                        def pid = parts[4]
-                        if (pid.isNumber() && !pidsToKill.contains(pid)) {
-                            pidsToKill << pid
-                            logger.lifecycle("   ✓ Found server on port 24454 (PID: ${pid})")
-                        }
-                    }
-                }
+        portOutput.eachLine { line ->
+          if (line.contains(':24454') && line.contains('LISTENING')) {
+            def parts = line.trim().split(/\s+/)
+            if (parts.length >= 5) {
+              def pid = parts[4]
+              if (pid.isNumber() && !pidsToKill.contains(pid)) {
+                pidsToKill << pid
+                logger.lifecycle("   ✓ Found server on port 24454 (PID: ${pid})")
+              }
             }
-        } catch (Exception e) {
-            logger.warn("   ⚠ Port check failed: ${e.message}")
+          }
+        }
+      } catch (Exception e) {
+        logger.warn("   ⚠ Port check failed: ${e.message}")
+      }
+
+      // Method 2: Use PowerShell to find Java processes with HytaleServer in command line
+      try {
+        logger.lifecycle('   Checking Java processes with PowerShell...')
+        def psScript = 'Get-CimInstance Win32_Process -Filter "name=\'java.exe\'" | Where-Object {$_.CommandLine -like "*HytaleServer*" -or $_.CommandLine -like "*hytale*server*" -or $_.CommandLine -like "*Server*.jar*"} | Select-Object ProcessId | Format-Table -HideTableHeaders'
+        def psProc = ['powershell', '-Command', psScript].execute()
+        psProc.waitForOrKill(8000)
+        def psOutput = psProc.text
+
+        psOutput.eachLine { line ->
+          def pid = line.trim()
+          if (pid.isNumber() && !pidsToKill.contains(pid)) {
+            pidsToKill << pid
+            logger.lifecycle("   ✓ Found Hytale Java process (PID: ${pid})")
+          }
+        }
+      } catch (Exception e) {
+        logger.warn("   ⚠ PowerShell check failed: ${e.message}")
+      }
+
+      // Method 3: Use tasklist to find all java.exe processes, then check command line
+      try {
+        logger.lifecycle('   Checking Java processes with tasklist...')
+        def tasklistProc = ['tasklist', '/FI', 'IMAGENAME eq java.exe', '/FO', 'CSV', '/NH'].execute()
+        tasklistProc.waitForOrKill(3000)
+        def tasklistOutput = tasklistProc.text
+
+        // Get list of Java PIDs
+        def javaPids = []
+        tasklistOutput.eachLine { line ->
+          def matcher = line =~ /"java\.exe","(\d+)"/
+          if (matcher.find()) {
+            javaPids << matcher.group(1)
+          }
         }
 
-        // Method 2: Use PowerShell to find Java processes with HytaleServer in command line
-        try {
-            logger.lifecycle('   Checking Java processes with PowerShell...')
-            def psScript = 'Get-CimInstance Win32_Process -Filter "name=\'java.exe\'" | Where-Object {$_.CommandLine -like "*HytaleServer*" -or $_.CommandLine -like "*hytale*server*" -or $_.CommandLine -like "*Server*.jar*"} | Select-Object ProcessId | Format-Table -HideTableHeaders'
-            def psProc = ['powershell', '-Command', psScript].execute()
-            psProc.waitForOrKill(8000)
-            def psOutput = psProc.text
+        // For each Java PID, check if it's running HytaleServer
+        javaPids.each { pid ->
+          try {
+            def cmdProc = ['powershell', '-Command', "(Get-CimInstance Win32_Process -Filter \"ProcessId=${pid}\").CommandLine"].execute()
+            cmdProc.waitForOrKill(2000)
+            def cmdLine = cmdProc.text.toLowerCase()
 
-            psOutput.eachLine { line ->
-                def pid = line.trim()
-                if (pid.isNumber() && !pidsToKill.contains(pid)) {
-                    pidsToKill << pid
-                    logger.lifecycle("   ✓ Found Hytale Java process (PID: ${pid})")
-                }
+            if (cmdLine.contains('hytaleserver') || cmdLine.contains('hytale') && cmdLine.contains('server')) {
+              if (!pidsToKill.contains(pid)) {
+                pidsToKill << pid
+                logger.lifecycle("   ✓ Found Hytale server process (PID: ${pid})")
+              }
             }
-        } catch (Exception e) {
-            logger.warn("   ⚠ PowerShell check failed: ${e.message}")
+          } catch (Exception e) {
+            // Skip this PID if we can't check it
+          }
         }
+      } catch (Exception e) {
+        logger.warn("   ⚠ Tasklist check failed: ${e.message}")
+      }
 
-        // Method 3: Use tasklist to find all java.exe processes, then check command line
-        try {
-            logger.lifecycle('   Checking Java processes with tasklist...')
-            def tasklistProc = ['tasklist', '/FI', 'IMAGENAME eq java.exe', '/FO', 'CSV', '/NH'].execute()
-            tasklistProc.waitForOrKill(3000)
-            def tasklistOutput = tasklistProc.text
+      try {
+        // Remove duplicates
+        pidsToKill = pidsToKill.unique()
 
-            // Get list of Java PIDs
-            def javaPids = []
-            tasklistOutput.eachLine { line ->
-                def matcher = line =~ /"java\.exe","(\d+)"/
-                if (matcher.find()) {
-                    javaPids << matcher.group(1)
-                }
-            }
+        if (pidsToKill.isEmpty()) {
+          logger.lifecycle('✓ No existing Hytale server processes found')
+        } else {
+          logger.lifecycle('')
+          logger.lifecycle("⚠️  Found ${pidsToKill.size()} existing Hytale server process(es)")
+          logger.lifecycle('   Terminating old servers...')
+          logger.lifecycle('')
 
-            // For each Java PID, check if it's running HytaleServer
-            javaPids.each { pid ->
-                try {
-                    def cmdProc = ['powershell', '-Command', "(Get-CimInstance Win32_Process -Filter \"ProcessId=${pid}\").CommandLine"].execute()
-                    cmdProc.waitForOrKill(2000)
-                    def cmdLine = cmdProc.text.toLowerCase()
+          pidsToKill.each { pid ->
+            logger.lifecycle("   Killing PID ${pid}...")
+            def killProc = ['taskkill', '/F', '/PID', pid].execute()
+            killProc.waitForOrKill(3000)
 
-                    if (cmdLine.contains('hytaleserver') || cmdLine.contains('hytale') && cmdLine.contains('server')) {
-                        if (!pidsToKill.contains(pid)) {
-                            pidsToKill << pid
-                            logger.lifecycle("   ✓ Found Hytale server process (PID: ${pid})")
-                        }
-                    }
-                } catch (Exception e) {
-                    // Skip this PID if we can't check it
-                }
-            }
-        } catch (Exception e) {
-            logger.warn("   ⚠ Tasklist check failed: ${e.message}")
-        }
-
-        try {
-            // Remove duplicates
-            pidsToKill = pidsToKill.unique()
-
-            if (pidsToKill.isEmpty()) {
-                logger.lifecycle('✓ No existing Hytale server processes found')
+            if (killProc.exitValue() == 0) {
+              logger.lifecycle("   ✓ Successfully killed PID ${pid}")
             } else {
-                logger.lifecycle('')
-                logger.lifecycle("⚠️  Found ${pidsToKill.size()} existing Hytale server process(es)")
-                logger.lifecycle('   Terminating old servers...')
-                logger.lifecycle('')
-
-                pidsToKill.each { pid ->
-                    logger.lifecycle("   Killing PID ${pid}...")
-                    def killProc = ['taskkill', '/F', '/PID', pid].execute()
-                    killProc.waitForOrKill(3000)
-
-                    if (killProc.exitValue() == 0) {
-                        logger.lifecycle("   ✓ Successfully killed PID ${pid}")
-                    } else {
-                        logger.warn("   ✗ Failed to kill PID ${pid} (may have already exited)")
-                    }
-                }
-
-                logger.lifecycle('')
-                logger.lifecycle('   Waiting for processes to terminate...')
-                Thread.sleep(3000)
-
-                // Verify processes are dead
-                def stillRunning = []
-                pidsToKill.each { pid ->
-                    def checkProc = ['tasklist', '/FI', "PID eq ${pid}", '/NH'].execute()
-                    checkProc.waitForOrKill(2000)
-                    def checkOutput = checkProc.text
-                    if (checkOutput.contains('java.exe')) {
-                        stillRunning << pid
-                    }
-                }
-
-                if (stillRunning.isEmpty()) {
-                    logger.lifecycle('✓ All old server processes cleaned up successfully')
-                } else {
-                    logger.warn("⚠️  Warning: ${stillRunning.size()} process(es) still running: ${stillRunning.join(', ')}")
-                    logger.warn('   They may interfere with the new server')
-                }
+              logger.warn("   ✗ Failed to kill PID ${pid} (may have already exited)")
             }
-        } catch (Exception e) {
-            logger.error("Fatal error in process cleanup: ${e.message}")
-            logger.lifecycle('⚠️  Process check failed - proceeding anyway...')
-        }
+          }
 
-            logger.lifecycle('=' * 80)
-            logger.lifecycle('')
-        } else {
-            logger.lifecycle('⏭  Skipping process check (use -PskipProcessCheck to enable this)')
-        }
+          logger.lifecycle('')
+          logger.lifecycle('   Waiting for processes to terminate...')
+          Thread.sleep(3000)
 
-        // Get AppData path
-        def appData = System.getenv('APPDATA')
-        if (appData == null) {
-            logger.error('APPDATA environment variable not found')
-            throw new GradleException('Cannot locate Hytale installation')
-        }
-
-        // Find Hytale Server JAR
-        def serverDir = file("${appData}/Hytale/install/release/package/game/latest/Server")
-        def serverJar = null
-
-        if (serverDir.exists() && serverDir.isDirectory()) {
-            serverDir.listFiles().each { file ->
-                if (file.name.endsWith('.jar') && !file.name.contains('sources')) {
-                    serverJar = file
-                }
+          // Verify processes are dead
+          def stillRunning = []
+          pidsToKill.each { pid ->
+            def checkProc = ['tasklist', '/FI', "PID eq ${pid}", '/NH'].execute()
+            checkProc.waitForOrKill(2000)
+            def checkOutput = checkProc.text
+            if (checkOutput.contains('java.exe')) {
+              stillRunning << pid
             }
+          }
+
+          if (stillRunning.isEmpty()) {
+            logger.lifecycle('✓ All old server processes cleaned up successfully')
+          } else {
+            logger.warn("⚠️  Warning: ${stillRunning.size()} process(es) still running: ${stillRunning.join(', ')}")
+            logger.warn('   They may interfere with the new server')
+          }
         }
+      } catch (Exception e) {
+        logger.error("Fatal error in process cleanup: ${e.message}")
+        logger.lifecycle('⚠️  Process check failed - proceeding anyway...')
+      }
 
-        if (serverJar == null || !serverJar.exists()) {
-            logger.error("Hytale Server JAR not found in: ${serverDir}")
-            throw new GradleException('Hytale server not installed or not found')
-        }
-
-        // Dev server working directory (creates universe/, logs/, etc. here)
-        def serverWorkDir = file("${projectDir}/dev-server")
-        if (!serverWorkDir.exists()) {
-            serverWorkDir.mkdirs()
-            logger.lifecycle("Created dev server directory: ${serverWorkDir}")
-        }
-
-        // Deploy to server mods directory (auto-discovered by Hytale, no dev mode!)
-        // Hytale auto-loads mods from server root /mods directory
-        def serverModsDir = file("${serverWorkDir}/mods")
-        if (!serverModsDir.exists()) {
-            serverModsDir.mkdirs()
-            logger.lifecycle("Created server mods directory: ${serverModsDir}")
-        }
-
-        // Copy JAR to server mods directory
-        def sourceJar = file("${buildDir}/libs/${project.name}-${project.version}.jar")
-        def destJar = file("${serverModsDir}/${project.name}-${project.version}.jar")
-
-        // Remove exploded plugin directory if it exists (JAR takes precedence)
-        def explodedPluginDir = file("${serverModsDir}/com.hydowned.HyDowned")
-        if (explodedPluginDir.exists() && explodedPluginDir.isDirectory()) {
-            explodedPluginDir.deleteDir()
-            logger.lifecycle("   Removed exploded plugin directory (using JAR instead)")
-        }
-
-        ant.copy(file: sourceJar.absolutePath, tofile: destJar.absolutePath, overwrite: true)
-        logger.lifecycle("Deployed mod JAR to server mods: ${destJar}")
-
-        // Find Assets.zip
-        def assetsZip = file("${appData}/Hytale/install/release/package/game/latest/Assets.zip")
-        if (!assetsZip.exists()) {
-            logger.error("Assets.zip not found at: ${assetsZip}")
-            logger.error('Please ensure Hytale is installed properly')
-            throw new GradleException('Assets.zip not found')
-        }
-
-        // Use the Java 21 toolchain configured for the project
-        def javaLauncher = javaToolchains.launcherFor {
-            languageVersion = JavaLanguageVersion.of(21)
-            vendor = JvmVendorSpec.AZUL
-        }.get()
-        def javaExecutable = javaLauncher.executablePath.asFile.absolutePath
-
-        // Check if authentication credentials already exist
-        // Hytale saves encrypted credentials in auth.enc at server root
-        def credentialsFile = file("${serverWorkDir}/auth.enc")
-        def hasCredentials = credentialsFile.exists()
-
-        // Build command with conditional auth boot command
-        // Don't use --mods parameter (triggers dev mode!) - let Hytale auto-discover
-        // Add debug port for IntelliJ Hot Swap
-        def command = [
-            javaExecutable,
-            '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005',
-            '-jar',
-            serverJar.absolutePath,
-            '--assets',
-            assetsZip.absolutePath
-        ]
-
-        // Only add auth boot command if credentials don't exist
-        if (!hasCredentials) {
-            command.addAll([
-                '--boot-command',
-                'auth login device'  // Login first
-            ])
-            command.addAll([
-                '--boot-command',
-                'auth persistence Encrypted'  // Then set persistence
-            ])
-            logger.lifecycle('⚠️  No credentials found - will prompt for authentication')
-            logger.lifecycle('    After login, credentials will be saved with encrypted persistence')
-        } else {
-            logger.lifecycle('✓ Using existing credentials')
-        }
-
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('🚀 STARTING HYTALE SERVER (Dev Environment)')
-        logger.lifecycle('=' * 80)
-        logger.lifecycle("Java: ${javaExecutable}")
-        logger.lifecycle("Server JAR: ${serverJar}")
-        logger.lifecycle("Assets: ${assetsZip}")
-        logger.lifecycle("Working Dir: ${serverWorkDir}")
-        logger.lifecycle("Mod Location: ${destJar}")
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('')
-        logger.lifecycle('🔥 HOT-RELOAD WORKFLOW:')
-        logger.lifecycle('  1. Make code changes')
-        logger.lifecycle('  2. Run: ./gradlew jar')
-        logger.lifecycle('  3. Run: ant.copy to deploy (or use deployToHytale)')
-        logger.lifecycle('  4. Use /plugin reload com.hydowned:HyDowned in-game')
-        logger.lifecycle('  (World-specific mods folder = no file locking!)')
-        logger.lifecycle('')
-        if (!hasCredentials) {
-            logger.lifecycle('⚠️  AUTHENTICATION REQUIRED:')
-            logger.lifecycle('  Watch for device code URL in the output below')
-            logger.lifecycle('  Visit the URL and enter the code to authenticate')
-            logger.lifecycle('  Credentials will be saved with encrypted persistence')
-            logger.lifecycle('')
-        }
-        logger.lifecycle('✓ Server uses JAR (not exploded classes) - no dev mode required!')
-        logger.lifecycle('✓ Regular Early Access client can connect')
-        logger.lifecycle('✓ Server creates world in: dev-server/universe/')
-        logger.lifecycle('')
-        logger.lifecycle('Starting server... (Press Ctrl+C to stop)')
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('')
-
-        // PID file for tracking server process across task runs
-        def pidFile = file("${serverWorkDir}/.server.pid")
-
-        // Kill any orphaned server process from previous runs
-        if (pidFile.exists()) {
-            def oldPid = pidFile.text.trim()
-            logger.lifecycle("🧹 Cleaning up orphaned server process (PID: ${oldPid})")
-            try {
-                def killProc = ['taskkill', '/F', '/PID', oldPid].execute()
-                killProc.waitForOrKill(2000)
-                logger.lifecycle('✓ Orphaned process killed')
-            } catch (Exception e) {
-                // Process already dead, that's fine
-            }
-            pidFile.delete()
-        }
-
-        def processBuilder = new ProcessBuilder(command)
-        processBuilder.directory(serverWorkDir)
-
-        // If running in background mode, redirect to log file instead of console
-        if (runInBackground) {
-            processBuilder.redirectErrorStream(true)
-            processBuilder.redirectOutput(file("${serverWorkDir}/server.log"))
-        } else {
-            processBuilder.redirectErrorStream(true) // Merge stderr to stdout
-        }
-
-        def process = null
-        def serverPid = null
-
-        try {
-            process = processBuilder.start()
-
-            // Save PID to file for cleanup
-            try {
-                serverPid = process.pid()
-                pidFile.text = serverPid.toString()
-                logger.lifecycle("📋 Server PID: ${serverPid} (saved to ${pidFile.name})")
-            } catch (Exception e) {
-                logger.warn("⚠️  Could not save PID (Java ${System.getProperty('java.version')})")
-            }
-
-            // BACKGROUND MODE: Wait for debug port and return
-            if (runInBackground) {
-                try {
-                    logger.lifecycle('⏳ Waiting for debug port 5005...')
-
-                    // Wait for debug port to be available (max 30 seconds)
-                    def maxAttempts = 60
-                    def attempt = 0
-                    def portReady = false
-
-                    while (attempt < maxAttempts && !portReady) {
-                        Thread.sleep(500)
-                        try {
-                            def checkPort = ['netstat', '-ano'].execute()
-                            checkPort.waitForOrKill(2000)
-                            def output = checkPort.text
-
-                            if (output.contains(':5005') && output.contains('LISTENING')) {
-                                portReady = true
-                                break
-                            }
-
-                            attempt++
-                            if (attempt % 4 == 0) {
-                                logger.lifecycle("   Still waiting... (${attempt / 2}s)")
-                            }
-                        } catch (Exception e) {
-                            // Continue waiting
-                        }
-                    }
-
-                    if (!portReady) {
-                        logger.error('✗ Timeout waiting for debug port 5005')
-                        logger.error('   Check server.log for errors')
-                        throw new GradleException('Server failed to start')
-                    }
-
-                    logger.lifecycle('')
-                    logger.lifecycle('=' * 80)
-                    logger.lifecycle('✅ DEBUG PORT 5005 READY!')
-                    logger.lifecycle('=' * 80)
-                    logger.lifecycle('📋 Server PID: ' + serverPid)
-                    logger.lifecycle('📄 Log file: ' + file("${serverWorkDir}/server.log"))
-                    logger.lifecycle('')
-                    logger.lifecycle('🔌 Debugger will auto-attach...')
-                    logger.lifecycle('=' * 80)
-                    logger.lifecycle('')
-
-                    // Give it a moment to fully initialize before debugger attaches
-                    Thread.sleep(2000)
-
-                    logger.lifecycle('📋 STREAMING SERVER LOGS:')
-                    logger.lifecycle('─' * 80)
-
-                    // Tail the log file and stream output
-                    def logFile = file("${serverWorkDir}/server.log")
-                    def lastPos = 0L
-
-                    try {
-                        while (process.alive && !Thread.currentThread().isInterrupted()) {
-                            if (logFile.exists()) {
-                                def currentSize = logFile.length()
-                                if (currentSize > lastPos) {
-                                    logFile.withInputStream { input ->
-                                        input.skip(lastPos)
-                                        def buffer = new byte[8192]
-                                        def bytesRead
-                                        while ((bytesRead = input.read(buffer)) != -1) {
-                                            print(new String(buffer, 0, bytesRead))
-                                        }
-                                    }
-                                    lastPos = currentSize
-                                }
-                            }
-                            Thread.sleep(100)
-                        }
-                    } catch (InterruptedException e) {
-                        logger.lifecycle('')
-                        logger.lifecycle('⚠️  Log streaming interrupted')
-                        Thread.currentThread().interrupt() // Restore interrupt status
-                    }
-
-                    logger.lifecycle('')
-                    logger.lifecycle('=' * 80)
-                    logger.lifecycle('✗ Server process ended')
-                    logger.lifecycle('=' * 80)
-                } finally {
-                    // Cleanup for background mode
-                    if (process != null && process.alive) {
-                        try {
-                            process.destroyForcibly()
-                        } catch (Exception e) {
-                            // Ignore
-                        }
-                    }
-                    if (pidFile.exists()) {
-                        try {
-                            def pid = pidFile.text.trim()
-                            ['taskkill', '/F', '/PID', pid].execute().waitForOrKill(2000)
-                            pidFile.delete()
-                        } catch (Exception e) {
-                            // Ignore
-                        }
-                    }
-                }
-                return
-            }
-
-            // FOREGROUND MODE: Continue with existing logic
-
-            // Track if server has booted
-            def serverBooted = false
-
-            // Cleanup function - called from multiple places to ensure server is killed
-            def cleanupServer = { String reason = 'Cleanup' ->
-                logger.lifecycle('')
-                logger.lifecycle('=' * 80)
-                logger.lifecycle("🛑 ${reason}")
-                logger.lifecycle('=' * 80)
-
-                def killed = false
-
-                // Kill process if still running
-                if (process != null && process.alive) {
-                    logger.lifecycle('   Terminating server process...')
-                    try {
-                        process.destroy()
-                        killed = process.waitFor(2, java.util.concurrent.TimeUnit.SECONDS)
-
-                        if (!killed) {
-                            logger.lifecycle('   Forcefully killing server...')
-                            process.destroyForcibly()
-                            process.waitFor(1, java.util.concurrent.TimeUnit.SECONDS)
-                        }
-                    } catch (Exception e) {
-                        logger.warn("   Warning: ${e.message}")
-                    }
-                }
-
-                // Always try taskkill with PID from file as backup
-                if (pidFile.exists()) {
-                    try {
-                        def pid = pidFile.text.trim()
-                        logger.lifecycle("   Force-killing PID ${pid} with taskkill...")
-                        def killProc = ['taskkill', '/F', '/PID', pid].execute()
-                        killProc.waitForOrKill(2000)
-                        logger.lifecycle('✓ Server process terminated')
-                    } catch (Exception e) {
-                        // Process already dead, that's fine
-                    }
-                    pidFile.delete()
-                } else if (killed) {
-                    logger.lifecycle('✓ Server process terminated')
-                }
-
-                logger.lifecycle('=' * 80)
-            }
-
-            // Add shutdown hook for JVM shutdown (Ctrl+C, etc.)
-            def shutdownHook = new Thread() {
-                void run() {
-                    if ((process != null && process.alive) || pidFile.exists()) {
-                        cleanupServer('JVM SHUTDOWN - STOPPING HYTALE SERVER')
-                    }
-                }
-            }
-            Runtime.runtime.addShutdownHook(shutdownHook)
-
-            // Read output in real-time
-            def reader = new BufferedReader(new InputStreamReader(process.getInputStream()))
-            def outputThread = Thread.start {
-                String line
-                while ((line = reader.readLine()) != null) {
-                    println(line)
-
-                    // Detect when server finishes booting
-                    if (line.contains('Hytale Server Booted!') && !serverBooted) {
-                        serverBooted = true
-
-                        // Wait a moment for port to be bound
-                        Thread.sleep(1000)
-
-                        // Check what port the server is listening on
-                        try {
-                            def portCheckProc = ['netstat', '-ano'].execute()
-                            portCheckProc.waitForOrKill(3000)
-                            def portOutput = portCheckProc.text
-
-                            def foundPorts = []
-                            def javaPid = null
-
-                            // Get the PID of our server process
-                            try {
-                                javaPid = process.pid().toString()
-                            } catch (Exception e) {
-                                // Java 8 doesn't have pid() method, try alternative
-                            }
-
-                            portOutput.eachLine { portLine ->
-                                if (portLine.contains('LISTENING')) {
-                                    // Extract port and PID from: TCP  0.0.0.0:24454  0.0.0.0:0  LISTENING  12345
-                                    def matcher = portLine =~ /0\.0\.0\.0:(\d+).*LISTENING\s+(\d+)/
-                                    if (matcher.find()) {
-                                        def port = matcher.group(1)
-                                        def pid = matcher.group(2)
-
-                                        // If we know our PID, only show our ports. Otherwise show common ports.
-                                        if ((javaPid && pid == javaPid) || (!javaPid && (port == '24454' || port.toInteger() >= 24450 && port.toInteger() <= 24460))) {
-                                            if (!foundPorts.contains(port)) {
-                                                foundPorts << port
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Also check for any Java process on port 24454
-                            if (foundPorts.isEmpty()) {
-                                portOutput.eachLine { portLine ->
-                                    if (portLine.contains(':24454') && portLine.contains('LISTENING')) {
-                                        if (!foundPorts.contains('24454')) {
-                                            foundPorts << '24454'
-                                        }
-                                    }
-                                }
-                            }
-
-                            println('')
-                            println('=' * 80)
-                            println('🌐 SERVER NETWORK INFO')
-                            println('=' * 80)
-                            if (foundPorts.isEmpty()) {
-                                println('⚠️  Could not detect listening port')
-                                println('ℹ️  Server may still be binding to network')
-                                println('ℹ️  Try connecting to: localhost (default port 24454)')
-                            } else {
-                                println('✓ Server listening on port(s): ' + foundPorts.join(', '))
-                                if (foundPorts.contains('24454')) {
-                                    println('✓ Default Hytale port (24454) is active')
-                                    println('✓ Connect with: localhost (or localhost:24454)')
-                                } else {
-                                    println('⚠️  Server is on non-default port: ' + foundPorts[0])
-                                    println('⚠️  Connect with: localhost:' + foundPorts[0])
-                                }
-                            }
-                            println('=' * 80)
-                            println('')
-                        } catch (Exception e) {
-                            println('')
-                            println('=' * 80)
-                            println('🌐 SERVER NETWORK INFO')
-                            println('=' * 80)
-                            println("⚠️  Could not check server port: ${e.message}")
-                            println('ℹ️  Assuming default - try: localhost (port 24454)')
-                            println('=' * 80)
-                            println('')
-                        }
-                    }
-                }
-            }
-
-            def exitCode = process.waitFor()
-            outputThread.join() // Wait for output to finish
-
-            // Remove shutdown hook since we're exiting normally
-            try {
-                Runtime.runtime.removeShutdownHook(shutdownHook)
-            } catch (Exception e) {
-                // Hook may have already run, that's fine
-            }
-
-            logger.lifecycle('')
-            if (exitCode != 0) {
-                logger.error("Server exited with code: ${exitCode}")
-                logger.error('')
-                logger.error('Check server logs for details:')
-                logger.error("  ${serverWorkDir}/logs/")
-            } else {
-                logger.lifecycle('Server stopped cleanly')
-            }
-        } catch (InterruptedException e) {
-            // IntelliJ stop button was pressed
-            cleanupServer('TASK INTERRUPTED (IntelliJ stop button)')
-            throw e
-        } catch (Exception e) {
-            logger.error("Failed to start server: ${e.message}")
-            throw e
-        } finally {
-            // GUARANTEED CLEANUP - runs even if IntelliJ kills the task
-            // This ensures the server process is killed no matter what happens
-            try {
-                // Remove shutdown hook since we're handling cleanup manually
-                try {
-                    Runtime.runtime.removeShutdownHook(shutdownHook)
-                } catch (Exception e) {
-                    // Hook may have already run or not exist, that's fine
-                }
-
-                // If process is still alive or PID file exists, force cleanup
-                if ((process != null && process.alive) || (pidFile != null && pidFile.exists())) {
-                    // Use a simple, direct kill without logging (in case logging is broken)
-                    if (process != null && process.alive) {
-                        try {
-                            process.destroyForcibly()
-                        } catch (Exception e) {
-                            // Ignore
-                        }
-                    }
-
-                    // Always try to kill via PID file
-                    if (pidFile != null && pidFile.exists()) {
-                        try {
-                            def pid = pidFile.text.trim()
-                            ['taskkill', '/F', '/PID', pid].execute().waitForOrKill(2000)
-                            pidFile.delete()
-                        } catch (Exception e) {
-                            // Ignore - process is already dead
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                // Ignore all errors in finally block
-            }
-        }
+      logger.lifecycle('=' * 80)
+      logger.lifecycle('')
+    } else {
+      logger.lifecycle('⏭  Skipping process check (use -PskipProcessCheck to enable this)')
     }
+
+    // Get AppData path
+    def appData = System.getenv('APPDATA')
+    if (appData == null) {
+      logger.error('APPDATA environment variable not found')
+      throw new GradleException('Cannot locate Hytale installation')
+    }
+
+    // Find Hytale Server JAR
+    def serverDir = file("${appData}/Hytale/install/release/package/game/latest/Server")
+    def serverJar = null
+
+    if (serverDir.exists() && serverDir.isDirectory()) {
+      serverDir.listFiles().each { file ->
+        if (file.name.endsWith('.jar') && !file.name.contains('sources')) {
+          serverJar = file
+        }
+      }
+    }
+
+    if (serverJar == null || !serverJar.exists()) {
+      logger.error("Hytale Server JAR not found in: ${serverDir}")
+      throw new GradleException('Hytale server not installed or not found')
+    }
+
+    // Dev server working directory (creates universe/, logs/, etc. here)
+    def serverWorkDir = file("${projectDir}/dev-server")
+    if (!serverWorkDir.exists()) {
+      serverWorkDir.mkdirs()
+      logger.lifecycle("Created dev server directory: ${serverWorkDir}")
+    }
+
+    // Deploy to server mods directory (auto-discovered by Hytale, no dev mode!)
+    // Hytale auto-loads mods from server root /mods directory
+    def serverModsDir = file("${serverWorkDir}/mods")
+    if (!serverModsDir.exists()) {
+      serverModsDir.mkdirs()
+      logger.lifecycle("Created server mods directory: ${serverModsDir}")
+    }
+
+    // Copy JAR to server mods directory
+    def sourceJar = file("${buildDir}/libs/${project.name}-${project.version}.jar")
+    def destJar = file("${serverModsDir}/${project.name}-${project.version}.jar")
+
+    // CRITICAL: Remove ALL old versions of this plugin to prevent duplicate plugin errors
+    serverModsDir.listFiles().each { existingFile ->
+      if (existingFile.name.startsWith("${project.name}-") && existingFile.name.endsWith('.jar')) {
+        if (existingFile.absolutePath != destJar.absolutePath) {
+          existingFile.delete()
+          logger.lifecycle("   🧹 Removed old version from dev-server: ${existingFile.name}")
+        }
+      }
+    }
+
+    // Remove exploded plugin directory if it exists (JAR takes precedence)
+    def explodedPluginDir = file("${serverModsDir}/com.hydowned.HyDowned")
+    if (explodedPluginDir.exists() && explodedPluginDir.isDirectory()) {
+      explodedPluginDir.deleteDir()
+      logger.lifecycle("   Removed exploded plugin directory (using JAR instead)")
+    }
+
+    ant.copy(file: sourceJar.absolutePath, tofile: destJar.absolutePath, overwrite: true)
+    logger.lifecycle("Deployed mod JAR to server mods: ${destJar}")
+
+    // Find Assets.zip
+    def assetsZip = file("${appData}/Hytale/install/release/package/game/latest/Assets.zip")
+    if (!assetsZip.exists()) {
+      logger.error("Assets.zip not found at: ${assetsZip}")
+      logger.error('Please ensure Hytale is installed properly')
+      throw new GradleException('Assets.zip not found')
+    }
+
+    // Use the Java 21 toolchain configured for the project
+    def javaLauncher = javaToolchains.launcherFor {
+      languageVersion = JavaLanguageVersion.of(21)
+      vendor = JvmVendorSpec.AZUL
+    }.get()
+    def javaExecutable = javaLauncher.executablePath.asFile.absolutePath
+
+    // Check if authentication credentials already exist
+    // Hytale saves encrypted credentials in auth.enc at server root
+    def credentialsFile = file("${serverWorkDir}/auth.enc")
+    def hasCredentials = credentialsFile.exists()
+
+    // Build command with conditional auth boot command
+    // Don't use --mods parameter (triggers dev mode!) - let Hytale auto-discover
+    // Add debug port for IntelliJ Hot Swap
+    def command = [
+        javaExecutable,
+        '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005',
+        '-jar',
+        serverJar.absolutePath,
+        '--assets',
+        assetsZip.absolutePath
+    ]
+
+    // Only add auth boot command if credentials don't exist
+    if (!hasCredentials) {
+      command.addAll([
+          '--boot-command',
+          'auth login device'  // Login first
+      ])
+      command.addAll([
+          '--boot-command',
+          'auth persistence Encrypted'  // Then set persistence
+      ])
+      logger.lifecycle('⚠️  No credentials found - will prompt for authentication')
+      logger.lifecycle('    After login, credentials will be saved with encrypted persistence')
+    } else {
+      logger.lifecycle('✓ Using existing credentials')
+    }
+
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('🚀 STARTING HYTALE SERVER (Dev Environment)')
+    logger.lifecycle('=' * 80)
+    logger.lifecycle("Java: ${javaExecutable}")
+    logger.lifecycle("Server JAR: ${serverJar}")
+    logger.lifecycle("Assets: ${assetsZip}")
+    logger.lifecycle("Working Dir: ${serverWorkDir}")
+    logger.lifecycle("Mod Location: ${destJar}")
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('')
+    logger.lifecycle('🔥 HOT-RELOAD WORKFLOW:')
+    logger.lifecycle('  1. Make code changes')
+    logger.lifecycle('  2. Run: ./gradlew jar')
+    logger.lifecycle('  3. Run: ant.copy to deploy (or use deployToHytale)')
+    logger.lifecycle('  4. Use /plugin reload com.hydowned:HyDowned in-game')
+    logger.lifecycle('  (World-specific mods folder = no file locking!)')
+    logger.lifecycle('')
+    if (!hasCredentials) {
+      logger.lifecycle('⚠️  AUTHENTICATION REQUIRED:')
+      logger.lifecycle('  Watch for device code URL in the output below')
+      logger.lifecycle('  Visit the URL and enter the code to authenticate')
+      logger.lifecycle('  Credentials will be saved with encrypted persistence')
+      logger.lifecycle('')
+    }
+    logger.lifecycle('✓ Server uses JAR (not exploded classes) - no dev mode required!')
+    logger.lifecycle('✓ Regular Early Access client can connect')
+    logger.lifecycle('✓ Server creates world in: dev-server/universe/')
+    logger.lifecycle('')
+    logger.lifecycle('Starting server... (Press Ctrl+C to stop)')
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('')
+
+    // PID file for tracking server process across task runs
+    def pidFile = file("${serverWorkDir}/.server.pid")
+
+    // Kill any orphaned server process from previous runs
+    if (pidFile.exists()) {
+      def oldPid = pidFile.text.trim()
+      logger.lifecycle("🧹 Cleaning up orphaned server process (PID: ${oldPid})")
+      try {
+        def killProc = ['taskkill', '/F', '/PID', oldPid].execute()
+        killProc.waitForOrKill(2000)
+        logger.lifecycle('✓ Orphaned process killed')
+      } catch (Exception e) {
+        // Process already dead, that's fine
+      }
+      pidFile.delete()
+    }
+
+    def processBuilder = new ProcessBuilder(command)
+    processBuilder.directory(serverWorkDir)
+
+    // If running in background mode, redirect to log file instead of console
+    if (runInBackground) {
+      processBuilder.redirectErrorStream(true)
+      processBuilder.redirectOutput(file("${serverWorkDir}/server.log"))
+    } else {
+      processBuilder.redirectErrorStream(true) // Merge stderr to stdout
+    }
+
+    def process = null
+    def serverPid = null
+
+    try {
+      process = processBuilder.start()
+
+      // Save PID to file for cleanup
+      try {
+        serverPid = process.pid()
+        pidFile.text = serverPid.toString()
+        logger.lifecycle("📋 Server PID: ${serverPid} (saved to ${pidFile.name})")
+      } catch (Exception e) {
+        logger.warn("⚠️  Could not save PID (Java ${System.getProperty('java.version')})")
+      }
+
+      // BACKGROUND MODE: Wait for debug port and return
+      if (runInBackground) {
+        try {
+          logger.lifecycle('⏳ Waiting for debug port 5005...')
+
+          // Wait for debug port to be available (max 30 seconds)
+          def maxAttempts = 60
+          def attempt = 0
+          def portReady = false
+
+          while (attempt < maxAttempts && !portReady) {
+            Thread.sleep(500)
+            try {
+              def checkPort = ['netstat', '-ano'].execute()
+              checkPort.waitForOrKill(2000)
+              def output = checkPort.text
+
+              if (output.contains(':5005') && output.contains('LISTENING')) {
+                portReady = true
+                break
+              }
+
+              attempt++
+              if (attempt % 4 == 0) {
+                logger.lifecycle("   Still waiting... (${attempt / 2}s)")
+              }
+            } catch (Exception e) {
+              // Continue waiting
+            }
+          }
+
+          if (!portReady) {
+            logger.error('✗ Timeout waiting for debug port 5005')
+            logger.error('   Check server.log for errors')
+            throw new GradleException('Server failed to start')
+          }
+
+          logger.lifecycle('')
+          logger.lifecycle('=' * 80)
+          logger.lifecycle('✅ DEBUG PORT 5005 READY!')
+          logger.lifecycle('=' * 80)
+          logger.lifecycle('📋 Server PID: ' + serverPid)
+          logger.lifecycle('📄 Log file: ' + file("${serverWorkDir}/server.log"))
+          logger.lifecycle('')
+          logger.lifecycle('🔌 Debugger will auto-attach...')
+          logger.lifecycle('=' * 80)
+          logger.lifecycle('')
+
+          // Give it a moment to fully initialize before debugger attaches
+          Thread.sleep(2000)
+
+          logger.lifecycle('📋 STREAMING SERVER LOGS:')
+          logger.lifecycle('─' * 80)
+
+          // Tail the log file and stream output
+          def logFile = file("${serverWorkDir}/server.log")
+          def lastPos = 0L
+
+          try {
+            while (process.alive && !Thread.currentThread().isInterrupted()) {
+              if (logFile.exists()) {
+                def currentSize = logFile.length()
+                if (currentSize > lastPos) {
+                  logFile.withInputStream { input ->
+                    input.skip(lastPos)
+                    def buffer = new byte[8192]
+                    def bytesRead
+                    while ((bytesRead = input.read(buffer)) != -1) {
+                      print(new String(buffer, 0, bytesRead))
+                    }
+                  }
+                  lastPos = currentSize
+                }
+              }
+              Thread.sleep(100)
+            }
+          } catch (InterruptedException e) {
+            logger.lifecycle('')
+            logger.lifecycle('⚠️  Log streaming interrupted')
+            Thread.currentThread().interrupt() // Restore interrupt status
+          }
+
+          logger.lifecycle('')
+          logger.lifecycle('=' * 80)
+          logger.lifecycle('✗ Server process ended')
+          logger.lifecycle('=' * 80)
+        } finally {
+          // Cleanup for background mode
+          if (process != null && process.alive) {
+            try {
+              process.destroyForcibly()
+            } catch (Exception e) {
+              // Ignore
+            }
+          }
+          if (pidFile.exists()) {
+            try {
+              def pid = pidFile.text.trim()
+              ['taskkill', '/F', '/PID', pid].execute().waitForOrKill(2000)
+              pidFile.delete()
+            } catch (Exception e) {
+              // Ignore
+            }
+          }
+        }
+        return
+      }
+
+      // FOREGROUND MODE: Continue with existing logic
+
+      // Track if server has booted
+      def serverBooted = false
+
+      // Cleanup function - called from multiple places to ensure server is killed
+      def cleanupServer = { String reason = 'Cleanup' ->
+        logger.lifecycle('')
+        logger.lifecycle('=' * 80)
+        logger.lifecycle("🛑 ${reason}")
+        logger.lifecycle('=' * 80)
+
+        def killed = false
+
+        // Kill process if still running
+        if (process != null && process.alive) {
+          logger.lifecycle('   Terminating server process...')
+          try {
+            process.destroy()
+            killed = process.waitFor(2, TimeUnit.SECONDS)
+
+            if (!killed) {
+              logger.lifecycle('   Forcefully killing server...')
+              process.destroyForcibly()
+              process.waitFor(1, TimeUnit.SECONDS)
+            }
+          } catch (Exception e) {
+            logger.warn("   Warning: ${e.message}")
+          }
+        }
+
+        // Always try taskkill with PID from file as backup
+        if (pidFile.exists()) {
+          try {
+            def pid = pidFile.text.trim()
+            logger.lifecycle("   Force-killing PID ${pid} with taskkill...")
+            def killProc = ['taskkill', '/F', '/PID', pid].execute()
+            killProc.waitForOrKill(2000)
+            logger.lifecycle('✓ Server process terminated')
+          } catch (Exception e) {
+            // Process already dead, that's fine
+          }
+          pidFile.delete()
+        } else if (killed) {
+          logger.lifecycle('✓ Server process terminated')
+        }
+
+        logger.lifecycle('=' * 80)
+      }
+
+      // Add shutdown hook for JVM shutdown (Ctrl+C, etc.)
+      def shutdownHook = new Thread() {
+        void run() {
+          if ((process != null && process.alive) || pidFile.exists()) {
+            cleanupServer('JVM SHUTDOWN - STOPPING HYTALE SERVER')
+          }
+        }
+      }
+      Runtime.runtime.addShutdownHook(shutdownHook)
+
+      // Read output in real-time
+      def reader = new BufferedReader(new InputStreamReader(process.getInputStream()))
+      def outputThread = Thread.start {
+        String line
+        while ((line = reader.readLine()) != null) {
+          println(line)
+
+          // Detect when server finishes booting
+          if (line.contains('Hytale Server Booted!') && !serverBooted) {
+            serverBooted = true
+
+            // Wait a moment for port to be bound
+            Thread.sleep(1000)
+
+            // Check what port the server is listening on
+            try {
+              def portCheckProc = ['netstat', '-ano'].execute()
+              portCheckProc.waitForOrKill(3000)
+              def portOutput = portCheckProc.text
+
+              def foundPorts = []
+              def javaPid = null
+
+              // Get the PID of our server process
+              try {
+                javaPid = process.pid().toString()
+              } catch (Exception e) {
+                // Java 8 doesn't have pid() method, try alternative
+              }
+
+              portOutput.eachLine { portLine ->
+                if (portLine.contains('LISTENING')) {
+                  // Extract port and PID from: TCP  0.0.0.0:24454  0.0.0.0:0  LISTENING  12345
+                  def matcher = portLine =~ /0\.0\.0\.0:(\d+).*LISTENING\s+(\d+)/
+                  if (matcher.find()) {
+                    def port = matcher.group(1)
+                    def pid = matcher.group(2)
+
+                    // If we know our PID, only show our ports. Otherwise show common ports.
+                    if ((javaPid && pid == javaPid) || (!javaPid && (port == '24454' || port.toInteger() >= 24450 && port.toInteger() <= 24460))) {
+                      if (!foundPorts.contains(port)) {
+                        foundPorts << port
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Also check for any Java process on port 24454
+              if (foundPorts.isEmpty()) {
+                portOutput.eachLine { portLine ->
+                  if (portLine.contains(':24454') && portLine.contains('LISTENING')) {
+                    if (!foundPorts.contains('24454')) {
+                      foundPorts << '24454'
+                    }
+                  }
+                }
+              }
+
+              println('')
+              println('=' * 80)
+              println('🌐 SERVER NETWORK INFO')
+              println('=' * 80)
+              if (foundPorts.isEmpty()) {
+                println('⚠️  Could not detect listening port')
+                println('ℹ️  Server may still be binding to network')
+                println('ℹ️  Try connecting to: localhost (default port 24454)')
+              } else {
+                println('✓ Server listening on port(s): ' + foundPorts.join(', '))
+                if (foundPorts.contains('24454')) {
+                  println('✓ Default Hytale port (24454) is active')
+                  println('✓ Connect with: localhost (or localhost:24454)')
+                } else {
+                  println('⚠️  Server is on non-default port: ' + foundPorts[0])
+                  println('⚠️  Connect with: localhost:' + foundPorts[0])
+                }
+              }
+              println('=' * 80)
+              println('')
+            } catch (Exception e) {
+              println('')
+              println('=' * 80)
+              println('🌐 SERVER NETWORK INFO')
+              println('=' * 80)
+              println("⚠️  Could not check server port: ${e.message}")
+              println('ℹ️  Assuming default - try: localhost (port 24454)')
+              println('=' * 80)
+              println('')
+            }
+          }
+        }
+      }
+
+      def exitCode = process.waitFor()
+      outputThread.join() // Wait for output to finish
+
+      // Remove shutdown hook since we're exiting normally
+      try {
+        Runtime.runtime.removeShutdownHook(shutdownHook)
+      } catch (Exception e) {
+        // Hook may have already run, that's fine
+      }
+
+      logger.lifecycle('')
+      if (exitCode != 0) {
+        logger.error("Server exited with code: ${exitCode}")
+        logger.error('')
+        logger.error('Check server logs for details:')
+        logger.error("  ${serverWorkDir}/logs/")
+      } else {
+        logger.lifecycle('Server stopped cleanly')
+      }
+    } catch (InterruptedException e) {
+      // IntelliJ stop button was pressed
+      cleanupServer('TASK INTERRUPTED (IntelliJ stop button)')
+      throw e
+    } catch (Exception e) {
+      logger.error("Failed to start server: ${e.message}")
+      throw e
+    } finally {
+      // GUARANTEED CLEANUP - runs even if IntelliJ kills the task
+      // This ensures the server process is killed no matter what happens
+      try {
+        // Remove shutdown hook since we're handling cleanup manually
+        try {
+          Runtime.runtime.removeShutdownHook(shutdownHook)
+        } catch (Exception e) {
+          // Hook may have already run or not exist, that's fine
+        }
+
+        // If process is still alive or PID file exists, force cleanup
+        if ((process != null && process.alive) || (pidFile != null && pidFile.exists())) {
+          // Use a simple, direct kill without logging (in case logging is broken)
+          if (process != null && process.alive) {
+            try {
+              process.destroyForcibly()
+            } catch (Exception e) {
+              // Ignore
+            }
+          }
+
+          // Always try to kill via PID file
+          if (pidFile != null && pidFile.exists()) {
+            try {
+              def pid = pidFile.text.trim()
+              ['taskkill', '/F', '/PID', pid].execute().waitForOrKill(2000)
+              pidFile.delete()
+            } catch (Exception e) {
+              // Ignore - process is already dead
+            }
+          }
+        }
+      } catch (Exception e) {
+        // Ignore all errors in finally block
+      }
+    }
+  }
 }
 
 // Task to start Hytale server in BACKGROUND with debug enabled
 // Just calls startDevServer with runInBackground parameter
-task startDevServerDebug {
-    description = 'Starts Hytale server in background with debug (port 5005) - delegates to startDevServer'
-    group = 'hytale'
-    dependsOn jar
+tasks.register('startDevServerDebug') {
+  description = 'Starts Hytale server in background with debug (port 5005) - delegates to startDevServer'
+  group = 'hytale'
+  dependsOn jar
 
-    doLast {
-        // Set runInBackground property and call startDevServer
-        project.ext.runInBackground = true
-        tasks.startDevServer.actions.each { action ->
-            action.execute(tasks.startDevServer)
-        }
+  doLast {
+    // Set runInBackground property and call startDevServer
+    project.ext.runInBackground = true
+    tasks.startDevServer.actions.each { action ->
+      action.execute(tasks.startDevServer)
     }
+  }
 }
 
-// Custom task to check Hytale logs for errors and debug info
-task checkLogs {
-    description = 'Reads the latest Hytale log file and shows errors, warnings, and mod-related messages'
-    group = 'hytale'
+// Custom task to update manifest.json Version field with project version
+tasks.register('updateManifestVersion') {
+  description = 'Updates the manifest.json Version field to match the Gradle project version'
+  group = 'hytale'
 
-    doLast {
-        // Get AppData path
-        def appData = System.getenv('APPDATA')
-        if (appData == null) {
-            logger.warn('APPDATA environment variable not found')
-            return
-        }
+  doLast {
+    def manifestFile = file('src/main/resources/manifest.json')
 
-        // Check both client logs and server logs
-        def clientLogsDir = file("${appData}/Hytale/UserData/Logs")
-        def serverLogsDir = file("${appData}/Hytale/UserData/Saves/New World/logs")
-
-        def latestLog = null
-        def latestTime = 0
-
-        // Check client logs
-        if (clientLogsDir.exists() && clientLogsDir.isDirectory()) {
-            clientLogsDir.listFiles().each { file ->
-                if (file.name.endsWith('.log') && file.lastModified() > latestTime) {
-                    latestLog = file
-                    latestTime = file.lastModified()
-                }
-            }
-        }
-
-        // Check server logs (higher priority for mod development)
-        if (serverLogsDir.exists() && serverLogsDir.isDirectory()) {
-            serverLogsDir.listFiles().each { file ->
-                if (file.name.endsWith('.log') && file.lastModified() > latestTime) {
-                    latestLog = file
-                    latestTime = file.lastModified()
-                }
-            }
-        }
-
-        if (latestLog == null) {
-            logger.warn('No log files found in Hytale directories')
-            logger.warn("Checked: ${clientLogsDir}")
-            logger.warn("Checked: ${serverLogsDir}")
-            return
-        }
-
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('📋 HYTALE LOG ANALYSIS')
-        logger.lifecycle('=' * 80)
-        logger.lifecycle("Log File: ${latestLog.name}")
-        logger.lifecycle("Modified: ${new Date(latestLog.lastModified())}")
-        logger.lifecycle("Size: ${String.format('%.2f KB', latestLog.length() / 1024.0)}")
-        logger.lifecycle('=' * 80)
-
-        // Read and analyze the log
-        def logContent = latestLog.text
-        def lines = logContent.split('\n')
-
-        def errors = []
-        def warnings = []
-        def modMessages = []
-        def exceptions = []
-
-        def inException = false
-        def exceptionBuffer = []
-
-        lines.each { line ->
-            def lowerLine = line.toLowerCase()
-
-            // Check for exceptions
-            if (line.contains('Exception') || line.contains('Error:') || line.contains('Caused by:')) {
-                inException = true
-                exceptionBuffer = [line]
-            } else if (inException) {
-                if (line.trim().startsWith('at ') || line.trim().startsWith('...') || line.trim().startsWith('Caused by:')) {
-                    exceptionBuffer << line
-                } else if (line.trim().isEmpty() || !line.startsWith('\t')) {
-                    if (!exceptionBuffer.isEmpty()) {
-                        exceptions << exceptionBuffer.join('\n')
-                        exceptionBuffer = []
-                    }
-                    inException = false
-                }
-            }
-
-            // Check for errors
-            if (lowerLine.contains('[error]') || lowerLine.contains('error:') ||
-                (lowerLine.contains('failed') && !lowerLine.contains('failed to find'))) {
-                errors << line
-            }
-
-            // Check for warnings
-            if (lowerLine.contains('[warn]') || lowerLine.contains('warning:')) {
-                warnings << line
-            }
-
-            // Check for mod-related messages
-            if (lowerLine.contains('hydowned') || lowerLine.contains('plugin') ||
-                lowerLine.contains('mod loaded') || lowerLine.contains('enabling')) {
-                modMessages << line
-            }
-        }
-
-        // Add any remaining exception
-        if (!exceptionBuffer.isEmpty()) {
-            exceptions << exceptionBuffer.join('\n')
-        }
-
-        // Display results
-        logger.lifecycle('')
-        logger.lifecycle('🔴 ERRORS (${errors.size()}):')
-        logger.lifecycle('-' * 80)
-        if (errors.isEmpty()) {
-            logger.lifecycle('  ✓ No errors found')
-        } else {
-            errors.take(20).each { error ->
-                logger.lifecycle("  ${error}")
-            }
-            if (errors.size() > 20) {
-                logger.lifecycle("  ... and ${errors.size() - 20} more errors")
-            }
-        }
-
-        logger.lifecycle('')
-        logger.lifecycle('⚠️  WARNINGS (${warnings.size()}):')
-        logger.lifecycle('-' * 80)
-        if (warnings.isEmpty()) {
-            logger.lifecycle('  ✓ No warnings found')
-        } else {
-            warnings.take(10).each { warning ->
-                logger.lifecycle("  ${warning}")
-            }
-            if (warnings.size() > 10) {
-                logger.lifecycle("  ... and ${warnings.size() - 10} more warnings")
-            }
-        }
-
-        logger.lifecycle('')
-        logger.lifecycle('💥 EXCEPTIONS (${exceptions.size()}):')
-        logger.lifecycle('-' * 80)
-        if (exceptions.isEmpty()) {
-            logger.lifecycle('  ✓ No exceptions found')
-        } else {
-            exceptions.take(3).each { exception ->
-                logger.lifecycle("  ${exception}")
-                logger.lifecycle('')
-            }
-            if (exceptions.size() > 3) {
-                logger.lifecycle("  ... and ${exceptions.size() - 3} more exceptions")
-            }
-        }
-
-        logger.lifecycle('')
-        logger.lifecycle('🔧 MOD MESSAGES (${modMessages.size()}):')
-        logger.lifecycle('-' * 80)
-        if (modMessages.isEmpty()) {
-            logger.lifecycle('  ℹ️  No HyDowned-specific messages found')
-            logger.lifecycle('  (This is normal if the mod hasn\'t been loaded yet)')
-        } else {
-            modMessages.each { msg ->
-                logger.lifecycle("  ${msg}")
-            }
-        }
-
-        logger.lifecycle('')
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('📊 SUMMARY')
-        logger.lifecycle('=' * 80)
-        logger.lifecycle("Total Lines: ${lines.size()}")
-        logger.lifecycle("Errors: ${errors.size()}")
-        logger.lifecycle("Warnings: ${warnings.size()}")
-        logger.lifecycle("Exceptions: ${exceptions.size()}")
-        logger.lifecycle("Mod Messages: ${modMessages.size()}")
-        logger.lifecycle('=' * 80)
-        logger.lifecycle('')
-        logger.lifecycle("💡 TIP: To see the full log, open:")
-        logger.lifecycle("   ${latestLog}")
-        logger.lifecycle('=' * 80)
+    if (!manifestFile.exists()) {
+      logger.error("manifest.json not found at: ${manifestFile}")
+      throw new GradleException('Cannot update manifest version - file not found')
     }
+
+    // Read and parse JSON
+    def slurper = new JsonSlurper()
+    def manifest = slurper.parse(manifestFile)
+
+    // Get current versions
+    def oldVersion = manifest.Version
+    def newVersion = project.version.toString()
+
+    // Check if update is needed
+    if (oldVersion == newVersion) {
+      logger.lifecycle('=' * 80)
+      logger.lifecycle('✓ MANIFEST VERSION ALREADY UP TO DATE')
+      logger.lifecycle('=' * 80)
+      logger.lifecycle("  Version: ${newVersion}")
+      logger.lifecycle('=' * 80)
+      return
+    }
+
+    // Update version
+    manifest.Version = newVersion
+
+    // Write back to file with pretty formatting
+    def json = JsonOutput.toJson(manifest)
+    def prettyJson = JsonOutput.prettyPrint(json)
+    manifestFile.text = prettyJson
+
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('📝 MANIFEST VERSION UPDATED')
+    logger.lifecycle('=' * 80)
+    logger.lifecycle("  Old Version: ${oldVersion}")
+    logger.lifecycle("  New Version: ${newVersion}")
+    logger.lifecycle("  File: ${manifestFile}")
+    logger.lifecycle('=' * 80)
+  }
+}
+
+// Run updateManifestVersion before building JAR to ensure version is synced
+jar.dependsOn updateManifestVersion
+
+// Custom task to check Hytale logs for errors and debug info
+tasks.register('checkLogs') {
+  description = 'Reads the latest Hytale log file and shows errors, warnings, and mod-related messages'
+  group = 'hytale'
+
+  doLast {
+    // Get AppData path
+    def appData = System.getenv('APPDATA')
+    if (appData == null) {
+      logger.warn('APPDATA environment variable not found')
+      return
+    }
+
+    // Check both client logs and server logs
+    def clientLogsDir = file("${appData}/Hytale/UserData/Logs")
+    def serverLogsDir = file("${appData}/Hytale/UserData/Saves/New World/logs")
+
+    def latestLog = null
+    def latestTime = 0
+
+    // Check client logs
+    if (clientLogsDir.exists() && clientLogsDir.isDirectory()) {
+      clientLogsDir.listFiles().each { file ->
+        if (file.name.endsWith('.log') && file.lastModified() > latestTime) {
+          latestLog = file
+          latestTime = file.lastModified()
+        }
+      }
+    }
+
+    // Check server logs (higher priority for mod development)
+    if (serverLogsDir.exists() && serverLogsDir.isDirectory()) {
+      serverLogsDir.listFiles().each { file ->
+        if (file.name.endsWith('.log') && file.lastModified() > latestTime) {
+          latestLog = file
+          latestTime = file.lastModified()
+        }
+      }
+    }
+
+    if (latestLog == null) {
+      logger.warn('No log files found in Hytale directories')
+      logger.warn("Checked: ${clientLogsDir}")
+      logger.warn("Checked: ${serverLogsDir}")
+      return
+    }
+
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('📋 HYTALE LOG ANALYSIS')
+    logger.lifecycle('=' * 80)
+    logger.lifecycle("Log File: ${latestLog.name}")
+    logger.lifecycle("Modified: ${new Date(latestLog.lastModified())}")
+    logger.lifecycle("Size: ${String.format('%.2f KB', latestLog.length() / 1024.0)}")
+    logger.lifecycle('=' * 80)
+
+    // Read and analyze the log
+    def logContent = latestLog.text
+    def lines = logContent.split('\n')
+
+    def errors = []
+    def warnings = []
+    def modMessages = []
+    def exceptions = []
+
+    def inException = false
+    def exceptionBuffer = []
+
+    lines.each { line ->
+      def lowerLine = line.toLowerCase()
+
+      // Check for exceptions
+      if (line.contains('Exception') || line.contains('Error:') || line.contains('Caused by:')) {
+        inException = true
+        exceptionBuffer = [line]
+      } else if (inException) {
+        if (line.trim().startsWith('at ') || line.trim().startsWith('...') || line.trim().startsWith('Caused by:')) {
+          exceptionBuffer << line
+        } else if (line.trim().isEmpty() || !line.startsWith('\t')) {
+          if (!exceptionBuffer.isEmpty()) {
+            exceptions << exceptionBuffer.join('\n')
+            exceptionBuffer = []
+          }
+          inException = false
+        }
+      }
+
+      // Check for errors
+      if (lowerLine.contains('[error]') || lowerLine.contains('error:') ||
+          (lowerLine.contains('failed') && !lowerLine.contains('failed to find'))) {
+        errors << line
+      }
+
+      // Check for warnings
+      if (lowerLine.contains('[warn]') || lowerLine.contains('warning:')) {
+        warnings << line
+      }
+
+      // Check for mod-related messages
+      if (lowerLine.contains('hydowned') || lowerLine.contains('plugin') ||
+          lowerLine.contains('mod loaded') || lowerLine.contains('enabling')) {
+        modMessages << line
+      }
+    }
+
+    // Add any remaining exception
+    if (!exceptionBuffer.isEmpty()) {
+      exceptions << exceptionBuffer.join('\n')
+    }
+
+    // Display results
+    logger.lifecycle('')
+    logger.lifecycle('🔴 ERRORS (${errors.size()}):')
+    logger.lifecycle('-' * 80)
+    if (errors.isEmpty()) {
+      logger.lifecycle('  ✓ No errors found')
+    } else {
+      errors.take(20).each { error ->
+        logger.lifecycle("  ${error}")
+      }
+      if (errors.size() > 20) {
+        logger.lifecycle("  ... and ${errors.size() - 20} more errors")
+      }
+    }
+
+    logger.lifecycle('')
+    logger.lifecycle('⚠️  WARNINGS (${warnings.size()}):')
+    logger.lifecycle('-' * 80)
+    if (warnings.isEmpty()) {
+      logger.lifecycle('  ✓ No warnings found')
+    } else {
+      warnings.take(10).each { warning ->
+        logger.lifecycle("  ${warning}")
+      }
+      if (warnings.size() > 10) {
+        logger.lifecycle("  ... and ${warnings.size() - 10} more warnings")
+      }
+    }
+
+    logger.lifecycle('')
+    logger.lifecycle('💥 EXCEPTIONS (${exceptions.size()}):')
+    logger.lifecycle('-' * 80)
+    if (exceptions.isEmpty()) {
+      logger.lifecycle('  ✓ No exceptions found')
+    } else {
+      exceptions.take(3).each { exception ->
+        logger.lifecycle("  ${exception}")
+        logger.lifecycle('')
+      }
+      if (exceptions.size() > 3) {
+        logger.lifecycle("  ... and ${exceptions.size() - 3} more exceptions")
+      }
+    }
+
+    logger.lifecycle('')
+    logger.lifecycle('🔧 MOD MESSAGES (${modMessages.size()}):')
+    logger.lifecycle('-' * 80)
+    if (modMessages.isEmpty()) {
+      logger.lifecycle('  ℹ️  No HyDowned-specific messages found')
+      logger.lifecycle('  (This is normal if the mod hasn\'t been loaded yet)')
+    } else {
+      modMessages.each { msg ->
+        logger.lifecycle("  ${msg}")
+      }
+    }
+
+    logger.lifecycle('')
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('📊 SUMMARY')
+    logger.lifecycle('=' * 80)
+    logger.lifecycle("Total Lines: ${lines.size()}")
+    logger.lifecycle("Errors: ${errors.size()}")
+    logger.lifecycle("Warnings: ${warnings.size()}")
+    logger.lifecycle("Exceptions: ${exceptions.size()}")
+    logger.lifecycle("Mod Messages: ${modMessages.size()}")
+    logger.lifecycle('=' * 80)
+    logger.lifecycle('')
+    logger.lifecycle("💡 TIP: To see the full log, open:")
+    logger.lifecycle("   ${latestLog}")
+    logger.lifecycle('=' * 80)
+  }
 }

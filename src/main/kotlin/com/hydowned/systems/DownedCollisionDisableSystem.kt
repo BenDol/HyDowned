@@ -13,6 +13,7 @@ import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.util.ComponentUtils
 import com.hydowned.util.Log
+import java.util.logging.Level
 
 
 /**
@@ -43,8 +44,10 @@ class DownedCollisionDisableSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        Log.finer("CollisionDisable", "============================================")
-        Log.finer("CollisionDisable", "Disabling character collision for downed player")
+        if (Log.isEnabled(Level.FINER)) {
+            Log.finer("CollisionDisable", "============================================")
+            Log.finer("CollisionDisable", "Disabling character collision for downed player")
+        }
 
         // Disable character (entity-to-entity) collisions using CollisionResultComponent
         try {
@@ -99,8 +102,10 @@ class DownedCollisionDisableSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        Log.finer("CollisionDisable", "============================================")
-        Log.finer("CollisionDisable", "Restoring character collision for player")
+        if (Log.isEnabled(Level.FINER)) {
+            Log.finer("CollisionDisable", "============================================")
+            Log.finer("CollisionDisable", "Restoring character collision for player")
+        }
 
         // Re-enable character (entity-to-entity) collisions if they were enabled before
         try {

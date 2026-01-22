@@ -9,6 +9,7 @@ import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent
 import com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
+import com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes
 import com.hypixel.hytale.server.core.universe.PlayerRef
@@ -51,9 +52,6 @@ object DownedCleanupHelper {
         reason: String,
         forceHealthToZero: Boolean = false
     ) {
-        Log.finer("CleanupHelper", "============================================")
-        Log.finer("CleanupHelper", "Executing death: $reason")
-        Log.finer("CleanupHelper", "============================================")
 
         // CRITICAL: Set timer to 0 BEFORE executing death
         // This makes the damage immunity system allow the killing damage through
@@ -276,17 +274,31 @@ object DownedCleanupHelper {
         downedComponent: DownedComponent,
         isLogout: Boolean = false
     ) {
+        // 1. Remove phantom body (ALWAYS - needed for both revive and logout)
+        val phantomBodyRef = downedComponent.phantomBodyRef
+        if (phantomBodyRef != null && phantomBodyRef.isValid) {
+            try {
+                // Get phantom body network ID before removing
+                val phantomNetworkId = commandBuffer.getComponent(phantomBodyRef, NetworkId.getComponentType())
+
+                // Remove phantom body entity
+                commandBuffer.removeEntity(phantomBodyRef, RemoveReason.UNLOAD)
+                Log.finer("CleanupHelper", "Removed phantom body entity")
+
+                // Clean up state tracker
+                if (phantomNetworkId != null) {
+                    DownedStateTracker.removePhantomBody(phantomNetworkId.id)
+                    Log.finer("CleanupHelper", "Cleaned up phantom body from state tracker")
+                }
+            } catch (e: Exception) {
+                Log.warning("CleanupHelper", "Failed to remove phantom body: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+
         // If this is a logout, do additional cleanup
         // (Component callbacks don't fire during entity removal)
         if (isLogout) {
-            // 1. Remove phantom body
-            val phantomBodyRef = downedComponent.phantomBodyRef
-            if (phantomBodyRef != null && phantomBodyRef.isValid) {
-                commandBuffer.removeEntity(phantomBodyRef, RemoveReason.UNLOAD)
-                Log.finer("CleanupHelper", "Manually removed phantom body entity (logout scenario)")
-            } else {
-                Log.warning("CleanupHelper", "Phantom body ref is null or invalid")
-            }
 
             // 2. Restore player scale (CRITICAL: onComponentRemoved doesn't fire during logout)
             try {

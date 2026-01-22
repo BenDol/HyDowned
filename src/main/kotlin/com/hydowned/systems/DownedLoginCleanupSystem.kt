@@ -23,6 +23,7 @@ import com.hypixel.hytale.server.core.modules.entity.component.HiddenFromAdventu
 import com.hypixel.hytale.server.core.modules.entity.component.Intangible
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
 import com.hypixel.hytale.server.core.universe.PlayerRef
+import java.util.logging.Level
 
 
 /**
@@ -119,9 +120,11 @@ class DownedLoginCleanupSystem(
                 }
                 is PendingDeathTracker.RestoreAction.RestoreDowned -> {
                     // Player crashed/unloaded while downed → restore downed state
-                    Log.finer("LoginCleanup", "Player crashed while downed - restoring downed state")
-                    Log.finer("LoginCleanup", "  Time remaining: ${action.timeRemaining}s")
-                    Log.finer("LoginCleanup", "  Downed location: ${action.downedLocation}")
+                    if (Log.isEnabled(Level.FINER)) {
+                        Log.finer("LoginCleanup", "Player crashed while downed - restoring downed state")
+                        Log.finer("LoginCleanup", "  Time remaining: ${action.timeRemaining}s")
+                        Log.finer("LoginCleanup", "  Downed location: ${action.downedLocation}")
+                    }
 
                     // CRITICAL: Remove any lingering invisibility/collision components BEFORE restoring downed state
                     // If these are present, the invisibility/collision systems will think the player was already hidden/intangible
@@ -181,7 +184,8 @@ class DownedLoginCleanupSystem(
             val scaleComponent = commandBuffer.getComponent(ref, EntityScaleComponent.getComponentType())
             if (scaleComponent != null) {
                 if (scaleComponent.scale != 1.0f) {
-                    Log.finer("LoginCleanup", "Found scale ${scaleComponent.scale}, restoring to 1.0 (crash safety)")
+                    Log.finer("LoginCleanup",
+                        "Found scale ${scaleComponent.scale}, restoring to 1.0 (crash safety)")
                     scaleComponent.scale = 1.0f
                     issuesFound = true
                 }
