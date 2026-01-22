@@ -18,7 +18,7 @@ import java.util.logging.Level
 /**
  * Suppresses ALL healing for downed players by:
  * 1. Monitoring health stat changes every tick
- * 2. If health exceeds 1 HP, immediately revert it back to 1 HP
+ * 2. If health exceeds downed threshold (configurable), immediately revert it back
  * 3. This blocks:
  *    - Natural health regeneration
  *    - Food/item healing
@@ -38,10 +38,8 @@ class DownedHealingSuppressionSystem(
         EntityStatMap.getComponentType()
     )
 
-    
-    override fun getQuery(): Query<EntityStore> = query
 
-    private var lastLogTime = 0L
+    override fun getQuery(): Query<EntityStore> = query
 
     override fun tick(
         dt: Float,
@@ -60,29 +58,13 @@ class DownedHealingSuppressionSystem(
 
         val currentHealth = healthStat.get()
 
-        // Log actual health every 5 seconds (for debugging)
-        val now = System.currentTimeMillis()
-        if (now - lastLogTime > 5000) {
-            val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-            Log.finer("HealingSuppression", "Current server-side health: $currentHealth HP (player: ${playerComponent?.displayName})")
-            lastLogTime = now
-        }
+        // Calculate downed health threshold based on config (percentage of max health)
+        val downedHealthThreshold = (healthStat.max * config.downedHealthPercent.toFloat()).coerceAtLeast(0.1f)
 
-        // If health exceeds 1 HP, something tried to heal the player
-        if (currentHealth > 1.0f) {
-            // Revert health back to 1 HP
-            entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), 1.0f)
-
-            // Log the healing attempt
-            if (Log.isEnabled(Level.FINER)) {
-                val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-                Log.separator("HealingSuppression", Level.FINER)
-                Log.finer("HealingSuppression", "HEALING BLOCKED - Player is downed")
-                Log.finer("HealingSuppression", "  Player: ${playerComponent?.displayName}")
-                Log.finer("HealingSuppression", "  Attempted health: $currentHealth HP")
-                Log.finer("HealingSuppression", "  Reverted to: 1 HP")
-                Log.separator("HealingSuppression", Level.FINER)
-            }
+        // If health exceeds threshold, something tried to heal the player
+        if (currentHealth > downedHealthThreshold) {
+            // Revert health back to downed threshold
+            entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), downedHealthThreshold)
         }
     }
 }

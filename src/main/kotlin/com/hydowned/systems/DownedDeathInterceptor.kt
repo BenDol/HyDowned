@@ -29,7 +29,7 @@ import java.util.logging.Level
  *
  * This system runs in the FilterDamageGroup BEFORE ApplyDamage, so we can:
  * 1. Check if damage would be lethal
- * 2. Modify damage to leave player at 1 HP
+ * 2. Modify damage to leave player at configured downed health (default 1% of max HP)
  * 3. Add DownedComponent instead of letting DeathComponent be added
  */
 class DownedDeathInterceptor(
@@ -113,30 +113,20 @@ class DownedDeathInterceptor(
 
         val currentHealth = healthStat.get()
 
+        // Calculate downed health threshold based on config (percentage of max health)
+        val downedHealthThreshold = (healthStat.max * config.downedHealthPercent.toFloat()).coerceAtLeast(0.1f)
+
         // Calculate if this damage would be lethal
         val newHealth = currentHealth - damage.amount
 
-        Log.debug("DeathInterceptor", "[HEALTH CHECK] ${playerComponent?.displayName}: current=${currentHealth}, damage=${damage.amount}, result=${newHealth}, min=${healthStat.min}")
-
-        // CRITICAL: Check if damage would bring health below 1 HP (lethal threshold)
-        // We use 1 HP instead of min (0) to prevent edge cases where Hytale's internal
+        // CRITICAL: Check if damage would bring health below downed threshold
+        // We use a threshold above 0 to prevent edge cases where Hytale's internal
         // death check might trigger between damage and our interception.
-        if (newHealth < 1.0f) {
-            // This damage would bring player below 1 HP - intercept it!
-            Log.separator("DeathInterceptor")
-            Log.debug("DeathInterceptor", "INTERCEPTING DAMAGE - Would bring ${playerComponent?.displayName} below 1 HP safety threshold!")
-            Log.debug("DeathInterceptor", "  Current: $currentHealth HP")
-            Log.debug("DeathInterceptor", "  Damage: ${damage.amount}")
-            Log.debug("DeathInterceptor", "  Result: $newHealth HP < 1.0 HP threshold")
-            Log.separator("DeathInterceptor")
-
-            // Modify damage to leave player at EXACTLY 1 HP (not 0.5, not 0)
+        if (newHealth < downedHealthThreshold) {
+            // This damage would bring player below threshold - intercept it!
+            // Modify damage to leave player at the configured downed health threshold
             // This prevents any rounding/truncation issues in Hytale's engine
-            val originalDamageAmount = damage.amount
-            val modifiedDamage = currentHealth - 1.0f
-            damage.amount = modifiedDamage.coerceAtLeast(0.0f)
-
-            Log.debug("DeathInterceptor", "  Modified damage from $originalDamageAmount to ${damage.amount} (leaves player at 1 HP)")
+            damage.amount = (currentHealth - downedHealthThreshold).coerceAtLeast(0.0f)
 
             // Don't capture location yet - will be captured after player lands on ground
             // This prevents capturing position mid-air when player dies from fall damage
@@ -159,13 +149,6 @@ class DownedDeathInterceptor(
             DownedStateTracker.setDowned(ref)
 
             commandBuffer.addComponent(ref, DownedComponent.getComponentType(), downedComponent)
-
-            if (Log.isEnabled(Level.FINE)) {
-                Log.debug("DeathInterceptor", "Player entered downed state")
-                Log.debug("DeathInterceptor", "Timer: ${config.downedTimerSeconds} seconds")
-                Log.debug("DeathInterceptor", "Location: $location")
-                Log.separator("DeathInterceptor")
-            }
 
             // Notify the downed player
             val downedPlayer = archetypeChunk.getComponent(index, Player.getComponentType())

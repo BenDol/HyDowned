@@ -36,7 +36,7 @@ class DownedPacketChannelHandler(
             when (msg) {
                 is EntityUpdates -> {
                     // Modify EntityUpdates to force sleeping=true for the local player
-                    Log.finer("ChannelHandler", "Intercepted EntityUpdates packet - modifying sleeping state")
+                    //Log.finer("ChannelHandler", "Intercepted EntityUpdates packet - modifying sleeping state")
                     handleEntityUpdates(msg)
                 }
                 is PlayAnimation -> {

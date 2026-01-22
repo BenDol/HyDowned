@@ -6,7 +6,7 @@ A downed state system for Hytale that replaces instant death with a revivable st
 
 When a player takes fatal damage:
 1. Death is intercepted and replaced with a downed state
-2. Player is set to 1 HP and given damage immunity
+2. Player is set to configurable low HP (default 1% of max health) with healing suppression
 3. Player is made intangible - mobs lose aggro and cannot target them
 4. A countdown timer starts (default 180 seconds)
 5. Teammates can revive by crouching near the downed player
@@ -69,12 +69,22 @@ Config file: `plugins/HyDowned/config.json`
 ```json
 {
   "downedTimerSeconds": 180,        // How long until downed player dies
+  "downedHealthPercent": 0.01,      // Health % when downed (0.01 = 1% of max HP)
   "reviveTimerSeconds": 10,         // How long to revive a downed player
   "reviveHealthPercent": 0.2,       // Health % restored on revive
   "reviveRange": 2.0,               // Distance to start revive
   "downedMode": "PLAYER"            // PLAYER or PHANTOM
 }
 ```
+
+**Downed Health System:**
+
+The `downedHealthPercent` setting controls what health level players are set to when downed. This is calculated as a percentage of the player's maximum health:
+
+- Default `0.01` = 1% of max HP (player with 100 max HP → 1 HP when downed)
+- Minimum value is `0.001` (0.1 HP minimum to prevent rounding issues)
+- Players at downed health cannot heal - `DownedHealingSuppressionSystem` actively reverts any healing attempts
+- This prevents players from healing out of the downed state via food, potions, or regeneration
 
 ### Revive Settings
 
@@ -91,6 +101,36 @@ Config file: `plugins/HyDowned/config.json`
   - 2 revivers: 6.67s (1.5x speed with 0.5 multiplier)
   - 3 revivers: 5s (2.0x speed)
 - `FIRST_ONLY` mode: Only first reviver counts, others are blocked
+
+### Damage Immunity Settings
+
+```json
+{
+  "allowedDownedDamage": {
+    "player": false,       // Allow player damage (PvP)
+    "mob": false,          // Allow mob damage
+    "environment": false,  // Allow environmental damage (fall, fire, drowning, etc.)
+    "lava": true           // Allow lava damage (prevents being stuck in lava)
+  }
+}
+```
+
+**How it works:**
+
+By default, downed players are immune to ALL damage. The `allowedDownedDamage` config allows you to specify which damage categories can kill downed players:
+
+- **player**: When `true`, enemy players can finish off downed players with attacks (melee/projectile)
+- **mob**: When `true`, mobs can damage and kill downed players
+- **environment**: When `true`, environmental damage (fall, drowning, fire, suffocation, etc.) can kill downed players
+- **lava**: When `true` (default), lava damage kills downed players to prevent being stuck indefinitely
+
+**Death/Respawn behavior:**
+
+When a downed player takes lethal damage from an allowed damage type:
+1. Player dies normally (DeathComponent added)
+2. Death screen shows player laying down (sleep animation maintained)
+3. On respawn, player stands up and all downed state is cleaned up
+4. See "Death and Respawn Handling" section for technical details
 
 ### Visual/Audio Settings (NOT IMPLEMENTED)
 
@@ -181,10 +221,11 @@ The mod uses multiple specialized systems:
 
 **Shared (both modes):**
 - `DownedDeathInterceptor` - Catches fatal damage and enters downed state
+- `DownedDeathCleanupSystem` - Handles cleanup when downed player dies and respawns
 - `DownedTimerSystem` - Manages countdown timer and chat notifications
 - `ReviveInteractionSystem` - Handles crouch-to-revive logic
-- `DownedDamageImmunitySystem` - Blocks damage while downed
-- `DownedHealingSuppressionSystem` - Blocks healing while downed
+- `DownedDamageImmunitySystem` - Blocks damage while downed (configurable damage types)
+- `DownedHealingSuppressionSystem` - Prevents healing above downed health threshold
 - `DownedMobAggroSystem` - Makes player intangible to prevent mob targeting/aggro
 - `DownedPacketInterceptorSystem` - Intercepts and modifies packets per player
 
@@ -202,6 +243,41 @@ The mod uses multiple specialized systems:
 - `DownedCollisionDisableSystem` - Disables character collision
 - `DownedRadiusConstraintSystem` - Keeps player within 7 blocks of body (teleports to 5 blocks if exceeded)
 - `DownedPlayerScaleSystem` or `DownedInvisibilitySystem` - Makes player invisible
+
+### Death and Respawn Handling
+
+**How it works when a downed player dies:**
+
+The mod supports the `allowedDownedDamage` config feature, which allows certain damage types (like lava, void, etc.) to kill downed players. When this happens, the death/respawn flow is handled by `DownedDeathCleanupSystem`:
+
+**When DeathComponent is added (player dies):**
+1. Player has both `DownedComponent` and `DeathComponent` at the same time
+2. System removes the phantom body (if in PHANTOM mode) so it doesn't appear on death screen
+3. **Keeps player in sleep/death animation state** - this is critical
+4. Keeps `DownedComponent` attached
+5. Player sees death screen while laying down (not standing)
+
+**When DeathComponent is removed (player respawns):**
+1. System detects player respawned (DeathComponent removed but DownedComponent still present)
+2. Performs full cleanup via `DownedCleanupHelper.cleanupForDeath()`:
+   - Restores movement states (removes sleeping)
+   - Clears active animations (Death animation)
+   - Restores camera to normal
+   - Resets visibility/collision/scale
+   - Removes `DownedComponent`
+3. Player stands up normally after respawn
+
+**Why this approach:**
+- Prevents player from appearing standing during death screen
+- Ensures single cleanup at correct time (respawn, not death)
+- Works correctly for both timer expiry deaths and damage-induced deaths
+- Maintains visual consistency - player stays laying down throughout death screen
+
+**Technical implementation:**
+- `DownedDeathCleanupSystem` extends `RefChangeSystem<EntityStore, DeathComponent>`
+- Monitors DeathComponent additions/removals on players with DownedComponent
+- Query requires: `Player`, `DownedComponent`, `DeathComponent`
+- Runs in default system group (no special ordering required)
 
 ### Component Types
 

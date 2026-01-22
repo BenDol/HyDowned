@@ -6,9 +6,10 @@ Replaces instant death with a knocked out state where your teammates can revive 
 
 When you take fatal damage:
 
-*   You're knocked out at 1 HP instead of dying
+*   You're knocked out at low HP (default 1% of max health, configurable)
+*   Healing is completely suppressed - you cannot heal while knocked out
 *   A 3 minute countdown starts (configurable)
-*   You're immune to most damage while knocked out (configurable - see PvP settings)
+*   You're immune to most damage while knocked out (configurable - see Damage Immunity settings)
 *   Teammates can revive you by crouching nearby
 *   If the timer runs out, you die normally
 *   Alternatively you can use `/giveup` command to respawn immediately
@@ -41,12 +42,21 @@ Edit `plugins/HyDowned/config.json`:
 ```
 {
   "downedTimerSeconds": 180,        // 3 minutes until death
+  "downedHealthPercent": 0.01,      // Health % when knocked out (0.01 = 1% of max HP)
   "reviveTimerSeconds": 10,         // 10 seconds to complete revive
   "reviveHealthPercent": 0.2,       // Revive at 20% health
   "reviveRange": 2.0,               // How close to crouch (blocks)
   "downedMode": "PLAYER"            // PLAYER or PHANTOM
 }
 ```
+
+**Downed Health System:**
+
+*   `downedHealthPercent` controls what health level players are set to when knocked out
+*   Default `0.01` = 1% of max HP (player with 100 max HP → 1 HP when downed)
+*   Minimum value is `0.001` (0.1 HP minimum to prevent rounding issues)
+*   **Healing suppression**: Players at downed health cannot heal - all healing attempts are automatically reverted
+*   This prevents knocked out players from healing via food, potions, or regeneration effects
 
 **Multiple Revivers**
 
@@ -69,14 +79,14 @@ With `FIRST_ONLY` mode:
 *   Only the first person can revive
 *   Additional players can't help
 
-**PvP / Combat Settings**
+**Damage Immunity Settings**
 
 ```
 {
   "allowedDownedDamage": {
     "player": false,       // Allow player damage (PvP)
     "mob": false,          // Allow mob damage
-    "environment": false,  // Allow environmental damage (fall, fire, etc.)
+    "environment": false,  // Allow environmental damage (fall, fire, drowning, etc.)
     "lava": true           // Allow lava damage (prevents being stuck)
   }
 }
@@ -86,8 +96,17 @@ Fine-grained damage control while knocked out:
 
 *   `player` - When `true`, enemy players can finish off knocked out players with attacks (melee/projectile)
 *   `mob` - When `true`, mobs can damage and kill knocked out players
-*   `environment` - When `true`, environmental damage (fall, drowning, fire) can kill knocked out players
+*   `environment` - When `true`, environmental damage (fall, drowning, fire, suffocation) can kill knocked out players
 *   `lava` - When `true` (default), lava damage kills knocked out players (prevents being stuck in lava)
+
+**Death/Respawn Handling:**
+
+When a knocked out player takes lethal damage from an allowed damage type:
+
+1.  Player dies normally (death screen appears)
+2.  Death screen shows player laying down - sleep animation is maintained throughout death screen
+3.  On respawn, player stands up normally and all knocked out state is cleaned up
+4.  This ensures proper visual consistency - no standing up during death screen
 
 **PHANTOM Mode Settings**
 
@@ -190,7 +209,8 @@ INVISIBLE uses a visibility component to make you invisible. SCALE shrinks you t
 **Other Notes:**
 
 *   Uses chat messages for feedback (action bar not yet implemented)
-*   Death interception works by modifying damage to leave you at 1 HP
+*   Death interception works by modifying damage to leave you at configured downed health (default 1% of max HP)
+*   Healing suppression actively reverts any healing attempts while knocked out
 *   Nearby players (within 256 blocks) are notified when someone goes down
 
 ## Installation

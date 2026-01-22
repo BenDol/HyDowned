@@ -11,7 +11,7 @@ import com.hydowned.HyDownedPlugin
 
 /**
  * Component that marks an entity as being in a "downed" state
- * This replaces death - player stays alive at 1 HP and can be revived
+ * This replaces death - player stays alive at low HP (configurable) and can be revived
  *
  * Phantom body approach: Spawn fake NPC body at downed location, let player move within 10 block radius
  */

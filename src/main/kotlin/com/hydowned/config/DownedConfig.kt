@@ -21,6 +21,7 @@ data class DownedConfig(
     val downedTimerSeconds: Int = 180,
     val reviveTimerSeconds: Int = 10,
     val downedSpeedMultiplier: Double = 0.1,
+    val downedHealthPercent: Double = 0.01, // Health percentage when downed (1% = 0.01)
     val reviveHealthPercent: Double = 0.2,
     val reviveRange: Double = 2.0,
     val multipleReviversMode: String = "SPEEDUP",

@@ -81,39 +81,19 @@ object DownedCleanupHelper {
                 // Clean up downed state after setting health to 0
                 cleanupDownedState(ref, commandBuffer, downedComponent, forceHealthToZero)
             } else {
-                // For timer expiry/giveup: directly set health to 0 for reliable death
-                // Using damage system is unreliable because of complex interaction with other systems
-                Log.finer("CleanupHelper", "Setting health to 0 for timer/giveup death")
-
+                // For timer expiry/giveup: set health to 0 to trigger death
+                // DON'T remove DownedComponent yet - let DownedDeathCleanupSystem handle it on respawn
+                // This keeps player in sleep/death state during death screen
                 val entityStatMap = commandBuffer.getComponent(ref, EntityStatMap.getComponentType())
                 if (entityStatMap != null) {
                     entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), 0.0f)
-                    Log.finer("CleanupHelper", "Health set to 0")
                 } else {
                     Log.warning("CleanupHelper", "EntityStatMap not found, cannot set health to 0")
                 }
 
-                // Reset camera to normal view BEFORE removing component
-                try {
-                    val playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
-                    if (playerRef != null) {
-                        val cameraSystem = com.hydowned.HyDownedPlugin.instance?.getCameraSystem()
-                        if (cameraSystem != null) {
-                            cameraSystem.resetCameraForPlayer(playerRef, commandBuffer)
-                            Log.finer("CleanupHelper", "Reset camera to normal view")
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.warning("CleanupHelper", "Failed to reset camera: ${e.message}")
-                }
-
-                // Remove DownedComponent and state tracker
-                // This will trigger onComponentRemoved callbacks which handle movement state cleanup
-                // Clear state tracker FIRST to prevent race condition
-                DownedStateTracker.setNotDowned(ref)
-                commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
-
-                Log.finer("CleanupHelper", "Removed DownedComponent - player should die from 0 HP")
+                // Note: Camera will be reset by DownedDeathCleanupSystem on respawn
+                // Note: DownedComponent will be removed by DownedDeathCleanupSystem on respawn
+                // This ensures player stays in sleep/death animation during death screen
             }
 
         } catch (e: Exception) {
@@ -143,9 +123,6 @@ object DownedCleanupHelper {
         downedComponent: DownedComponent,
         healthPercent: Double
     ): Boolean {
-        Log.finer("CleanupHelper", "============================================")
-        Log.finer("CleanupHelper", "Executing revive")
-        Log.finer("CleanupHelper", "============================================")
 
         // Teleport player back to downed location
         teleportToDownedLocation(ref, commandBuffer, downedComponent)
@@ -161,7 +138,6 @@ object DownedCleanupHelper {
             if (healthStat != null) {
                 val restoreAmount = healthStat.max * healthPercent.toFloat()
                 entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), restoreAmount)
-                Log.finer("CleanupHelper", "Restored health to ${restoreAmount} (${healthPercent * 100}%)")
             } else {
                 Log.warning("CleanupHelper", "Health stat not found")
                 return false
@@ -172,7 +148,6 @@ object DownedCleanupHelper {
                 val breathStat = entityStatMap.get(DefaultEntityStatTypes.getOxygen())
                 if (breathStat != null) {
                     entityStatMap.setStatValue(DefaultEntityStatTypes.getOxygen(), breathStat.max)
-                    Log.finer("CleanupHelper", "Restored oxygen to maximum (${breathStat.max})")
                 } else {
                     Log.warning("CleanupHelper", "Oxygen stat not found - player may drown if underwater")
                 }

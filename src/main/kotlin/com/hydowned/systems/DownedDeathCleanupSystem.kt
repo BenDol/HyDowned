@@ -14,18 +14,22 @@ import com.hydowned.util.DownedCleanupHelper
 import com.hydowned.util.Log
 
 /**
- * Detects when a downed player actually dies (DeathComponent is added).
+ * Handles cleanup when a downed player dies and respawns.
  *
  * This system handles the case where a downed player takes enough damage to die
  * (when allowedDownedDamage is configured to allow certain damage types).
  *
- * When DeathComponent is added to a player with DownedComponent, this system:
- * 1. Restores all components (DisplayName, visibility, collision, etc.)
- * 2. Removes DownedComponent so they respawn normally
- * 3. Cleans up phantom body
+ * When DeathComponent is added (player died):
+ * - Keeps player in sleep/death animation state during death screen
+ * - Removes phantom body (so it doesn't show on death screen)
+ * - Keeps DownedComponent until respawn
  *
- * This is a RefChangeSystem that triggers at the EXACT moment death happens
- * (no race conditions like health polling).
+ * When DeathComponent is removed (player respawned):
+ * - Cleans up all downed state (sleep animation, movement states, visibility, etc.)
+ * - Removes DownedComponent
+ * - Player stands up normally after respawn
+ *
+ * This is a RefChangeSystem that triggers at the EXACT moment death/respawn happens.
  */
 class DownedDeathCleanupSystem(
     private val config: DownedConfig
@@ -50,18 +54,27 @@ class DownedDeathCleanupSystem(
         commandBuffer: CommandBuffer<EntityStore>
     ) {
         // DeathComponent was just added to a downed player
-        // This means they died while downed - clean up DownedComponent
-        val playerComponent = commandBuffer.getComponent(ref, Player.getComponentType())
+        // This means they died while downed
+        // DON'T clean up yet - keep them in sleep/death animation until respawn
         val downedComponent = commandBuffer.getComponent(ref, DownedComponent.getComponentType())
-
         if (downedComponent == null) {
             return
         }
 
-        Log.warning("DeathCleanup", "Downed player ${playerComponent?.displayName} died (DeathComponent added) - cleaning up DownedComponent")
+        // Only clean up phantom body if it exists (so it doesn't appear on death screen)
+        val phantomBodyRef = downedComponent.phantomBodyRef
+        if (phantomBodyRef != null && phantomBodyRef.isValid) {
+            try {
+                val phantomNetworkId = commandBuffer.getComponent(phantomBodyRef, com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId.getComponentType())
+                commandBuffer.removeEntity(phantomBodyRef, com.hypixel.hytale.component.RemoveReason.UNLOAD)
 
-        // Use centralized cleanup helper
-        DownedCleanupHelper.cleanupForDeath(ref, commandBuffer, downedComponent)
+                if (phantomNetworkId != null) {
+                    com.hydowned.network.DownedStateTracker.removePhantomBody(phantomNetworkId.id)
+                }
+            } catch (e: Exception) {
+                Log.warning("DeathCleanup", "Failed to remove phantom body: ${e.message}")
+            }
+        }
     }
 
     override fun onComponentRemoved(
@@ -70,7 +83,15 @@ class DownedDeathCleanupSystem(
         store: Store<EntityStore>,
         commandBuffer: CommandBuffer<EntityStore>
     ) {
-        // Not needed - we only care about DeathComponent being added
+        // DeathComponent removed means player respawned
+        // NOW we clean up the downed state (sleep animation, movement states, etc.)
+        val downedComponent = commandBuffer.getComponent(ref, DownedComponent.getComponentType())
+        if (downedComponent == null) {
+            return
+        }
+
+        // Clean up all downed state and remove DownedComponent
+        DownedCleanupHelper.cleanupForDeath(ref, commandBuffer, downedComponent)
     }
 
     override fun onComponentSet(

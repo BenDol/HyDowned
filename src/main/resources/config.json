@@ -2,6 +2,7 @@
   "downedTimerSeconds": 180,
   "reviveTimerSeconds": 10,
   "downedSpeedMultiplier": 0.1,
+  "downedHealthPercent": 0.01,
   "reviveHealthPercent": 0.2,
   "reviveRange": 2.0,
   "multipleReviversMode": "SPEEDUP",

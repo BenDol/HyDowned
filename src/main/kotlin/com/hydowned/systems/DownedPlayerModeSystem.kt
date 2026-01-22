@@ -524,7 +524,7 @@ class DownedPlayerModeSyncSystem(
         // Get player reference for logging
         val ref = archetypeChunk.getReferenceTo(index)
         val playerRef = archetypeChunk.getComponent(index, PlayerRef.getComponentType())
-        Log.fine("SyncSystem", "tick() called for player: ${playerRef?.username ?: "unknown"}")
+        //Log.fine("SyncSystem", "tick() called for player: ${playerRef?.username ?: "unknown"}")
 
         // CRITICAL: Check state tracker - if player is not downed anymore, don't force sleeping
         // This prevents forcing sleeping during revive after state tracker is cleared
@@ -587,7 +587,7 @@ class DownedPlayerModeSyncSystem(
             movementStatesComponent.movementStates = newStates
             movementStatesComponent.sentMovementStates = oldSentStates
         } else {
-            Log.fine("SyncSystem", "States already correct (sleeping=${states.sleeping})")
+            //Log.fine("SyncSystem", "States already correct (sleeping=${states.sleeping})")
         }
 
         // Capture downed location when player lands (needed for revive system)
