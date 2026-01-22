@@ -12,7 +12,20 @@ import com.hypixel.hytale.component.system.RefChangeSystem
 import com.hypixel.hytale.component.system.tick.EntityTickingSystem
 import com.hypixel.hytale.protocol.AnimationSlot
 import com.hypixel.hytale.protocol.MovementStates
+import com.hypixel.hytale.protocol.ComponentUpdate
+import com.hypixel.hytale.protocol.ComponentUpdateType
+import com.hypixel.hytale.protocol.EntityUpdate
+import com.hypixel.hytale.protocol.Equipment
+import com.hypixel.hytale.protocol.packets.entities.EntityUpdates
 import com.hypixel.hytale.server.core.entity.AnimationUtils
+import com.hypixel.hytale.component.AddReason
+import com.hypixel.hytale.math.shape.Box
+import com.hypixel.hytale.server.core.modules.entity.component.ActiveAnimationComponent
+import com.hypixel.hytale.server.core.modules.entity.component.BoundingBox
+import com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent
+import com.hypixel.hytale.server.core.modules.entity.component.EntityScaleComponent
+import com.hypixel.hytale.server.core.modules.entity.component.ModelComponent
+import com.hydowned.components.PhantomBodyMarker
 import com.hypixel.hytale.server.core.entity.entities.Player
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesSystems
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent
@@ -66,22 +79,37 @@ class DownedPlayerModeSystem(
             return
         }
 
-        Log.finer("PlayerMode", "============================================")
-        Log.finer("PlayerMode", "PLAYER MODE: Putting player into sleep state")
-
         try {
-            // CRITICAL: Stop ALL animations on ALL slots first to clear weapon/item animations
-            // This prevents weapon animations from interfering with the Death animation
+            // Check if player has a weapon or tool currently in hand
+            val playerComponent = commandBuffer.getComponent(ref, Player.getComponentType())
+            val hasWeaponOrToolInHand = if (playerComponent != null) {
+                val inventory = playerComponent.inventory
+                val itemInHand = inventory.itemInHand
+                com.hydowned.util.ItemsUtil.isWeaponOrTool(itemInHand)
+            } else {
+                false
+            }
+
+            // HYBRID APPROACH: Only spawn phantom body if player has weapon/tool in hand
+            // This lets them see their body laying down when they have items with attack animations
+            if (hasWeaponOrToolInHand) {
+                try {
+                    spawnPhantomBody(ref, component, commandBuffer)
+                } catch (e: Exception) {
+                    Log.warning("PlayerMode", "Failed to spawn phantom body: ${e.message}")
+                    e.printStackTrace()
+                }
+            }
+
+            // Clear animation slots and play death animation
             try {
                 AnimationUtils.stopAnimation(ref, AnimationSlot.Movement, commandBuffer)
                 AnimationUtils.stopAnimation(ref, AnimationSlot.Action, commandBuffer)
                 AnimationUtils.stopAnimation(ref, AnimationSlot.Emote, commandBuffer)
-                Log.finer("PlayerMode", "Cleared all animation slots")
             } catch (e: Exception) {
                 Log.warning("PlayerMode", "Failed to clear animations: ${e.message}")
             }
 
-            // Play death animation on the player IMMEDIATELY
             AnimationUtils.playAnimation(
                 ref,
                 AnimationSlot.Movement,
@@ -89,7 +117,6 @@ class DownedPlayerModeSystem(
                 true, // sendToSelf
                 commandBuffer
             )
-            Log.finer("PlayerMode", "Playing Death animation on player")
 
             // Set movement state to sleeping (laying down)
             val movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType())
@@ -125,7 +152,6 @@ class DownedPlayerModeSystem(
                     sentStates.sleeping = false
                     sentStates.idle = true
                 }
-                Log.finer("PlayerMode", "Set player to sleeping state (laying down)")
             } else {
                 Log.warning("PlayerMode", "MovementStatesComponent not found")
             }
@@ -134,8 +160,6 @@ class DownedPlayerModeSystem(
             Log.warning("PlayerMode", "Failed to set player mode: ${e.message}")
             e.printStackTrace()
         }
-
-        Log.finer("PlayerMode", "============================================")
     }
 
     override fun onComponentSet(
@@ -159,10 +183,10 @@ class DownedPlayerModeSystem(
             return
         }
 
-        Log.finer("PlayerMode", "============================================")
-        Log.finer("PlayerMode", "PLAYER MODE: Removing sleep state from player")
-
         try {
+            // NOTE: Phantom body cleanup is handled by DownedCleanupHelper.cleanupDownedState()
+            // which is called before DownedComponent removal during revive/death flows
+
             // Check if player is at 0 HP (death scenario) or >0 HP (revive scenario)
             val entityStatMap = commandBuffer.getComponent(ref, EntityStatMap.getComponentType())
             val healthStat = entityStatMap?.get(DefaultEntityStatTypes.getHealth())
@@ -170,11 +194,7 @@ class DownedPlayerModeSystem(
 
             val isDying = currentHealth <= 0.0f
 
-            if (isDying) {
-                // Player is dying - DO NOT reset movement states
-                // The respawn system will handle movement state initialization
-                Log.finer("PlayerMode", "Player is dying (0 HP) - skipping movement state reset (respawn will handle it)")
-            } else {
+            if (!isDying) {
                 // Player is being revived - reset movement state to normal
                 val movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType())
                 if (movementStatesComponent != null) {
@@ -192,32 +212,247 @@ class DownedPlayerModeSystem(
 
                     movementStatesComponent.movementStates = newStates
                     movementStatesComponent.sentMovementStates = oldSentStates
-                    Log.finer("PlayerMode", "Reset player to normal movement state (revive scenario)")
                 }
             }
 
             // Stop death animation (do this in both scenarios)
-            AnimationUtils.stopAnimation(
-                ref,
-                AnimationSlot.Movement,
-                commandBuffer
-            )
-            Log.finer("PlayerMode", "Stopped Death animation")
+            AnimationUtils.stopAnimation(ref, AnimationSlot.Movement, commandBuffer)
 
             // Remove ActiveAnimationComponent if present
-            try {
-                commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ActiveAnimationComponent.getComponentType())
-                Log.finer("PlayerMode", "Removed ActiveAnimationComponent")
-            } catch (e: Exception) {
-                Log.finer("PlayerMode", "No ActiveAnimationComponent to remove (or removal failed)")
-            }
+            commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ActiveAnimationComponent.getComponentType())
 
         } catch (e: Exception) {
             Log.warning("PlayerMode", "Failed to reset player mode: ${e.message}")
             e.printStackTrace()
         }
+    }
 
-        Log.finer("PlayerMode", "============================================")
+    /**
+     * Spawns a phantom body for the downed player.
+     * This body is visible to the downed player only (others see the real player).
+     * Allows downed player with weapon to see themselves laying down.
+     */
+    private fun spawnPhantomBody(
+        ref: Ref<EntityStore>,
+        component: DownedComponent,
+        commandBuffer: CommandBuffer<EntityStore>
+    ) {
+        // Get player's current position (downedLocation might be null initially)
+        val playerTransform = commandBuffer.getComponent(ref, TransformComponent.getComponentType())
+            ?: return
+        val downedLocation = playerTransform.getPosition()
+
+        Log.finer("PlayerMode", "Spawning phantom body at $downedLocation for downed player's view only")
+
+        // Get player's model
+        val playerModelComponent = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
+
+        if (playerModelComponent == null || playerModelComponent.model == null) {
+            Log.error("PlayerMode", "Player has no model - cannot spawn phantom body")
+            return
+        }
+
+        // Create phantom body entity
+        val holder = EntityStore.REGISTRY.newHolder()
+
+        // Clone model
+        val clonedModel = playerModelComponent.clone() as ModelComponent
+        holder.addComponent(ModelComponent.getComponentType(), clonedModel)
+
+        // Clone display name
+        val displayNameComponent = commandBuffer.getComponent(ref, DisplayNameComponent.getComponentType())
+        if (displayNameComponent != null) {
+            val clonedDisplayName = displayNameComponent.clone() as DisplayNameComponent
+            holder.addComponent(DisplayNameComponent.getComponentType(), clonedDisplayName)
+        }
+
+        // Clone scale
+        val scaleComponent = commandBuffer.getComponent(ref, EntityScaleComponent.getComponentType())
+        if (scaleComponent != null) {
+            val clonedScale = scaleComponent.clone() as EntityScaleComponent
+            holder.addComponent(EntityScaleComponent.getComponentType(), clonedScale)
+        }
+
+        // Add Death animation
+        val activeAnimation = ActiveAnimationComponent()
+        activeAnimation.setPlayingAnimation(AnimationSlot.Movement, "Death")
+        holder.addComponent(ActiveAnimationComponent.getComponentType(), activeAnimation)
+
+        // Add sleeping movement states
+        val movementStates = MovementStates()
+        movementStates.sleeping = true
+        movementStates.idle = false
+        movementStates.onGround = true
+        val movementStatesComponent = MovementStatesComponent()
+        movementStatesComponent.movementStates = movementStates
+        movementStatesComponent.sentMovementStates = movementStates
+        holder.addComponent(MovementStatesComponent.getComponentType(), movementStatesComponent)
+
+        // Set position and rotation
+        holder.addComponent(
+            TransformComponent.getComponentType(),
+            TransformComponent(downedLocation, playerTransform.getRotation())
+        )
+
+        // Add bounding box
+        val playerBoundingBox = commandBuffer.getComponent(ref, BoundingBox.getComponentType())
+        if (playerBoundingBox != null) {
+            val clonedBoundingBox = playerBoundingBox.clone() as BoundingBox
+            holder.addComponent(BoundingBox.getComponentType(), clonedBoundingBox)
+        } else {
+            val defaultBox = Box(-0.3, 0.0, -0.3, 0.3, 1.8, 0.3)
+            holder.addComponent(BoundingBox.getComponentType(), BoundingBox(defaultBox))
+        }
+
+        // Add NetworkId
+        val nextNetworkId = commandBuffer.store.externalData.takeNextNetworkId()
+        holder.addComponent(NetworkId.getComponentType(), NetworkId(nextNetworkId))
+
+        // Extract player's appearance (equipment and cosmetic skin)
+        val (equipment, playerSkin) = extractPlayerAppearance(ref, commandBuffer)
+
+        // CRITICAL: Add PhantomBodyMarker with equipment and skin for deferred processing
+        val marker = PhantomBodyMarker(ref, equipment, playerSkin)
+        holder.addComponent(PhantomBodyMarker.getComponentType(), marker)
+
+        // Spawn entity (broadcasted to all clients)
+        val phantomBodyRef = commandBuffer.addEntity(holder, AddReason.SPAWN)
+        component.phantomBodyRef = phantomBodyRef
+
+        // Register phantom body in state tracker so ChannelHandler can identify it
+        com.hydowned.network.DownedStateTracker.setPhantomBody(nextNetworkId, ref)
+
+        Log.finer("PlayerMode", "Phantom body spawned (NetworkId: $nextNetworkId) - ChannelHandler will control visibility")
+
+        // Make the REAL player invisible to themselves (so they only see phantom body)
+        makePlayerInvisibleToSelf(ref, commandBuffer)
+    }
+
+    /**
+     * Extracts player's equipment and cosmetic skin for phantom body display.
+     * Returns a pair of (Equipment, PlayerSkin).
+     */
+    private fun extractPlayerAppearance(
+        ref: Ref<EntityStore>,
+        commandBuffer: CommandBuffer<EntityStore>
+    ): Pair<Equipment?, com.hypixel.hytale.protocol.PlayerSkin?> {
+        var equipment: Equipment? = null
+        var playerSkin: com.hypixel.hytale.protocol.PlayerSkin? = null
+
+        // Extract equipment
+        val playerComponent = commandBuffer.getComponent(ref, Player.getComponentType())
+        if (playerComponent != null) {
+            try {
+                val inventory = playerComponent.inventory
+                equipment = Equipment()
+
+                // Extract armor (4 slots)
+                val armor = inventory.armor
+                equipment.armorIds = Array(armor.capacity.toInt()) { "" }
+                java.util.Arrays.fill(equipment.armorIds, "")
+
+                armor.forEachWithMeta({ slot, itemStack, armorIds ->
+                    armorIds[slot.toInt()] = itemStack.itemId
+                }, equipment.armorIds)
+
+                // Extract hand items
+                val itemInHand = inventory.itemInHand
+                equipment.rightHandItemId = itemInHand?.itemId ?: "Empty"
+
+                val utilityItem = inventory.utilityItem
+                equipment.leftHandItemId = utilityItem?.itemId ?: "Empty"
+
+                Log.finer("PlayerMode", "Extracted equipment - Right: ${equipment.rightHandItemId}, Left: ${equipment.leftHandItemId}")
+            } catch (e: Exception) {
+                Log.warning("PlayerMode", "Failed to extract equipment: ${e.message}")
+            }
+        }
+
+        // Extract player's cosmetic skin (outfit)
+        val playerSkinComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
+        if (playerSkinComponent != null) {
+            playerSkin = playerSkinComponent.playerSkin
+            Log.finer("PlayerMode", "Extracted player cosmetic skin/outfit")
+        }
+
+        return Pair(equipment, playerSkin)
+    }
+
+    /**
+     * Makes the player invisible to their own client by sending a tiny scale update.
+     * Other players will still see the real player normally.
+     */
+    private fun makePlayerInvisibleToSelf(
+        ref: Ref<EntityStore>,
+        commandBuffer: CommandBuffer<EntityStore>
+    ) {
+        try {
+            val playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
+            val networkId = commandBuffer.getComponent(ref, NetworkId.getComponentType())
+
+            if (playerRef != null && networkId != null) {
+                // Send scale update to make player tiny (invisible)
+                val scaleComponent = commandBuffer.getComponent(ref, EntityScaleComponent.getComponentType())
+                val originalScale = scaleComponent?.scale ?: 1.0f
+
+                // Store original scale in DownedComponent for restoration
+                val downedComponent = commandBuffer.getComponent(ref, DownedComponent.getComponentType())
+                if (downedComponent != null) {
+                    downedComponent.originalScale = originalScale
+                }
+
+                // Create Model component update with tiny scale
+                val componentUpdate = ComponentUpdate()
+                componentUpdate.type = ComponentUpdateType.Model
+                componentUpdate.entityScale = 0.0001f // Tiny scale = invisible
+
+                val entityUpdate = EntityUpdate()
+                entityUpdate.networkId = networkId.id
+                entityUpdate.updates = arrayOf(componentUpdate)
+
+                val packet = EntityUpdates(null, arrayOf(entityUpdate))
+                playerRef.packetHandler.writeNoCache(packet)
+
+                Log.finer("PlayerMode", "Made player invisible to self (scale 0.0001)")
+            }
+        } catch (e: Exception) {
+            Log.warning("PlayerMode", "Failed to make player invisible: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * Restores player visibility by undoing the tiny scale.
+     */
+    private fun restorePlayerVisibility(
+        ref: Ref<EntityStore>,
+        component: DownedComponent,
+        commandBuffer: CommandBuffer<EntityStore>
+    ) {
+        try {
+            val playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
+            val networkId = commandBuffer.getComponent(ref, NetworkId.getComponentType())
+
+            if (playerRef != null && networkId != null) {
+                val originalScale = component.originalScale
+
+                // Create Model component update to restore normal size
+                val componentUpdate = ComponentUpdate()
+                componentUpdate.type = ComponentUpdateType.Model
+                componentUpdate.entityScale = originalScale
+
+                val entityUpdate = EntityUpdate()
+                entityUpdate.networkId = networkId.id
+                entityUpdate.updates = arrayOf(componentUpdate)
+
+                val packet = EntityUpdates(null, arrayOf(entityUpdate))
+                playerRef.packetHandler.writeNoCache(packet)
+
+                Log.finer("PlayerMode", "Restored player visibility (scale $originalScale)")
+            }
+        } catch (e: Exception) {
+            Log.warning("PlayerMode", "Failed to restore player visibility: ${e.message}")
+        }
     }
 }
 
@@ -286,16 +521,24 @@ class DownedPlayerModeSyncSystem(
             return
         }
 
+        // Get player reference for logging
+        val ref = archetypeChunk.getReferenceTo(index)
+        val playerRef = archetypeChunk.getComponent(index, PlayerRef.getComponentType())
+        Log.fine("SyncSystem", "tick() called for player: ${playerRef?.username ?: "unknown"}")
+
         // CRITICAL: Check state tracker - if player is not downed anymore, don't force sleeping
         // This prevents forcing sleeping during revive after state tracker is cleared
-        val ref = archetypeChunk.getReferenceTo(index)
         if (!com.hydowned.network.DownedStateTracker.isDowned(ref)) {
+            Log.fine("SyncSystem", "Player not in state tracker - skipping")
             return
         }
 
         // Ensure player stays in sleeping state
         val movementStatesComponent = archetypeChunk.getComponent(index, MovementStatesComponent.getComponentType())
-            ?: return
+        if (movementStatesComponent == null) {
+            Log.warning("SyncSystem", "No MovementStatesComponent found - this shouldn't happen!")
+            return
+        }
 
         val states = movementStatesComponent.movementStates
         val sentStates = movementStatesComponent.sentMovementStates
@@ -306,6 +549,7 @@ class DownedPlayerModeSyncSystem(
                          sentStates.walking || sentStates.running || sentStates.sprinting
 
         if (needsReset) {
+            Log.finer("SyncSystem", "States need reset - forcing sleeping state (sleeping=${states.sleeping}, idle=${states.idle})")
             // CRITICAL: Preserve actual falling/onGround states to prevent hovering
             // When we force sleeping, we must preserve physics-related states
             val actualFalling = states.falling
@@ -342,6 +586,8 @@ class DownedPlayerModeSyncSystem(
 
             movementStatesComponent.movementStates = newStates
             movementStatesComponent.sentMovementStates = oldSentStates
+        } else {
+            Log.fine("SyncSystem", "States already correct (sleeping=${states.sleeping})")
         }
 
         // Capture downed location when player lands (needed for revive system)

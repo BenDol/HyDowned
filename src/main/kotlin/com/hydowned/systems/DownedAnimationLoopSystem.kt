@@ -104,6 +104,6 @@ class DownedAnimationLoopSystem(
         // Send ONLY to this player's client (not to other players)
         packetHandler.write(animationPacket)
 
-        Log.finer("AnimationLoop", "Re-sent Sleep animation to player's client (networkId=$networkId)")
+        //Log.finer("AnimationLoop", "Re-sent Sleep animation to player's client (networkId=$networkId)")
     }
 }

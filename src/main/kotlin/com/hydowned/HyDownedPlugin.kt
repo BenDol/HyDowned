@@ -16,7 +16,6 @@ import com.hydowned.systems.DownedInteractionBlockingSystem
 import com.hydowned.systems.DownedInvisibilitySystem
 import com.hydowned.systems.DownedLoginCleanupSystem
 import com.hydowned.systems.DownedLogoutHandlerSystem
-import com.hydowned.systems.DownedMovementStateOverrideSystem
 import com.hydowned.systems.DownedMovementSuppressionSystem
 import com.hydowned.systems.DownedPacketInterceptorSystem
 import com.hydowned.systems.DownedPhantomBodySystem
@@ -150,15 +149,14 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
                 // Movement suppression (blocks input)
                 entityStoreRegistry.registerSystem(DownedMovementSuppressionSystem(config))
 
-                // Movement state override (sends sleeping=true every tick)
-                // DISABLED - this system actually breaks the sleeping state
-                // entityStoreRegistry.registerSystem(DownedMovementStateOverrideSystem(config))
+                // Phantom body animation (hybrid approach - applies equipment to phantom bodies)
+                entityStoreRegistry.registerSystem(PhantomBodyAnimationSystem(config))
 
                 // Camera system (looks down at player)
                 cameraSystem = DownedCameraSystem(config)
                 entityStoreRegistry.registerSystem(cameraSystem)
 
-                Log.info("Plugin", "PLAYER mode systems registered (6 systems)")
+                Log.info("Plugin", "PLAYER mode systems registered (7 systems)")
             }
             config.usePhantomMode -> {
                 Log.info("Plugin", "Registering PHANTOM mode systems...")

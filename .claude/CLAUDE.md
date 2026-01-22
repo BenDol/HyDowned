@@ -1,4 +1,10 @@
 ## General
+* Avoid code duplication; prefer composition over inheritance.
+* Write clear and concise code with meaningful variable and function names.
+* Follow SOLID principles for object-oriented design.
+* Prefer imports over qualified names for better readability.
+* Research the Hytale API in `/decompiled` folder before implementing features.
+* `/dev-server` is the recommended environment for testing server-side mods locally.
 
 ## Kotlin
 * Use idiomatic Kotlin constructs and libraries.

@@ -110,14 +110,6 @@ class ReviveInteractionSystem(
                 // Check if this reviver is already reviving
                 if (!downedComponent.reviverPlayerIds.contains(reviverUUID)) {
                     val downedPlayerName = downedPlayer.displayName ?: "Player"
-                    // PERFORMANCE: Commented out expensive logging (runs every 0.5s with string operations)
-                    // Log.separator("ReviveInteraction")
-                    // Log.verbose("ReviveInteraction", "CROUCH REVIVE DETECTED!")
-                    // Log.verbose("ReviveInteraction", "  Reviver: ${alivePlayerRef.username} (${alivePlayerRef.uuid})")
-                    // Log.verbose("ReviveInteraction", "  Downed: $downedPlayerName (${downedUuidComponent.uuid})")
-                    // Log.verbose("ReviveInteraction", "  Distance: ${Math.sqrt(distanceSquared)} blocks")
-                    // Log.verbose("ReviveInteraction", "  Crouching: $isCrouching")
-                    // Log.separator("ReviveInteraction")
 
                     // Add reviver
                     downedComponent.reviverPlayerIds.add(reviverUUID)
