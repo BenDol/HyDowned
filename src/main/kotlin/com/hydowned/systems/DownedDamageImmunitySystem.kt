@@ -82,6 +82,45 @@ class DownedDamageImmunitySystem(
             return // Don't block this damage
         }
 
+        // ALWAYS allow lava damage through (prevents players from being stuck in lava)
+        val damageSource = damage.source
+        if (damageSource is Damage.EnvironmentSource && damageSource.type.contains("lava", ignoreCase = true)) {
+            Log.warning("DamageImmunity", "LAVA DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} lava damage")
+            return // Don't block lava damage
+        }
+
+        // Check if player damage is allowed through config
+        if (config.allowPlayerDamageWhileDowned) {
+            try {
+                // Check if damage is from an entity (player or mob)
+                // EntitySource includes both direct melee and ProjectileSource (which extends EntitySource)
+                if (damageSource is Damage.EntitySource) {
+                    val sourceEntityRef = damageSource.ref
+
+                    // Check if source entity is a player
+                    val sourcePlayerComponent = store.getComponent(sourceEntityRef, Player.getComponentType())
+                    if (sourcePlayerComponent != null) {
+                        val attackerName = sourcePlayerComponent.displayName ?: "Unknown Player"
+                        Log.warning("DamageImmunity", "PLAYER DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} damage from $attackerName")
+                        return // Allow player damage through
+                    } else {
+                        // Entity damage but not from a player (mob damage) - block it
+                        Log.debug("DamageImmunity", "Mob damage blocked for ${playerComponent?.displayName}")
+                    }
+                } else if (damageSource is Damage.EnvironmentSource) {
+                    // Environmental damage (fall, drowning, fire, etc.) - block it
+                    Log.debug("DamageImmunity", "Environmental damage (${damageSource.type}) blocked for ${playerComponent?.displayName}")
+                } else {
+                    // Other damage types (command, etc.) - block it
+                    Log.debug("DamageImmunity", "Non-player damage (${damageSource.javaClass.simpleName}) blocked for ${playerComponent?.displayName}")
+                }
+            } catch (e: Exception) {
+                Log.warning("DamageImmunity", "Failed to check damage source: ${e.message}")
+                e.printStackTrace()
+                // On error, continue to block damage (safer default)
+            }
+        }
+
         // Cancel all damage by setting amount to 0
         val originalDamage = damage.amount
         damage.amount = 0.0f

@@ -19,7 +19,8 @@ data class DownedConfig(
     val enableActionBar: Boolean = true,
     val invisibilityMode: String = "SCALE", // SCALE or INVISIBLE
     val downedMode: String = "PLAYER", // PHANTOM or PLAYER
-    val logLevel: String = "INFO" // SEVERE, WARNING, INFO, FINE, FINER, FINEST
+    val logLevel: String = "INFO", // SEVERE, WARNING, INFO, FINE, FINER, FINEST
+    val allowPlayerDamageWhileDowned: Boolean = false // Allow player damage to kill downed players
 ) {
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()

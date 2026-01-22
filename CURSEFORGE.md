@@ -8,7 +8,7 @@ When you take fatal damage:
 
 *   You're knocked out at 1 HP instead of dying
 *   A 3 minute countdown starts (configurable)
-*   You're immune to all damage while knocked out
+*   You're immune to most damage while knocked out (configurable - see PvP settings)
 *   Teammates can revive you by crouching nearby
 *   If the timer runs out, you die normally
 *   Alternatively you can use `/giveup` command to respawn immediately
@@ -69,6 +69,28 @@ With `FIRST_ONLY` mode:
 *   Only the first person can revive
 *   Additional players can't help
 
+**PvP / Combat Settings**
+
+```
+{
+  "allowPlayerDamageWhileDowned": false    // Allow players to kill downed enemies
+}
+```
+
+When `false` (default):
+
+*   Knocked out players are immune to all damage except lava
+*   Players cannot be "finished off" by enemies
+*   Lava damage always kills (prevents being stuck)
+
+When `true`:
+
+*   Enemy players can kill knocked out players with attacks
+*   Applies to both melee and projectile damage
+*   Allows interrupting enemy revives in PvP
+*   Mob and environmental damage (fall, drowning) still blocked
+*   Lava damage always kills (prevents being stuck)
+
 **PHANTOM Mode Settings**
 
 ```
@@ -118,7 +140,9 @@ INVISIBLE uses a visibility component to make you invisible. SCALE shrinks you t
 *   Movement packets are blocked and movement state is forced to "sleeping"
 *   Camera is locked 5 blocks above your body looking down
 *   All physics and input are disabled server-side
-*   Immune to all damage (mob attacks won't kill you)
+*   Immune to most damage (mob attacks, fall damage, drowning won't kill you)
+*   Lava damage always kills to prevent being stuck
+*   Player damage can optionally be allowed via config for PvP scenarios
 
 **PHANTOM Mode:**
 
@@ -128,6 +152,7 @@ INVISIBLE uses a visibility component to make you invisible. SCALE shrinks you t
 *   Character collision is disabled (can't push/hit other players)
 *   Block collision remains enabled (can't walk through walls)
 *   Physical imperceptibility reduces mob targeting (though not guaranteed)
+*   Same damage immunity rules as PLAYER mode apply (lava kills, optional PvP damage)
 
 **Logout Behavior:**
 
@@ -144,7 +169,8 @@ INVISIBLE uses a visibility component to make you invisible. SCALE shrinks you t
 *   No components exist for controlling mob aggro or targeting behavior
 *   Intangible and RespondToHit removal only prevent collision/knockback, not AI targeting
 *   Invisibility components would prevent targeting but cause client crashes in PLAYER mode
-*   You remain immune to all damage, so attacks won't kill you
+*   You remain immune to mob damage, so their attacks won't kill you
+*   Note: Player damage can be optionally enabled via config for PvP scenarios
 
 **PHANTOM Mode with INVISIBLE/SCALE**: More effective at preventing mob targeting
 
@@ -153,6 +179,15 @@ INVISIBLE uses a visibility component to make you invisible. SCALE shrinks you t
 *   Not guaranteed to work for all mob types due to API limitations
 
 **Bottom Line**: If mob targeting is critical for your use case, use PHANTOM mode. PLAYER mode cannot reliably prevent mob aggro due to Hytale API limitations.
+
+**Damage Immunity Details:**
+
+*   Knocked out players are immune to most damage sources
+*   Lava damage ALWAYS kills (prevents being stuck in lava indefinitely)
+*   Player damage can be optionally enabled via `allowPlayerDamageWhileDowned` config
+*   Mob damage is always blocked (mobs can't finish you off)
+*   Environmental damage (fall, drowning, fire) is always blocked
+*   Timer expiry damage is always allowed (for timeout death)
 
 **Other Notes:**
 

@@ -11,5 +11,6 @@
   "enableActionBar": true,
   "invisibilityMode": "INVISIBLE",
   "downedMode": "PLAYER",
-  "logLevel": "FINER"
+  "logLevel": "FINER",
+  "allowPlayerDamageWhileDowned": false
 }
