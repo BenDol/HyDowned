@@ -66,7 +66,6 @@ class DownedDamageImmunitySystem(
         damage: Damage
     ) {
         val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-        Log.warning("DamageImmunity", "[ENTRY] Processing damage for downed player ${playerComponent?.displayName}, amount: ${damage.amount}")
 
         // Check if timer has expired - allow timeout death damage through
         val downedComponent = archetypeChunk.getComponent(index, DownedComponent.getComponentType())
@@ -77,8 +76,6 @@ class DownedDamageImmunitySystem(
 
         if (downedComponent.downedTimeRemaining <= 0) {
             // Timer expired - this is the timeout kill damage, allow it through
-            val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-            Log.warning("DamageImmunity", "TIMEOUT KILL DAMAGE - Allowing through for ${playerComponent?.displayName}, damage: ${damage.amount}")
             return // Don't block this damage
         }
 
@@ -95,42 +92,26 @@ class DownedDamageImmunitySystem(
                 if (sourcePlayerComponent != null) {
                     // Player damage (PvP)
                     if (config.allowedDownedDamage.player) {
-                        val attackerName = sourcePlayerComponent.displayName ?: "Unknown Player"
-                        Log.warning("DamageImmunity", "PLAYER DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} damage from $attackerName")
                         return // Allow player damage through
-                    } else {
-                        Log.debug("DamageImmunity", "Player damage blocked for ${playerComponent?.displayName}")
                     }
                 } else {
                     // Entity damage but not from a player (mob damage)
                     if (config.allowedDownedDamage.mob) {
-                        Log.warning("DamageImmunity", "MOB DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} damage from mob")
                         return // Allow mob damage through
-                    } else {
-                        Log.debug("DamageImmunity", "Mob damage blocked for ${playerComponent?.displayName}")
                     }
                 }
             } else if (damageSource is Damage.EnvironmentSource) {
                 // Check if it's specifically lava damage
                 if (damageSource.type.contains("lava", ignoreCase = true)) {
                     if (config.allowedDownedDamage.lava) {
-                        Log.warning("DamageImmunity", "LAVA DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} lava damage")
                         return // Allow lava damage through
-                    } else {
-                        Log.debug("DamageImmunity", "Lava damage blocked for ${playerComponent?.displayName}")
                     }
                 } else {
                     // Other environmental damage (fall, drowning, fire, etc.)
                     if (config.allowedDownedDamage.environment) {
-                        Log.warning("DamageImmunity", "ENVIRONMENT DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} ${damageSource.type} damage")
                         return // Allow environmental damage through
-                    } else {
-                        Log.debug("DamageImmunity", "Environmental damage (${damageSource.type}) blocked for ${playerComponent?.displayName}")
                     }
                 }
-            } else {
-                // Other damage types (command, etc.) - always block
-                Log.debug("DamageImmunity", "Non-standard damage (${damageSource.javaClass.simpleName}) blocked for ${playerComponent?.displayName}")
             }
         } catch (e: Exception) {
             Log.warning("DamageImmunity", "Failed to check damage source: ${e.message}")
@@ -139,8 +120,6 @@ class DownedDamageImmunitySystem(
         }
 
         // Cancel all damage by setting amount to 0
-        val originalDamage = damage.amount
         damage.amount = 0.0f
-        Log.warning("DamageImmunity", "DAMAGE BLOCKED - Player is downed: ${playerComponent?.displayName}, blocked ${originalDamage} damage")
     }
 }

@@ -79,10 +79,13 @@ Config file: `plugins/HyDowned/config.json`
 
 **Downed Health System:**
 
-The `downedHealthPercent` setting controls what health level players are set to when downed. This is calculated as a percentage of the player's maximum health:
+The `downedHealthPercent` setting controls what health level players are **restored to** when they take fatal damage (damage that would bring health to 0 or below):
 
-- Default `0.01` = 1% of max HP (player with 100 max HP → 1 HP when downed)
+- Default `0.01` = 1% of max HP (player with 100 max HP → restored to 1 HP when downed)
 - Minimum value is `0.001` (0.1 HP minimum to prevent rounding issues)
+- Only lethal damage triggers downed state - non-lethal damage passes through normally
+- **Example**: Player at 5 HP takes 10 damage (fatal) → damage canceled, health restored to 1 HP, player enters downed state
+- **Health buffer for PvP**: Higher percentages (e.g., 10%) give downed players more HP, preventing instant one-shots when `allowedDownedDamage.player = true`
 - Players at downed health cannot heal - `DownedHealingSuppressionSystem` actively reverts any healing attempts
 - This prevents players from healing out of the downed state via food, potions, or regeneration
 

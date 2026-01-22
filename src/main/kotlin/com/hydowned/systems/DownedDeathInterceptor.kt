@@ -67,26 +67,19 @@ class DownedDeathInterceptor(
         val ref = archetypeChunk.getReferenceTo(index)
         val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
 
-        // Log damage processing for debugging
-        Log.debug("DeathInterceptor", "[ENTRY] Processing damage for ${playerComponent?.displayName}, amount: ${damage.amount}, source: ${damage.source}")
-
         // Check if player already downed (or being downed in this tick's command buffer)
         if (commandBuffer.getArchetype(ref).contains(DownedComponent.getComponentType())) {
             // Get the DownedComponent to check timer status
             val downedComponent = commandBuffer.getComponent(ref, DownedComponent.getComponentType())
 
-            Log.debug("DeathInterceptor", "Player HAS DownedComponent - timer: ${downedComponent?.downedTimeRemaining}, damage: ${damage.amount}")
-
             // Check if this is intentional death damage (from executeDeath)
             // executeDeath uses 999999.0f as kill damage - allow it through
             if (damage.amount >= 999999.0f) {
-                Log.finer("DeathInterceptor", "INTENTIONAL KILL DAMAGE (999999+) - Allowing through for ${playerComponent?.displayName}")
                 return // Don't block this damage - player should die
             }
 
             // Check if timer has expired - allow timeout/giveup kill damage through
             if (downedComponent != null && downedComponent.downedTimeRemaining <= 0) {
-                Log.finer("DeathInterceptor", "TIMEOUT/GIVEUP KILL DAMAGE - Allowing through for ${playerComponent?.displayName}, damage: ${damage.amount}")
                 return // Don't block this damage - player should die
             }
 
@@ -94,7 +87,6 @@ class DownedDeathInterceptor(
             // DamageImmunitySystem will check the allowedDownedDamage config and either:
             // - Allow the damage through (if configured to allow this damage type)
             // - Block the damage (if configured to block this damage type)
-            Log.debug("DeathInterceptor", "Player already downed - passing to DamageImmunitySystem: ${playerComponent?.displayName}, damage: ${damage.amount}")
             return // Let the damage pass through to DamageImmunitySystem
         }
 
@@ -113,20 +105,18 @@ class DownedDeathInterceptor(
 
         val currentHealth = healthStat.get()
 
-        // Calculate downed health threshold based on config (percentage of max health)
-        val downedHealthThreshold = (healthStat.max * config.downedHealthPercent.toFloat()).coerceAtLeast(0.1f)
-
-        // Calculate if this damage would be lethal
+        // Calculate if this damage would be lethal (bring health to 0 or below)
         val newHealth = currentHealth - damage.amount
 
-        // CRITICAL: Check if damage would bring health below downed threshold
-        // We use a threshold above 0 to prevent edge cases where Hytale's internal
-        // death check might trigger between damage and our interception.
-        if (newHealth < downedHealthThreshold) {
-            // This damage would bring player below threshold - intercept it!
-            // Modify damage to leave player at the configured downed health threshold
-            // This prevents any rounding/truncation issues in Hytale's engine
-            damage.amount = (currentHealth - downedHealthThreshold).coerceAtLeast(0.0f)
+        // Check if this damage would kill the player
+        if (newHealth <= 0) {
+            // This damage would kill - intercept it and restore player to downed health
+            // Calculate downed health value based on config (percentage of max health)
+            val downedHealth = (healthStat.max * config.downedHealthPercent.toFloat()).coerceAtLeast(0.1f)
+
+            // Cancel the damage entirely and directly set health to downed health
+            damage.amount = 0.0f
+            entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), downedHealth)
 
             // Don't capture location yet - will be captured after player lands on ground
             // This prevents capturing position mid-air when player dies from fall damage
@@ -188,13 +178,7 @@ class DownedDeathInterceptor(
                         notifiedCount++
                     }
                 }
-
-                Log.finer("DeathInterceptor", "Notified $notifiedCount nearby players")
             }
-        } else {
-            // Damage is NOT lethal - allowing through
-            Log.debug("DeathInterceptor",
-                "[NON-LETHAL] Allowing damage through for ${playerComponent?.displayName}: $currentHealth HP -> $newHealth HP")
         }
     }
 }

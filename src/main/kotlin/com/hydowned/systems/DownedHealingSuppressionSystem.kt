@@ -18,7 +18,7 @@ import java.util.logging.Level
 /**
  * Suppresses ALL healing for downed players by:
  * 1. Monitoring health stat changes every tick
- * 2. If health exceeds downed threshold (configurable), immediately revert it back
+ * 2. If health exceeds downed health value (configurable), immediately revert it back
  * 3. This blocks:
  *    - Natural health regeneration
  *    - Food/item healing
@@ -58,13 +58,13 @@ class DownedHealingSuppressionSystem(
 
         val currentHealth = healthStat.get()
 
-        // Calculate downed health threshold based on config (percentage of max health)
-        val downedHealthThreshold = (healthStat.max * config.downedHealthPercent.toFloat()).coerceAtLeast(0.1f)
+        // Calculate downed health value based on config (percentage of max health)
+        val downedHealth = (healthStat.max * config.downedHealthPercent.toFloat()).coerceAtLeast(0.1f)
 
-        // If health exceeds threshold, something tried to heal the player
-        if (currentHealth > downedHealthThreshold) {
-            // Revert health back to downed threshold
-            entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), downedHealthThreshold)
+        // If health exceeds downed health, something tried to heal the player
+        if (currentHealth > downedHealth) {
+            // Revert health back to downed health value
+            entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), downedHealth)
         }
     }
 }

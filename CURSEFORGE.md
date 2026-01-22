@@ -52,9 +52,12 @@ Edit `plugins/HyDowned/config.json`:
 
 **Downed Health System:**
 
-*   `downedHealthPercent` controls what health level players are set to when knocked out
-*   Default `0.01` = 1% of max HP (player with 100 max HP → 1 HP when downed)
+*   `downedHealthPercent` controls what health level players are **restored to** when they take fatal damage (damage that would bring health to 0 or below)
+*   Default `0.01` = 1% of max HP (player with 100 max HP → restored to 1 HP when knocked out)
 *   Minimum value is `0.001` (0.1 HP minimum to prevent rounding issues)
+*   Only lethal damage triggers knocked out state - non-lethal damage passes through normally
+*   **Example**: Player at 5 HP takes 10 damage (fatal) → damage canceled, health restored to 1 HP, player enters knocked out state
+*   **Health buffer for PvP**: Higher percentages (e.g., 10%) give downed players more HP, preventing instant one-shots when `allowedDownedDamage.player = true`
 *   **Healing suppression**: Players at downed health cannot heal - all healing attempts are automatically reverted
 *   This prevents knocked out players from healing via food, potions, or regeneration effects
 
