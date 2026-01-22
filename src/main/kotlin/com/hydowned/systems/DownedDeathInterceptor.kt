@@ -139,12 +139,10 @@ class DownedDeathInterceptor(
 
             Log.debug("DeathInterceptor", "  Modified damage from $originalDamageAmount to ${damage.amount} (leaves player at 1 HP)")
 
-            // Get location for downed state (optional - will be null if TransformComponent missing)
-            val transform = archetypeChunk.getComponent(index, TransformComponent.getComponentType())
-            if (transform == null) {
-                Log.warning("DeathInterceptor", "[MISSING COMPONENT] ${playerComponent?.displayName} has no TransformComponent - location will be null")
-            }
-            val location = transform?.position?.clone()
+            // Don't capture location yet - will be captured after player lands on ground
+            // This prevents capturing position mid-air when player dies from fall damage
+            // Position will be captured by DownedPlayerModeSyncSystem once onGround = true
+            val location = null
 
             // Add downed component instead of letting death happen
             val downedComponent = DownedComponent(
@@ -157,10 +155,11 @@ class DownedDeathInterceptor(
                 originalDamage = damage
             )
 
-            commandBuffer.addComponent(ref, DownedComponent.getComponentType(), downedComponent)
-
-            // Track downed state for network threads
+            // Track downed state for network threads BEFORE adding component
+            // This ensures packet handlers see correct state when onComponentAdded fires
             DownedStateTracker.setDowned(ref)
+
+            commandBuffer.addComponent(ref, DownedComponent.getComponentType(), downedComponent)
 
             if (Log.isEnabled(java.util.logging.Level.FINE)) {
                 Log.debug("DeathInterceptor", "Player entered downed state")
@@ -173,10 +172,12 @@ class DownedDeathInterceptor(
             val downedPlayer = archetypeChunk.getComponent(index, Player.getComponentType())
             downedPlayer?.sendMessage(Message.raw("You've been knocked out! Wait for a teammate to revive you by crouching next to you, or use /giveup to respawn."))
 
-            // Notify nearby players
+            // Notify nearby players (use current position even though we're not storing it yet)
             val downedPlayerName = downedPlayer?.displayName ?: "A player"
+            val currentTransform = archetypeChunk.getComponent(index, TransformComponent.getComponentType())
 
-            if (location != null) {
+            if (currentTransform != null) {
+                val currentLocation = currentTransform.position
                 val allPlayers = com.hypixel.hytale.server.core.universe.Universe.get().players
                 var notifiedCount = 0
 
@@ -194,8 +195,8 @@ class DownedDeathInterceptor(
                     val nearbyPos = nearbyTransform.position
 
                     // Calculate distance
-                    val dx = nearbyPos.x - location.x
-                    val dz = nearbyPos.z - location.z
+                    val dx = nearbyPos.x - currentLocation.x
+                    val dz = nearbyPos.z - currentLocation.z
                     val distanceSquared = dx * dx + dz * dz
                     val notifyRangeSquared = 256.0 * 256.0
 

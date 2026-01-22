@@ -111,8 +111,9 @@ object DownedCleanupHelper {
 
                 // Remove DownedComponent and state tracker
                 // This will trigger onComponentRemoved callbacks which handle movement state cleanup
-                commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
+                // Clear state tracker FIRST to prevent race condition
                 DownedStateTracker.setNotDowned(ref)
+                commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
 
                 Log.finer("CleanupHelper", "Removed DownedComponent - player should die from 0 HP")
             }
@@ -166,6 +167,19 @@ object DownedCleanupHelper {
             } else {
                 Log.warning("CleanupHelper", "Health stat not found")
                 return false
+            }
+
+            // Restore breath to maximum (prevents drowning death if revived underwater)
+            try {
+                val breathStat = entityStatMap.get(DefaultEntityStatTypes.getOxygen())
+                if (breathStat != null) {
+                    entityStatMap.setStatValue(DefaultEntityStatTypes.getOxygen(), breathStat.max)
+                    Log.finer("CleanupHelper", "Restored oxygen to maximum (${breathStat.max})")
+                } else {
+                    Log.warning("CleanupHelper", "Oxygen stat not found - player may drown if underwater")
+                }
+            } catch (e: Exception) {
+                Log.warning("CleanupHelper", "Failed to restore oxygen: ${e.message}")
             }
         } else {
             Log.warning("CleanupHelper", "EntityStatMap not found")
@@ -321,11 +335,82 @@ object DownedCleanupHelper {
             e.printStackTrace()
         }
 
+        // CRITICAL: Stop animations BEFORE removing component
+        // This prevents AnimationLoop from sending one final Sleep animation during revive
+        // MUST stop BOTH Death and Sleep animations (AnimationLoop sends Sleep, not Death)
+        try {
+            AnimationUtils.stopAnimation(ref, AnimationSlot.Movement, commandBuffer)
+
+            // Also send explicit stop packet for Sleep animation to player's client
+            // AnimationUtils.stopAnimation might only stop Death, but client has Sleep playing
+            val playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
+            if (playerRef != null) {
+                val stopAnimationPacket = com.hypixel.hytale.protocol.packets.entities.PlayAnimation()
+                val networkIdComp = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId.getComponentType())
+                if (networkIdComp != null) {
+                    stopAnimationPacket.entityId = networkIdComp.id
+                    stopAnimationPacket.slot = AnimationSlot.Movement
+                    stopAnimationPacket.animationId = null // null = stop animation
+                    playerRef.packetHandler.writeNoCache(stopAnimationPacket)
+                    Log.finer("CleanupHelper", "Sent explicit Sleep animation stop packet to client")
+                }
+            }
+
+            Log.finer("CleanupHelper", "Stopped animations before component removal")
+        } catch (e: Exception) {
+            Log.warning("CleanupHelper", "Failed to stop animations: ${e.message}")
+        }
+
+        // CRITICAL: Send movement state reset directly to player's client BEFORE clearing state tracker
+        // This ensures the packet goes through while we can still identify it as a revive packet
+        try {
+            val playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType())
+            val networkIdComponent = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId.getComponentType())
+            val movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType())
+
+            if (playerRef != null && networkIdComponent != null && movementStatesComponent != null) {
+                // Set movement states on server first
+                val newStates = com.hypixel.hytale.protocol.MovementStates()
+                newStates.sleeping = false
+                newStates.idle = true
+                newStates.onGround = true
+
+                val oldSentStates = com.hypixel.hytale.protocol.MovementStates()
+                oldSentStates.sleeping = true
+                oldSentStates.idle = false
+                oldSentStates.onGround = true
+
+                movementStatesComponent.movementStates = newStates
+                movementStatesComponent.sentMovementStates = oldSentStates
+
+                // Send packet to player's own client
+                val componentUpdate = com.hypixel.hytale.protocol.ComponentUpdate()
+                componentUpdate.type = com.hypixel.hytale.protocol.ComponentUpdateType.MovementStates
+                componentUpdate.movementStates = newStates
+
+                val entityUpdate = com.hypixel.hytale.protocol.EntityUpdate()
+                entityUpdate.networkId = networkIdComponent.id
+                entityUpdate.updates = arrayOf(componentUpdate)
+
+                val entityUpdatesPacket = com.hypixel.hytale.protocol.packets.entities.EntityUpdates(
+                    null,
+                    arrayOf(entityUpdate)
+                )
+
+                playerRef.packetHandler.writeNoCache(entityUpdatesPacket)
+                Log.finer("CleanupHelper", "Sent movement state reset to player's client (sleeping=false, idle=true)")
+            }
+        } catch (e: Exception) {
+            Log.warning("CleanupHelper", "Failed to send movement state reset: ${e.message}")
+            e.printStackTrace()
+        }
+
+        // CRITICAL: Clear state tracker AFTER sending movement state update
+        // This ensures the packet goes through while we can still identify it
+        DownedStateTracker.setNotDowned(ref)
+
         // Remove downed component (triggers visibility restoration + phantom body removal for non-logout)
         commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
-
-        // Clear downed state tracking
-        DownedStateTracker.setNotDowned(ref)
 
         Log.finer("CleanupHelper", "Cleaned up DownedComponent and state tracker")
     }

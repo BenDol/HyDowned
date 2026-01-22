@@ -31,20 +31,23 @@ class DownedPacketChannelHandler(
 ) : ChannelOutboundHandlerAdapter() {
 
     override fun write(ctx: ChannelHandlerContext, msg: Any, promise: ChannelPromise) {
-        // Only intercept Packet objects
+        // Intercept packets for downed players in PLAYER mode
         if (msg is Packet && usePlayerMode && isPlayerDowned()) {
             when (msg) {
                 is EntityUpdates -> {
-                    // Modify the packet to force sleeping movement state
+                    // Modify EntityUpdates to force sleeping=true for the local player
+                    Log.finer("ChannelHandler", "Intercepted EntityUpdates packet - modifying sleeping state")
                     handleEntityUpdates(msg)
                 }
                 is PlayAnimation -> {
-                    // Block any non-Death animations in Movement or Status slots
+                    // Block any non-Death/Sleep animations in Movement or Status slots
                     if (msg.slot == AnimationSlot.Movement || msg.slot == AnimationSlot.Status) {
                         val animationId = msg.animationId
 
-                        if (animationId != null && !animationId.contains("Death", ignoreCase = true)) {
-                            // BLOCK non-death animations - don't send to client
+                        if (animationId != null &&
+                            !animationId.contains("Death", ignoreCase = true) &&
+                            !animationId.contains("Sleep", ignoreCase = true)) {
+                            // BLOCK non-downed animations - don't send to client
                             return // Don't call super.write - packet is blocked
                         }
                     }
@@ -52,7 +55,7 @@ class DownedPacketChannelHandler(
             }
         }
 
-        // Always pass the message through (modified or not, unless blocked above)
+        // Always pass the message through (unless blocked above)
         super.write(ctx, msg, promise)
     }
 
@@ -63,12 +66,16 @@ class DownedPacketChannelHandler(
         // Get current network ID from tracker (thread-safe, handles respawns/changes)
         val currentNetworkId = DownedStateTracker.getNetworkId(playerRef)
         if (currentNetworkId == null) {
-            // Network ID not tracked yet, skip
+            Log.finer("ChannelHandler", "No network ID tracked for player, skipping")
             return
         }
 
         // Check if packet contains updates
-        val updates = packet.updates ?: return
+        val updates = packet.updates
+        if (updates == null) {
+            Log.finer("ChannelHandler", "EntityUpdates packet has no updates")
+            return
+        }
 
         // Find EntityUpdate for this player (using current network ID from tracker)
         for (entityUpdate in updates) {
@@ -103,6 +110,7 @@ class DownedPacketChannelHandler(
                             movementStates.rolling = false
                             movementStates.sitting = false
                             movementStates.gliding = false
+                            Log.finer("ChannelHandler", "Modified MovementStates to sleeping=true")
                         }
                     }
                 }

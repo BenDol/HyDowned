@@ -58,8 +58,7 @@
       "Bash(sort:*)",
       "WebFetch(domain:hytale-docs.com)",
       "Bash(git ls-tree:*)",
-      "Bash(.gradlew.bat build)",
-      "Bash(done)"
+      "Bash(.gradlew.bat build)"
     ]
   }
 }

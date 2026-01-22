@@ -155,12 +155,13 @@ class DownedLoginCleanupSystem(
                     restoredComponent.originalScale = currentScale
                     restoredComponent.originalDisplayName = currentDisplayName
 
+                    // Update state tracker BEFORE adding component
+                    // This ensures packet handlers see correct state when onComponentAdded fires
+                    DownedStateTracker.setDowned(ref)
+
                     // Add DownedComponent to trigger all RefChangeSystem callbacks
                     // This will create phantom body, make invisible, disable collisions, etc.
                     commandBuffer.addComponent(ref, DownedComponent.getComponentType(), restoredComponent)
-
-                    // Update state tracker (needed for network threads to know player is downed)
-                    DownedStateTracker.setDowned(ref)
 
                     Log.finer("LoginCleanup", "Downed state restored - all systems triggered")
 

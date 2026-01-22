@@ -14,6 +14,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.util.Log
+import com.hydowned.network.DownedStateTracker
 
 /**
  * CRITICAL: Continuously re-sends Death animation ONLY to downed player's client.
@@ -48,6 +49,14 @@ class DownedAnimationLoopSystem(
 
     override fun getQuery(): Query<EntityStore> = query
 
+    /**
+     * Clears the tick counter for a specific network ID.
+     * Should be called when a player is revived or dies to prevent stale counter accumulation.
+     */
+    fun clearTickCounter(networkId: Int) {
+        entityTickCounters.remove(networkId)
+    }
+
     override fun tick(
         dt: Float,
         index: Int,
@@ -57,6 +66,14 @@ class DownedAnimationLoopSystem(
     ) {
         // Early return if not PLAYER mode (no config check needed every tick per entity)
         if (!config.usePlayerMode) {
+            return
+        }
+
+        // CRITICAL: Check state tracker - if player is not downed anymore, don't send animation
+        // This prevents sending animation during revive after state tracker is cleared
+        val ref = archetypeChunk.getReferenceTo(index)
+        if (!DownedStateTracker.isDowned(ref)) {
+            Log.finer("AnimationLoop", "Player no longer downed (state tracker cleared), skipping animation")
             return
         }
 
@@ -86,5 +103,7 @@ class DownedAnimationLoopSystem(
 
         // Send ONLY to this player's client (not to other players)
         packetHandler.write(animationPacket)
+
+        Log.finer("AnimationLoop", "Re-sent Sleep animation to player's client (networkId=$networkId)")
     }
 }

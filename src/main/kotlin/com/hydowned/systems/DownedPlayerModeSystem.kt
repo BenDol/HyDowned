@@ -20,9 +20,14 @@ import com.hypixel.hytale.server.core.modules.entity.player.PlayerProcessMovemen
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
+import com.hypixel.hytale.server.core.universe.PlayerRef
+import com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.util.Log
+import com.hydowned.network.DownedStateTracker
+import com.hypixel.hytale.math.vector.Vector3d
+import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
 
 /**
  * Handles PLAYER mode by putting the downed player into sleep/laying state.
@@ -76,7 +81,7 @@ class DownedPlayerModeSystem(
                 Log.warning("PlayerMode", "Failed to clear animations: ${e.message}")
             }
 
-            // Play death animation on the player
+            // Play death animation on the player IMMEDIATELY
             AnimationUtils.playAnimation(
                 ref,
                 AnimationSlot.Movement,
@@ -173,12 +178,20 @@ class DownedPlayerModeSystem(
                 // Player is being revived - reset movement state to normal
                 val movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType())
                 if (movementStatesComponent != null) {
-                    val states = MovementStates()
-                    states.sleeping = false
-                    states.idle = false
-                    states.onGround = true
-                    movementStatesComponent.movementStates = states
-                    movementStatesComponent.sentMovementStates = states
+                    // CRITICAL: Must use DIFFERENT objects for change detection
+                    // If both are the same object, ECS won't detect change and won't send to player's client
+                    val newStates = MovementStates()
+                    newStates.sleeping = false
+                    newStates.idle = true  // Default to idle when standing
+                    newStates.onGround = true
+
+                    val oldSentStates = MovementStates()
+                    oldSentStates.sleeping = true  // Old state was sleeping
+                    oldSentStates.idle = false
+                    oldSentStates.onGround = true
+
+                    movementStatesComponent.movementStates = newStates
+                    movementStatesComponent.sentMovementStates = oldSentStates
                     Log.finer("PlayerMode", "Reset player to normal movement state (revive scenario)")
                 }
             }
@@ -190,6 +203,14 @@ class DownedPlayerModeSystem(
                 commandBuffer
             )
             Log.finer("PlayerMode", "Stopped Death animation")
+
+            // Remove ActiveAnimationComponent if present
+            try {
+                commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ActiveAnimationComponent.getComponentType())
+                Log.finer("PlayerMode", "Removed ActiveAnimationComponent")
+            } catch (e: Exception) {
+                Log.finer("PlayerMode", "No ActiveAnimationComponent to remove (or removal failed)")
+            }
 
         } catch (e: Exception) {
             Log.warning("PlayerMode", "Failed to reset player mode: ${e.message}")
@@ -265,6 +286,13 @@ class DownedPlayerModeSyncSystem(
             return
         }
 
+        // CRITICAL: Check state tracker - if player is not downed anymore, don't force sleeping
+        // This prevents forcing sleeping during revive after state tracker is cleared
+        val ref = archetypeChunk.getReferenceTo(index)
+        if (!com.hydowned.network.DownedStateTracker.isDowned(ref)) {
+            return
+        }
+
         // Ensure player stays in sleeping state
         val movementStatesComponent = archetypeChunk.getComponent(index, MovementStatesComponent.getComponentType())
             ?: return
@@ -278,10 +306,88 @@ class DownedPlayerModeSyncSystem(
                          sentStates.walking || sentStates.running || sentStates.sprinting
 
         if (needsReset) {
-            // Force both states and sentStates to sleeping using cached object
-            // This avoids setting 40+ individual properties every tick
-            movementStatesComponent.movementStates = SLEEPING_STATES
-            movementStatesComponent.sentMovementStates = SLEEPING_STATES
+            // CRITICAL: Preserve actual falling/onGround states to prevent hovering
+            // When we force sleeping, we must preserve physics-related states
+            val actualFalling = states.falling
+            val actualOnGround = states.onGround
+
+            // CRITICAL: Must use DIFFERENT objects for change detection to replicate to other players
+            // If both are the same object, ECS won't detect change and won't send to other clients
+            val newStates = MovementStates()
+            newStates.sleeping = true
+            newStates.idle = false
+            newStates.horizontalIdle = false
+            newStates.walking = false
+            newStates.running = false
+            newStates.sprinting = false
+            newStates.jumping = false
+            newStates.falling = actualFalling  // Preserve physics
+            newStates.crouching = false
+            newStates.forcedCrouching = false
+            newStates.climbing = false
+            newStates.flying = false
+            newStates.swimming = false
+            newStates.swimJumping = false
+            newStates.mantling = false
+            newStates.sliding = false
+            newStates.mounting = false
+            newStates.rolling = false
+            newStates.sitting = false
+            newStates.gliding = false
+            newStates.onGround = actualOnGround  // Preserve physics
+
+            val oldSentStates = MovementStates()
+            oldSentStates.sleeping = false
+            oldSentStates.idle = true
+
+            movementStatesComponent.movementStates = newStates
+            movementStatesComponent.sentMovementStates = oldSentStates
+        }
+
+        // Capture downed location when player lands (needed for revive system)
+        // Note: ref is already declared above for state tracker check
+        val downedComponent = commandBuffer.getComponent(ref, DownedComponent.getComponentType())
+            ?: return
+
+        // When player lands, raycast down to find actual ground surface
+        if (downedComponent.downedLocation == null && states.onGround) {
+            val transform = commandBuffer.getComponent(ref, TransformComponent.getComponentType())
+            if (transform != null) {
+                val currentPos = transform.position
+                var groundY: Double? = null
+                val startY = currentPos.y
+                val world = store.externalData.world
+
+                // Raycast down from current position to find solid ground (check up to 5 blocks down)
+                for (checkY in kotlin.math.floor(startY).toInt() downTo (kotlin.math.floor(startY) - 5).toInt()) {
+                    val blockX = kotlin.math.floor(currentPos.x).toInt()
+                    val blockZ = kotlin.math.floor(currentPos.z).toInt()
+
+                    try {
+                        val blockId = world.getBlock(blockX, checkY, blockZ)
+                        val blockType = com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType.getAssetMap().getAsset(blockId)
+
+                        if (blockType != null && blockType.material == com.hypixel.hytale.protocol.BlockMaterial.Solid) {
+                            groundY = checkY + 1.0
+                            Log.info("PlayerMode", "Raycast found ground at Y=$checkY, locking to Y=$groundY")
+                            break
+                        }
+                    } catch (e: Exception) {
+                        Log.warning("PlayerMode", "Failed to check block: ${e.message}")
+                    }
+                }
+
+                if (groundY != null) {
+                    // Snap player to ground level
+                    transform.position.y = groundY
+                    downedComponent.downedLocation = Vector3d(currentPos.x, groundY, currentPos.z)
+                    Log.info("PlayerMode", "Player locked to ground surface: ${downedComponent.downedLocation}")
+                } else {
+                    // Fallback: use current position
+                    downedComponent.downedLocation = Vector3d(currentPos.x, currentPos.y, currentPos.z)
+                    Log.warning("PlayerMode", "No ground found, using current position: ${downedComponent.downedLocation}")
+                }
+            }
         }
     }
 }

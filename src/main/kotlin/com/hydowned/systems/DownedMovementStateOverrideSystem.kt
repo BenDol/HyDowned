@@ -110,5 +110,15 @@ class DownedMovementStateOverrideSystem(
 
         // Send to the player about THEMSELVES - CRITICAL for self-view
         playerRefComponent.packetHandler.writeNoCache(entityUpdatesPacket)
+
+        // Log every 100 ticks to avoid spam
+        val tickCount = entityTickCounter.getOrDefault(networkId, 0) + 1
+        entityTickCounter[networkId] = tickCount
+        if (tickCount % 100 == 0) {
+            Log.finer("MovementOverride", "Sent sleeping state packet #$tickCount to player (networkId=$networkId)")
+        }
     }
+
+    // Track ticks per entity for logging
+    private val entityTickCounter = mutableMapOf<Int, Int>()
 }

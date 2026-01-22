@@ -151,7 +151,8 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
                 entityStoreRegistry.registerSystem(DownedMovementSuppressionSystem(config))
 
                 // Movement state override (sends sleeping=true every tick)
-                entityStoreRegistry.registerSystem(DownedMovementStateOverrideSystem(config))
+                // DISABLED - this system actually breaks the sleeping state
+                // entityStoreRegistry.registerSystem(DownedMovementStateOverrideSystem(config))
 
                 // Camera system (looks down at player)
                 cameraSystem = DownedCameraSystem(config)

@@ -108,8 +108,9 @@ class DownedPacketInterceptorSystem(
             }
 
             // 2. INSTALL NETTY CHANNEL HANDLER FOR OUTGOING PACKETS
-            // We can't extend GamePacketHandler due to final methods, so we intercept at the
-            // Netty channel level instead. This gives us access to ALL outgoing packets.
+            // Intercepts outgoing EntityUpdates and PlayAnimation packets
+            // - PLAYER mode: Forces sleeping=true on EntityUpdates, blocks non-Death animations
+            // - PHANTOM mode: Same protections for phantom body packets
             try {
                 val channel = packetHandler.channel
                 val pipeline = channel.pipeline()
@@ -137,7 +138,7 @@ class DownedPacketInterceptorSystem(
 
             Log.finer("PacketInterceptor", "Installed packet interceptors for player:")
             Log.finer("PacketInterceptor", "  - Wrapped $wrappedCount incoming handlers (ClientMovement BLOCKED)")
-            Log.finer("PacketInterceptor", "  - Installed Netty channel handler (intercepts ALL outgoing EntityUpdates)")
+            Log.finer("PacketInterceptor", "  - Installed Netty channel handler for packet modification")
             Log.finer("PacketInterceptor", "  - NetworkId=$playerNetworkId stored in tracker")
 
         } catch (e: Exception) {
