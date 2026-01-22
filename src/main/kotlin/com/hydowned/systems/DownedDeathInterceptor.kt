@@ -36,6 +36,13 @@ class DownedDeathInterceptor(
     private val config: DownedConfig
 ) : DamageEventSystem() {
 
+    companion object {
+        // Track players being downed RIGHT NOW to prevent race conditions from spam attacks
+        // This set is used by DamageImmunitySystem to block damage during initial downing
+        // Thread-safe set in case damage systems run concurrently
+        val downedThisTick = java.util.concurrent.ConcurrentHashMap.newKeySet<com.hypixel.hytale.component.Ref<EntityStore>>()
+    }
+
     // CRITICAL: Query ONLY requires Player component!
     // If we require EntityStatMap/TransformComponent in the query, the system won't run
     // for entities missing those components during cleanup/transition, and damage bypasses us!
@@ -67,27 +74,49 @@ class DownedDeathInterceptor(
         val ref = archetypeChunk.getReferenceTo(index)
         val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
 
+        // CRITICAL: Check if we already processed a fatal hit for this player recently
+        // This prevents race conditions from spam attacks in the same tick
+        if (downedThisTick.contains(ref)) {
+            // Player is currently being downed - verify health is at safe level
+            val entityStatMap = archetypeChunk.getComponent(index, EntityStatMap.getComponentType())
+            if (entityStatMap != null) {
+                val healthStat = entityStatMap.get(DefaultEntityStatTypes.getHealth())
+                if (healthStat != null) {
+                    val currentHealth = healthStat.get()
+                    val downedHealth = (healthStat.max * config.downedHealthPercent.toFloat()).coerceAtLeast(0.1f)
+
+                    if (currentHealth >= downedHealth) {
+                        // Health is confirmed safe - remove from tracking, let DamageImmunitySystem handle future damage
+                        downedThisTick.remove(ref)
+                        // Check if DownedComponent added yet to decide if we should pass through
+                        if (commandBuffer.getArchetype(ref).contains(DownedComponent.getComponentType())) {
+                            return // Let DamageImmunitySystem handle it
+                        }
+                        // DownedComponent not added yet, continue processing below
+                    } else {
+                        // Health still too low - block damage and keep in tracking
+                        damage.amount = 0.0f
+                        return
+                    }
+                } else {
+                    // No health stat - block as safety measure
+                    damage.amount = 0.0f
+                    return
+                }
+            } else {
+                // No stat map - block as safety measure
+                damage.amount = 0.0f
+                return
+            }
+        }
+
         // Check if player already downed (or being downed in this tick's command buffer)
         if (commandBuffer.getArchetype(ref).contains(DownedComponent.getComponentType())) {
-            // Get the DownedComponent to check timer status
-            val downedComponent = commandBuffer.getComponent(ref, DownedComponent.getComponentType())
-
-            // Check if this is intentional death damage (from executeDeath)
-            // executeDeath uses 999999.0f as kill damage - allow it through
-            if (damage.amount >= 999999.0f) {
-                return // Don't block this damage - player should die
-            }
-
-            // Check if timer has expired - allow timeout/giveup kill damage through
-            if (downedComponent != null && downedComponent.downedTimeRemaining <= 0) {
-                return // Don't block this damage - player should die
-            }
-
-            // Player is already downed - let DamageImmunitySystem handle damage filtering
-            // DamageImmunitySystem will check the allowedDownedDamage config and either:
-            // - Allow the damage through (if configured to allow this damage type)
-            // - Block the damage (if configured to block this damage type)
-            return // Let the damage pass through to DamageImmunitySystem
+            // Player is already downed with DownedComponent - they're officially downed now
+            // Remove from downedThisTick if present (cleanup for edge cases)
+            downedThisTick.remove(ref)
+            // Let DamageImmunitySystem handle it (it will check allowedDownedDamage config and timer expiry)
+            return
         }
 
         // Get health stats - MUST be present to process damage
@@ -114,9 +143,14 @@ class DownedDeathInterceptor(
             // Calculate downed health value based on config (percentage of max health)
             val downedHealth = (healthStat.max * config.downedHealthPercent.toFloat()).coerceAtLeast(0.1f)
 
-            // Cancel the damage entirely and directly set health to downed health
-            damage.amount = 0.0f
+            // CRITICAL: Restore health FIRST to prevent death, THEN cancel damage
+            // This ensures health is set before any other systems process this damage event
             entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), downedHealth)
+            damage.amount = 0.0f
+
+            // IMMEDIATELY mark player as "going down" BEFORE any other code
+            // This must happen right after health restore to protect against race conditions
+            downedThisTick.add(ref)
 
             // Don't capture location yet - will be captured after player lands on ground
             // This prevents capturing position mid-air when player dies from fall damage
@@ -139,6 +173,18 @@ class DownedDeathInterceptor(
             DownedStateTracker.setDowned(ref)
 
             commandBuffer.addComponent(ref, DownedComponent.getComponentType(), downedComponent)
+
+            // Periodic cleanup to prevent memory leaks from invalid/stale refs
+            if (downedThisTick.size > 50) {
+                // Remove invalid refs (disconnected players) instead of clearing everything
+                downedThisTick.removeIf { !it.isValid }
+
+                // If still too large, clear everything as last resort
+                if (downedThisTick.size > 100) {
+                    Log.warning("DeathInterceptor", "[CLEANUP] downedThisTick exceeded 100 entries, clearing all")
+                    downedThisTick.clear()
+                }
+            }
 
             // Notify the downed player
             val downedPlayer = archetypeChunk.getComponent(index, Player.getComponentType())

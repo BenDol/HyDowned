@@ -85,6 +85,7 @@ The `downedHealthPercent` setting controls what health level players are **resto
 - Minimum value is `0.001` (0.1 HP minimum to prevent rounding issues)
 - Only lethal damage triggers downed state - non-lethal damage passes through normally
 - **Example**: Player at 5 HP takes 10 damage (fatal) → damage canceled, health restored to 1 HP, player enters downed state
+- **Race condition protection**: The system protects against spam attacks by blocking all damage during the brief window between intercepting fatal damage and confirming health restoration. This prevents players from being killed instantly by multiple hits in the same tick before they can enter the downed state.
 - **Health buffer for PvP**: Higher percentages (e.g., 10%) give downed players more HP, preventing instant one-shots when `allowedDownedDamage.player = true`
 - Players at downed health cannot heal - `DownedHealingSuppressionSystem` actively reverts any healing attempts
 - This prevents players from healing out of the downed state via food, potions, or regeneration

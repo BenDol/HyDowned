@@ -14,6 +14,7 @@ import com.hypixel.hytale.server.core.modules.entity.damage.DamageEventSystem
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageSystems
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap
+import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
@@ -67,6 +68,14 @@ class DownedDamageImmunitySystem(
     ) {
         val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
 
+        // Note: Race condition protection is handled in DeathInterceptor
+        // By the time we reach here, player has DownedComponent and health is confirmed safe
+
+        // Check if this is intentional death damage (from executeDeath) - allow it through
+        if (damage.amount >= 999999.0f) {
+            return
+        }
+
         // Check if timer has expired - allow timeout death damage through
         val downedComponent = archetypeChunk.getComponent(index, DownedComponent.getComponentType())
         if (downedComponent == null) {
@@ -75,8 +84,8 @@ class DownedDamageImmunitySystem(
         }
 
         if (downedComponent.downedTimeRemaining <= 0) {
-            // Timer expired - this is the timeout kill damage, allow it through
-            return // Don't block this damage
+            // Timer expired - allow kill damage through
+            return
         }
 
         // Check damage source and config to determine if damage should be allowed
