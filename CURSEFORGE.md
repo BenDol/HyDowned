@@ -22,7 +22,7 @@ The mod has two modes you can switch between in the config:
 *   Your body stays where you went down (laying down)
 *   Camera moves 5 blocks above, looking down at your body
 *   Movement is completely locked (can't move or interact)  
-    _Known limitation: the player that is knocked out will see their character animations change to idle and move and sometimes spam the death animation, this is only visible to the downed player due to client side movement prediction that we can't control via mods right now_
+    _Known limitation: the player that is knocked out will see their character animations can be overridden temporarily, this is only visible to the downed player due to client side movement prediction that we can't control via mods right now_
 
 **PHANTOM Mode**
 
@@ -73,23 +73,21 @@ With `FIRST_ONLY` mode:
 
 ```
 {
-  "allowPlayerDamageWhileDowned": false    // Allow players to kill downed enemies
+  "allowedDownedDamage": {
+    "player": false,       // Allow player damage (PvP)
+    "mob": false,          // Allow mob damage
+    "environment": false,  // Allow environmental damage (fall, fire, etc.)
+    "lava": true           // Allow lava damage (prevents being stuck)
+  }
 }
 ```
 
-When `false` (default):
+Fine-grained damage control while knocked out:
 
-*   Knocked out players are immune to all damage except lava
-*   Players cannot be "finished off" by enemies
-*   Lava damage always kills (prevents being stuck)
-
-When `true`:
-
-*   Enemy players can kill knocked out players with attacks
-*   Applies to both melee and projectile damage
-*   Allows interrupting enemy revives in PvP
-*   Mob and environmental damage (fall, drowning) still blocked
-*   Lava damage always kills (prevents being stuck)
+*   `player` - When `true`, enemy players can finish off knocked out players with attacks (melee/projectile)
+*   `mob` - When `true`, mobs can damage and kill knocked out players
+*   `environment` - When `true`, environmental damage (fall, drowning, fire) can kill knocked out players
+*   `lava` - When `true` (default), lava damage kills knocked out players (prevents being stuck in lava)
 
 **PHANTOM Mode Settings**
 
@@ -182,11 +180,11 @@ INVISIBLE uses a visibility component to make you invisible. SCALE shrinks you t
 
 **Damage Immunity Details:**
 
-*   Knocked out players are immune to most damage sources
-*   Lava damage ALWAYS kills (prevents being stuck in lava indefinitely)
-*   Player damage can be optionally enabled via `allowPlayerDamageWhileDowned` config
-*   Mob damage is always blocked (mobs can't finish you off)
-*   Environmental damage (fall, drowning, fire) is always blocked
+*   Knocked out players are immune to most damage sources by default
+*   Lava damage is enabled by default (prevents being stuck in lava indefinitely)
+*   Player damage (PvP) can be enabled via `allowedDownedDamage.player` config
+*   Mob damage can be enabled via `allowedDownedDamage.mob` config
+*   Environmental damage (fall, drowning, fire) can be enabled via `allowedDownedDamage.environment` config
 *   Timer expiry damage is always allowed (for timeout death)
 
 **Other Notes:**

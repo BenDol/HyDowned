@@ -22,6 +22,7 @@ import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.network.DownedStateTracker
 import com.hydowned.util.Log
+import java.util.logging.Level
 
 /**
  * Intercepts damage that would kill a player and puts them in downed state instead
@@ -89,14 +90,12 @@ class DownedDeathInterceptor(
                 return // Don't block this damage - player should die
             }
 
-            // CRITICAL: Player is already downed (or will be after command buffer applies)
-            // We MUST block all damage, not just return early!
-            // If we return early without blocking, damage passes through and kills them
-            Log.debug("DeathInterceptor", "DAMAGE BLOCKED - Player already downed/being downed: ${playerComponent?.displayName}, damage blocked: ${damage.amount}")
-
-            // Block ALL damage to already-downed players
-            damage.amount = 0.0f
-            return
+            // Player is already downed - let DamageImmunitySystem handle damage filtering
+            // DamageImmunitySystem will check the allowedDownedDamage config and either:
+            // - Allow the damage through (if configured to allow this damage type)
+            // - Block the damage (if configured to block this damage type)
+            Log.debug("DeathInterceptor", "Player already downed - passing to DamageImmunitySystem: ${playerComponent?.displayName}, damage: ${damage.amount}")
+            return // Let the damage pass through to DamageImmunitySystem
         }
 
         // Get health stats - MUST be present to process damage
@@ -161,7 +160,7 @@ class DownedDeathInterceptor(
 
             commandBuffer.addComponent(ref, DownedComponent.getComponentType(), downedComponent)
 
-            if (Log.isEnabled(java.util.logging.Level.FINE)) {
+            if (Log.isEnabled(Level.FINE)) {
                 Log.debug("DeathInterceptor", "Player entered downed state")
                 Log.debug("DeathInterceptor", "Timer: ${config.downedTimerSeconds} seconds")
                 Log.debug("DeathInterceptor", "Location: $location")

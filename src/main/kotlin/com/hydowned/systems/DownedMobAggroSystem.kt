@@ -11,6 +11,7 @@ import com.hypixel.hytale.server.core.modules.entity.component.RespondToHit
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.ComponentUtils
 import com.hydowned.util.Log
 
 
@@ -56,29 +57,17 @@ class DownedMobAggroSystem(
         var approachesApplied = 0
 
         // Approach 1: Add Intangible component (prevents collision-based detection)
-        try {
-            val hadIntangible = commandBuffer.getComponent(ref, Intangible.getComponentType()) != null
-            component.wasTargetable = !hadIntangible // Track original state
+        val hadIntangible = commandBuffer.getComponent(ref, Intangible.getComponentType()) != null
+        component.wasTargetable = !hadIntangible // Track original state
 
-            if (!hadIntangible) {
-                commandBuffer.ensureComponent(ref, Intangible.getComponentType())
-                Log.finer("MobAggro", "Added Intangible component")
-                approachesApplied++
-            }
-        } catch (e: Exception) {
-            Log.warning("MobAggro", "Failed to add Intangible: ${e.message}")
+        if (ComponentUtils.addComponentIfMissing(ref, commandBuffer, Intangible.getComponentType(), "Intangible", "MobAggro")) {
+            approachesApplied++
         }
 
         // Approach 2: Remove RespondToHit (prevents knockback, may affect AI targeting)
-        try {
-            val hadRespondToHit = commandBuffer.getComponent(ref, RespondToHit.getComponentType()) != null
-            if (hadRespondToHit) {
-                commandBuffer.tryRemoveComponent(ref, RespondToHit.getComponentType())
-                Log.finer("MobAggro", "Removed RespondToHit component")
-                approachesApplied++
-            }
-        } catch (e: Exception) {
-            Log.warning("MobAggro", "Failed to remove RespondToHit: ${e.message}")
+        val hadRespondToHit = commandBuffer.getComponent(ref, RespondToHit.getComponentType()) != null
+        if (hadRespondToHit && ComponentUtils.removeComponentSafely(ref, commandBuffer, RespondToHit.getComponentType(), "RespondToHit", "MobAggro")) {
+            approachesApplied++
         }
 
         Log.finer("MobAggro", "Applied $approachesApplied aggro-prevention approaches")
@@ -103,21 +92,11 @@ class DownedMobAggroSystem(
         Log.finer("MobAggro", "Restoring mob targetability")
 
         // Restore 1: Remove Intangible component if we added it
-        try {
-            if (component.wasTargetable) { // If they were targetable before, remove Intangible
-                commandBuffer.tryRemoveComponent(ref, Intangible.getComponentType())
-                Log.finer("MobAggro", "Removed Intangible component")
-            }
-        } catch (e: Exception) {
-            Log.warning("MobAggro", "Failed to remove Intangible: ${e.message}")
+        if (component.wasTargetable) { // If they were targetable before, remove Intangible
+            ComponentUtils.removeComponentSafely(ref, commandBuffer, Intangible.getComponentType(), "Intangible", "MobAggro")
         }
 
         // Restore 2: Re-add RespondToHit
-        try {
-            commandBuffer.ensureComponent(ref, RespondToHit.getComponentType())
-            Log.finer("MobAggro", "Restored RespondToHit component")
-        } catch (e: Exception) {
-            Log.warning("MobAggro", "Failed to restore RespondToHit: ${e.message}")
-        }
+        ComponentUtils.ensureComponentSafely(ref, commandBuffer, RespondToHit.getComponentType(), "RespondToHit", "MobAggro")
     }
 }

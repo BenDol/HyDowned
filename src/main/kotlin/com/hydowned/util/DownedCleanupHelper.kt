@@ -219,6 +219,50 @@ object DownedCleanupHelper {
     }
 
     /**
+     * Cleans up downed state when a player dies from damage while downed.
+     *
+     * This handles the case where DeathComponent is added to a downed player
+     * (e.g., when allowedDownedDamage permits fatal damage).
+     *
+     * @param ref Entity reference
+     * @param commandBuffer Command buffer for component operations
+     * @param downedComponent The downed component (to access phantom body ref)
+     */
+    fun cleanupForDeath(
+        ref: Ref<EntityStore>,
+        commandBuffer: CommandBuffer<EntityStore>,
+        downedComponent: DownedComponent
+    ) {
+        Log.finer("CleanupHelper", "Cleaning up downed state for death (DeathComponent added)")
+
+        // CRITICAL: Refresh cosmetic components BEFORE cleanup
+        // This ensures player's skin/model is properly restored on respawn
+        try {
+            ComponentUtils.refreshComponent(
+                ref, commandBuffer,
+                com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType(),
+                "PlayerSkinComponent",
+                "CleanupHelper"
+            )
+
+            ComponentUtils.refreshComponent(
+                ref, commandBuffer,
+                com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType(),
+                "ModelComponent",
+                "CleanupHelper"
+            )
+
+            Log.finer("CleanupHelper", "Refreshed cosmetic components for respawn")
+        } catch (e: Exception) {
+            Log.warning("CleanupHelper", "Failed to refresh cosmetic components: ${e.message}")
+        }
+
+        // Use explicit cleanup mode since we're in the middle of death processing
+        // and can't rely on normal component removal callbacks
+        cleanupDownedState(ref, commandBuffer, downedComponent, isLogout = true)
+    }
+
+    /**
      * Removes downed component and clears state tracker.
      *
      * @param ref Entity reference

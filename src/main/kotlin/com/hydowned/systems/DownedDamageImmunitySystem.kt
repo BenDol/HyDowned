@@ -82,43 +82,60 @@ class DownedDamageImmunitySystem(
             return // Don't block this damage
         }
 
-        // ALWAYS allow lava damage through (prevents players from being stuck in lava)
+        // Check damage source and config to determine if damage should be allowed
         val damageSource = damage.source
-        if (damageSource is Damage.EnvironmentSource && damageSource.type.contains("lava", ignoreCase = true)) {
-            Log.warning("DamageImmunity", "LAVA DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} lava damage")
-            return // Don't block lava damage
-        }
+        try {
+            // Check if damage is from an entity (player or mob)
+            // EntitySource includes both direct melee and ProjectileSource (which extends EntitySource)
+            if (damageSource is Damage.EntitySource) {
+                val sourceEntityRef = damageSource.ref
 
-        // Check if player damage is allowed through config
-        if (config.allowPlayerDamageWhileDowned) {
-            try {
-                // Check if damage is from an entity (player or mob)
-                // EntitySource includes both direct melee and ProjectileSource (which extends EntitySource)
-                if (damageSource is Damage.EntitySource) {
-                    val sourceEntityRef = damageSource.ref
-
-                    // Check if source entity is a player
-                    val sourcePlayerComponent = store.getComponent(sourceEntityRef, Player.getComponentType())
-                    if (sourcePlayerComponent != null) {
+                // Check if source entity is a player
+                val sourcePlayerComponent = store.getComponent(sourceEntityRef, Player.getComponentType())
+                if (sourcePlayerComponent != null) {
+                    // Player damage (PvP)
+                    if (config.allowedDownedDamage.player) {
                         val attackerName = sourcePlayerComponent.displayName ?: "Unknown Player"
                         Log.warning("DamageImmunity", "PLAYER DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} damage from $attackerName")
                         return // Allow player damage through
                     } else {
-                        // Entity damage but not from a player (mob damage) - block it
+                        Log.debug("DamageImmunity", "Player damage blocked for ${playerComponent?.displayName}")
+                    }
+                } else {
+                    // Entity damage but not from a player (mob damage)
+                    if (config.allowedDownedDamage.mob) {
+                        Log.warning("DamageImmunity", "MOB DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} damage from mob")
+                        return // Allow mob damage through
+                    } else {
                         Log.debug("DamageImmunity", "Mob damage blocked for ${playerComponent?.displayName}")
                     }
-                } else if (damageSource is Damage.EnvironmentSource) {
-                    // Environmental damage (fall, drowning, fire, etc.) - block it
-                    Log.debug("DamageImmunity", "Environmental damage (${damageSource.type}) blocked for ${playerComponent?.displayName}")
-                } else {
-                    // Other damage types (command, etc.) - block it
-                    Log.debug("DamageImmunity", "Non-player damage (${damageSource.javaClass.simpleName}) blocked for ${playerComponent?.displayName}")
                 }
-            } catch (e: Exception) {
-                Log.warning("DamageImmunity", "Failed to check damage source: ${e.message}")
-                e.printStackTrace()
-                // On error, continue to block damage (safer default)
+            } else if (damageSource is Damage.EnvironmentSource) {
+                // Check if it's specifically lava damage
+                if (damageSource.type.contains("lava", ignoreCase = true)) {
+                    if (config.allowedDownedDamage.lava) {
+                        Log.warning("DamageImmunity", "LAVA DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} lava damage")
+                        return // Allow lava damage through
+                    } else {
+                        Log.debug("DamageImmunity", "Lava damage blocked for ${playerComponent?.displayName}")
+                    }
+                } else {
+                    // Other environmental damage (fall, drowning, fire, etc.)
+                    if (config.allowedDownedDamage.environment) {
+                        Log.warning("DamageImmunity", "ENVIRONMENT DAMAGE ALLOWED - Downed player ${playerComponent?.displayName} taking ${damage.amount} ${damageSource.type} damage")
+                        return // Allow environmental damage through
+                    } else {
+                        Log.debug("DamageImmunity", "Environmental damage (${damageSource.type}) blocked for ${playerComponent?.displayName}")
+                    }
+                }
+            } else {
+                // Other damage types (command, etc.) - always block
+                Log.debug("DamageImmunity", "Non-standard damage (${damageSource.javaClass.simpleName}) blocked for ${playerComponent?.displayName}")
             }
+        } catch (e: Exception) {
+            Log.warning("DamageImmunity", "Failed to check damage source: ${e.message}")
+            e.printStackTrace()
+            // On error, continue to block damage (safer default)
         }
 
         // Cancel all damage by setting amount to 0

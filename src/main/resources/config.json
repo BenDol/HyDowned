@@ -12,5 +12,10 @@
   "invisibilityMode": "INVISIBLE",
   "downedMode": "PLAYER",
   "logLevel": "FINER",
-  "allowPlayerDamageWhileDowned": false
+  "allowedDownedDamage": {
+    "player": false,
+    "mob": false,
+    "environment": false,
+    "lava": true
+  }
 }

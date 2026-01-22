@@ -12,6 +12,9 @@ import com.hypixel.hytale.server.core.entity.entities.Player
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.network.DownedStateTracker
+import com.hydowned.util.ComponentUtils
+import com.hydowned.util.DisplayNameUtils
 import com.hydowned.util.PendingDeathTracker
 import com.hydowned.util.Log
 import com.hypixel.hytale.server.core.modules.entity.component.CollisionResultComponent
@@ -72,10 +75,12 @@ class DownedLogoutHandlerSystem(
 
         Log.finer("LogoutHandler", "Player quit while downed")
 
-        // Determine if this is an intentional logout or a crash/disconnect
-        // UNLOAD = kicked by duplicate login / server shutdown (could be crash - mark for restore)
-        // DISCONNECT = intentional logout (mark for death)
-        // For now, log all reasons so we can see what we get
+        /**
+         * Determine if this is an intentional logout or a crash/disconnect
+         * UNLOAD = kicked by duplicate login / server shutdown (could be crash - mark for restore)
+         * DISCONNECT = intentional logout (mark for death)
+         * For now, log all reasons so we can see what we get
+         */
         when (reason.toString()) {
             "DISCONNECT" -> {
                 // Intentional logout - player should die on rejoin
@@ -90,26 +95,12 @@ class DownedLogoutHandlerSystem(
             "UNLOAD" -> {
                 // Unload (duplicate login, server shutdown) - could be crash, preserve downed state
                 Log.finer("LogoutHandler", "Detected UNINTENTIONAL disconnect (UNLOAD) - preserving downed state")
-                if (playerUuid != null) {
-                    val timeRemaining = downedComponent.downedTimeRemaining
-                    val downedLocation = downedComponent.downedLocation
-                    PendingDeathTracker.markForRestore(playerUuid, timeRemaining, downedLocation)
-                    Log.finer("LogoutHandler", "Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
-                } else {
-                    Log.warning("LogoutHandler", "Player UUID is null, cannot mark for restore")
-                }
+                markForRestore(playerUuid, downedComponent)
             }
             else -> {
                 // Unknown reason - log it for investigation, default to crash recovery (be lenient)
                 Log.warning("LogoutHandler", "Unknown RemoveReason: $reason - defaulting to crash recovery")
-                if (playerUuid != null) {
-                    val timeRemaining = downedComponent.downedTimeRemaining
-                    val downedLocation = downedComponent.downedLocation
-                    PendingDeathTracker.markForRestore(playerUuid, timeRemaining, downedLocation)
-                    Log.finer("LogoutHandler", "Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
-                } else {
-                    Log.warning("LogoutHandler", "Player UUID is null, cannot mark for restore")
-                }
+                markForRestore(playerUuid, downedComponent)
             }
         }
 
@@ -136,14 +127,13 @@ class DownedLogoutHandlerSystem(
         }
 
         // 2. Restore visibility (remove HiddenFromAdventurePlayers if we added it)
-        try {
-            if (downedComponent.wasVisibleBefore) {
-                commandBuffer.tryRemoveComponent(ref, HiddenFromAdventurePlayers.getComponentType())
-                Log.finer("LogoutHandler", "Removed HiddenFromAdventurePlayers")
-            }
-        } catch (e: Exception) {
-            Log.warning("LogoutHandler", "Failed to remove HiddenFromAdventurePlayers: ${e.message}")
-            e.printStackTrace()
+        if (downedComponent.wasVisibleBefore) {
+            ComponentUtils.removeComponentSafely(
+                ref, commandBuffer,
+                HiddenFromAdventurePlayers.getComponentType(),
+                "HiddenFromAdventurePlayers",
+                "LogoutHandler"
+            )
         }
 
         // 3. Restore collision (re-enable character collisions)
@@ -160,16 +150,17 @@ class DownedLogoutHandlerSystem(
         }
 
         // 3b. Remove any lingering Intangible component (defensive cleanup)
-        try {
-            commandBuffer.tryRemoveComponent(ref, Intangible.getComponentType())
-        } catch (e: Exception) {
-            // Ignore - component may not exist
-        }
+        ComponentUtils.removeComponentSafely(
+            ref, commandBuffer,
+            Intangible.getComponentType(),
+            "Intangible (defensive cleanup)",
+            "LogoutHandler"
+        )
 
         // 4. Clean up phantom body manually (callback won't fire during entity removal)
         val phantomBodyRef = downedComponent.phantomBodyRef
         if (phantomBodyRef != null && phantomBodyRef.isValid) {
-            commandBuffer.removeEntity(phantomBodyRef, com.hypixel.hytale.component.RemoveReason.UNLOAD)
+            commandBuffer.removeEntity(phantomBodyRef, RemoveReason.UNLOAD)
             Log.finer("LogoutHandler", "Removed phantom body entity")
         }
 
@@ -186,8 +177,12 @@ class DownedLogoutHandlerSystem(
         }
 
         // 6. Restore Interactable component
-        commandBuffer.ensureComponent(ref, Interactable.getComponentType())
-        Log.finer("LogoutHandler", "Ensured Interactable component exists")
+        ComponentUtils.ensureComponentSafely(
+            ref, commandBuffer,
+            Interactable.getComponentType(),
+            "Interactable",
+            "LogoutHandler"
+        )
 
         // 7. Reset camera for PLAYER mode
         try {
@@ -206,8 +201,22 @@ class DownedLogoutHandlerSystem(
         // 8. Remove DownedComponent and clear state tracker
         // (Restoration is handled by file-based PendingDeathTracker, not in-memory component)
         commandBuffer.tryRemoveComponent(ref, DownedComponent.getComponentType())
-        com.hydowned.network.DownedStateTracker.setNotDowned(ref)
+        DownedStateTracker.setNotDowned(ref)
 
         Log.finer("LogoutHandler", "Cleaned up downed state (restoration data saved to disk)")
+    }
+
+    /**
+     * Helper function to mark a player for restore with proper null checks and logging.
+     */
+    private fun markForRestore(playerUuid: java.util.UUID?, downedComponent: DownedComponent) {
+        if (playerUuid != null) {
+            val timeRemaining = downedComponent.downedTimeRemaining
+            val downedLocation = downedComponent.downedLocation
+            PendingDeathTracker.markForRestore(playerUuid, timeRemaining, downedLocation)
+            Log.finer("LogoutHandler", "Marked player to restore downed state with $timeRemaining seconds at $downedLocation on rejoin")
+        } else {
+            Log.warning("LogoutHandler", "Player UUID is null, cannot mark for restore")
+        }
     }
 }

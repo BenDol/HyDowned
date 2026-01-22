@@ -10,6 +10,7 @@ import com.hydowned.systems.DownedCameraSystem
 import com.hydowned.systems.DownedClearEffectsSystem
 import com.hydowned.systems.DownedCollisionDisableSystem
 import com.hydowned.systems.DownedDamageImmunitySystem
+import com.hydowned.systems.DownedDeathCleanupSystem
 import com.hydowned.systems.DownedDeathInterceptor
 import com.hydowned.systems.DownedHealingSuppressionSystem
 import com.hydowned.systems.DownedInteractionBlockingSystem
@@ -103,6 +104,9 @@ class HyDownedPlugin(init: JavaPluginInit) : JavaPlugin(init) {
 
         // Damage immunity for downed players
         entityStoreRegistry.registerSystem(DownedDamageImmunitySystem(config))
+
+        // Death cleanup (removes DownedComponent when health reaches 0)
+        entityStoreRegistry.registerSystem(DownedDeathCleanupSystem(config))
 
         // Healing suppression for downed players
         entityStoreRegistry.registerSystem(DownedHealingSuppressionSystem(config))

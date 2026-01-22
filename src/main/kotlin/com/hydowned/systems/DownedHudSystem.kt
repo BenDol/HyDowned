@@ -13,6 +13,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.HudPacketBuilder
 import com.hydowned.util.Log
 
 
@@ -22,6 +23,8 @@ import com.hydowned.util.Log
  * 2. Revive progress (secondary subtitle when being revived)
  *
  * Updates every 0.5 seconds for smooth updates without spam
+ *
+ * NOT CURRENTLY USED - MINIMAL TEST IMPLEMENTATION
  */
 class DownedHudSystem(
     private val config: DownedConfig
@@ -90,35 +93,15 @@ class DownedHudSystem(
     }
 
     private fun sendEventTitle(playerRef: PlayerRef, primaryText: String, secondaryText: String?) {
-        try {
-            val titlePacket = ShowEventTitle()
-
-            // Set ALL required fields explicitly
-            titlePacket.fadeInDuration = 0.0f
-            titlePacket.fadeOutDuration = 0.0f
-            titlePacket.duration = 1.0f
-            titlePacket.isMajor = false
-            titlePacket.icon = null
-
-            // MINIMAL TEST: Send empty primary title
-            val primaryMessage = FormattedMessage()
-            primaryMessage.rawText = ""  // EMPTY STRING TO TEST
-            primaryMessage.markupEnabled = false
-            primaryMessage.bold = MaybeBool.Null
-            primaryMessage.italic = MaybeBool.Null
-            primaryMessage.monospace = MaybeBool.Null
-            primaryMessage.underlined = MaybeBool.Null
-            titlePacket.primaryTitle = primaryMessage
-
-            // No secondary title for testing
-            titlePacket.secondaryTitle = null
-
-            // Send packet
-            playerRef.packetHandler.write(titlePacket)
-        } catch (e: Exception) {
-            Log.finer("HudSystem", "Error sending event title HUD: ${e.message}")
-            e.printStackTrace()
-        }
+        // MINIMAL TEST: Send empty primary title
+        HudPacketBuilder.sendEventTitle(
+            playerRef,
+            "",  // EMPTY STRING TO TEST
+            null,
+            duration = 1.0f,
+            isMajor = false,
+            systemName = "HudSystem"
+        )
     }
 
     override fun isParallel(archetypeChunkSize: Int, taskCount: Int): Boolean {

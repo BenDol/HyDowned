@@ -15,8 +15,9 @@ import com.hypixel.hytale.server.core.universe.PlayerRef
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
-import java.util.concurrent.ConcurrentHashMap
+import com.hydowned.util.HudPacketBuilder
 import com.hydowned.util.Log
+import java.util.concurrent.ConcurrentHashMap
 
 
 /**
@@ -125,46 +126,18 @@ class DownedReviverHudSystem(
     }
 
     private fun sendReviverHud(playerRef: PlayerRef, hudText: String) {
-        try {
-            val titlePacket = ShowEventTitle()
-
-            // Set durations
-            titlePacket.fadeInDuration = 0.0f  // No fade in
-            titlePacket.fadeOutDuration = 0.0f // No fade out
-            titlePacket.duration = 1.0f        // Display for 1 second (will be updated before expiring)
-
-            // Not a major title (don't interrupt gameplay)
-            titlePacket.isMajor = false
-
-            // No icon
-            titlePacket.icon = null
-
-            // Set title text
-            val message = FormattedMessage()
-            message.rawText = hudText
-            message.markupEnabled = false  // No markup - plain text only
-            // Initialize @Nonnull MaybeBool fields to prevent client crashes
-            message.bold = MaybeBool.Null
-            message.italic = MaybeBool.Null
-            message.monospace = MaybeBool.Null
-            message.underlined = MaybeBool.Null
-            titlePacket.primaryTitle = message
-            titlePacket.secondaryTitle = null
-
-            // Send packet
-            playerRef.packetHandler.write(titlePacket)
-        } catch (e: Exception) {
-            Log.error("ReviverHud", "Error sending reviver HUD: ${e.message}")
-        }
+        HudPacketBuilder.sendEventTitle(
+            playerRef,
+            hudText,
+            secondaryText = null,
+            duration = 1.0f,
+            isMajor = false,
+            systemName = "ReviverHud"
+        )
     }
 
     private fun hideReviverHud(playerRef: PlayerRef) {
-        try {
-            val hidePacket = HideEventTitle()
-            playerRef.packetHandler.write(hidePacket)
-        } catch (e: Exception) {
-            Log.error("ReviverHud", "Error hiding reviver HUD: ${e.message}")
-        }
+        HudPacketBuilder.hideEventTitle(playerRef, "ReviverHud")
     }
 
     override fun isParallel(archetypeChunkSize: Int, taskCount: Int): Boolean {

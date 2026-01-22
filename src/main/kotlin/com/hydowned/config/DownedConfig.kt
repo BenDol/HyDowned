@@ -6,6 +6,17 @@ import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
 
+/**
+ * Configuration for damage types allowed to affect downed players.
+ * This allows fine-grained control over which damage sources can kill downed players.
+ */
+data class AllowedDownedDamage(
+    val player: Boolean = false,  // Allow player damage (PvP)
+    val mob: Boolean = false,      // Allow mob damage
+    val environment: Boolean = false, // Allow environmental damage (fall, fire, etc.)
+    val lava: Boolean = true       // Allow lava damage (prevents being stuck in lava)
+)
+
 data class DownedConfig(
     val downedTimerSeconds: Int = 180,
     val reviveTimerSeconds: Int = 10,
@@ -20,7 +31,7 @@ data class DownedConfig(
     val invisibilityMode: String = "SCALE", // SCALE or INVISIBLE
     val downedMode: String = "PLAYER", // PHANTOM or PLAYER
     val logLevel: String = "INFO", // SEVERE, WARNING, INFO, FINE, FINER, FINEST
-    val allowPlayerDamageWhileDowned: Boolean = false // Allow player damage to kill downed players
+    val allowedDownedDamage: AllowedDownedDamage = AllowedDownedDamage() // Fine-grained damage control
 ) {
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()

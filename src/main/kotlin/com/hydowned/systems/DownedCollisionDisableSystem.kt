@@ -11,6 +11,7 @@ import com.hypixel.hytale.server.core.modules.entity.component.RespondToHit
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.ComponentUtils
 import com.hydowned.util.Log
 
 
@@ -115,13 +116,12 @@ class DownedCollisionDisableSystem(
         }
 
         // Restore RespondToHit component
-        try {
-            commandBuffer.ensureComponent(ref, RespondToHit.getComponentType())
-            Log.finer("CollisionDisable", "Restored RespondToHit (knockback enabled)")
-        } catch (e: Exception) {
-            Log.warning("CollisionDisable", "Failed to restore RespondToHit: ${e.message}")
-            e.printStackTrace()
-        }
+        ComponentUtils.ensureComponentSafely(
+            ref, commandBuffer,
+            RespondToHit.getComponentType(),
+            "RespondToHit (knockback enabled)",
+            "CollisionDisable"
+        )
 
         Log.finer("CollisionDisable", "============================================")
     }

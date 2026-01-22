@@ -1,13 +1,13 @@
 {
-  "Group": "com.hydowned",
-  "Name": "HyDowned",
-  "Version": "1.0.2",
-  "Main": "com.hydowned.HyDownedPlugin",
-  "Description": "Replaces player death with a downed state that can be revived by other players",
-  "Authors": [
-    {
-      "Name": "BenDol (Bonfyre)"
-    }
-  ],
-  "DisabledByDefault": false
+    "Group": "com.hydowned",
+    "Name": "HyDowned",
+    "Version": "1.1.0",
+    "Main": "com.hydowned.HyDownedPlugin",
+    "Description": "Replaces player death with a downed state that can be revived by other players",
+    "Authors": [
+        {
+            "Name": "BenDol (Bonfyre)"
+        }
+    ],
+    "DisabledByDefault": false
 }

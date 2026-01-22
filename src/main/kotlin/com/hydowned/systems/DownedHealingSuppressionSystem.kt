@@ -12,6 +12,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.util.Log
+import java.util.logging.Level
 
 
 /**
@@ -73,13 +74,15 @@ class DownedHealingSuppressionSystem(
             entityStatMap.setStatValue(DefaultEntityStatTypes.getHealth(), 1.0f)
 
             // Log the healing attempt
-            val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
-            Log.separator("HealingSuppression")
-            Log.finer("HealingSuppression", "HEALING BLOCKED - Player is downed")
-            Log.finer("HealingSuppression", "  Player: ${playerComponent?.displayName}")
-            Log.finer("HealingSuppression", "  Attempted health: $currentHealth HP")
-            Log.finer("HealingSuppression", "  Reverted to: 1 HP")
-            Log.separator("HealingSuppression")
+            if (Log.isEnabled(Level.FINER)) {
+                val playerComponent = archetypeChunk.getComponent(index, Player.getComponentType())
+                Log.separator("HealingSuppression", Level.FINER)
+                Log.finer("HealingSuppression", "HEALING BLOCKED - Player is downed")
+                Log.finer("HealingSuppression", "  Player: ${playerComponent?.displayName}")
+                Log.finer("HealingSuppression", "  Attempted health: $currentHealth HP")
+                Log.finer("HealingSuppression", "  Reverted to: 1 HP")
+                Log.separator("HealingSuppression", Level.FINER)
+            }
         }
     }
 }

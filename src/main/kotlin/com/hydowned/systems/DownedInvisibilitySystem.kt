@@ -13,7 +13,10 @@ import com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
+import com.hydowned.util.ComponentUtils
+import com.hydowned.util.DisplayNameUtils
 import com.hydowned.util.Log
+import java.util.logging.Level
 
 
 /**
@@ -67,22 +70,7 @@ class DownedInvisibilitySystem(
         }
 
         // Hide nameplate by replacing DisplayNameComponent with empty one
-        val displayNameComponent = commandBuffer.getComponent(ref, DisplayNameComponent.getComponentType())
-        if (displayNameComponent != null) {
-            // Store original for restoration
-            component.originalDisplayName = displayNameComponent.clone() as DisplayNameComponent
-
-            // Remove old DisplayNameComponent
-            commandBuffer.removeComponent(ref, DisplayNameComponent.getComponentType())
-
-            // Immediately add new empty DisplayNameComponent (no-args constructor = no name)
-            val emptyDisplayName = DisplayNameComponent()
-            commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), emptyDisplayName)
-
-            Log.finer("Invisibility", "Hid nameplate")
-        } else {
-            Log.warning("Invisibility", "DisplayNameComponent not found")
-        }
+        component.originalDisplayName = DisplayNameUtils.hideNameplate(ref, commandBuffer, "Invisibility")
 
         Log.finer("Invisibility", "============================================")
     }
@@ -108,8 +96,10 @@ class DownedInvisibilitySystem(
             return
         }
 
-        Log.finer("Invisibility", "============================================")
-        Log.finer("Invisibility", "Restoring player visibility")
+        if (Log.isEnabled(Level.FINER)) {
+            Log.finer("Invisibility", "============================================")
+            Log.finer("Invisibility", "Restoring player visibility")
+        }
 
         // Restore visibility by removing HiddenFromAdventurePlayers (if we added it)
         try {
@@ -126,45 +116,22 @@ class DownedInvisibilitySystem(
 
         // Component refresh to force client to re-sync visibility state
         // This fixes the issue where player stays invisible after revival (similar to skin loss bug)
-        try {
-            val skinComponent = commandBuffer.getComponent(ref, PlayerSkinComponent.getComponentType())
-            if (skinComponent != null) {
-                val skinCopy = skinComponent.clone() as PlayerSkinComponent
-                commandBuffer.removeComponent(ref, PlayerSkinComponent.getComponentType())
-                commandBuffer.addComponent(ref, PlayerSkinComponent.getComponentType(), skinCopy)
-                Log.finer("Invisibility", "Refreshed PlayerSkinComponent (client re-sync)")
-            }
+        ComponentUtils.refreshComponent(
+            ref, commandBuffer,
+            PlayerSkinComponent.getComponentType(),
+            "PlayerSkinComponent",
+            "Invisibility"
+        )
 
-            val modelComponent = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
-            if (modelComponent != null) {
-                val modelCopy = modelComponent.clone() as ModelComponent
-                commandBuffer.removeComponent(ref, ModelComponent.getComponentType())
-                commandBuffer.addComponent(ref, ModelComponent.getComponentType(), modelCopy)
-                Log.finer("Invisibility", "Refreshed ModelComponent (client re-sync)")
-            }
-        } catch (e: Exception) {
-            Log.warning("Invisibility", "Failed to refresh skin/model components: ${e.message}")
-            e.printStackTrace()
-        }
+        ComponentUtils.refreshComponent(
+            ref, commandBuffer,
+            ModelComponent.getComponentType(),
+            "ModelComponent",
+            "Invisibility"
+        )
 
         // Restore original nameplate (replace empty DisplayNameComponent with original)
-        val originalDisplayName = component.originalDisplayName
-        if (originalDisplayName != null) {
-            try {
-                // Remove empty DisplayNameComponent
-                commandBuffer.removeComponent(ref, DisplayNameComponent.getComponentType())
-
-                // Add back original DisplayNameComponent
-                commandBuffer.addComponent(ref, DisplayNameComponent.getComponentType(), originalDisplayName)
-
-                Log.finer("Invisibility", "Restored original nameplate")
-            } catch (e: Exception) {
-                Log.warning("Invisibility", "Failed to restore nameplate: ${e.message}")
-                e.printStackTrace()
-            }
-        } else {
-            Log.warning("Invisibility", "No original DisplayNameComponent stored")
-        }
+        DisplayNameUtils.restoreNameplate(ref, commandBuffer, component.originalDisplayName, "Invisibility")
 
         Log.finer("Invisibility", "============================================")
     }

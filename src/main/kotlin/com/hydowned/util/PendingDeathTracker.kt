@@ -115,7 +115,8 @@ object PendingDeathTracker {
      * Legacy compatibility - check if player should die on login
      * @deprecated Use checkAndClearAction instead
      */
-    @Deprecated("Use checkAndClearAction instead", ReplaceWith("checkAndClearAction(playerUuid) == RestoreAction.ExecuteDeath"))
+    @Deprecated("Use checkAndClearAction instead",
+        ReplaceWith("checkAndClearAction(playerUuid) == RestoreAction.ExecuteDeath"))
     fun checkAndClearDeathPending(playerUuid: UUID): Boolean {
         return checkAndClearAction(playerUuid) == RestoreAction.ExecuteDeath
     }
