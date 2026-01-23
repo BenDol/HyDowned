@@ -1,10 +1,11 @@
 package com.hydowned.config
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
+import com.google.gson.*
+import com.google.gson.reflect.TypeToken
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
+import java.lang.reflect.Type
 
 /**
  * Configuration for a specific damage type affecting downed players.
@@ -29,6 +30,34 @@ data class AllowedDownedDamage(
     val lava: DamageTypeConfig = DamageTypeConfig(enabled = true, damageMultiplier = 1.0) // Lava damage (prevents being stuck)
 )
 
+/**
+ * Custom deserializer for DamageTypeConfig to support backward compatibility.
+ * Old format: "player": true/false (boolean)
+ * New format: "player": { "enabled": true, "damageMultiplier": 0.6 }
+ */
+class DamageTypeConfigDeserializer : JsonDeserializer<DamageTypeConfig> {
+    override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): DamageTypeConfig {
+        return when {
+            json.isJsonPrimitive && json.asJsonPrimitive.isBoolean -> {
+                // Old format: simple boolean
+                val enabled = json.asBoolean
+                DamageTypeConfig(enabled = enabled, damageMultiplier = 0.6)
+            }
+            json.isJsonObject -> {
+                // New format: object with enabled and damageMultiplier
+                val obj = json.asJsonObject
+                val enabled = obj.get("enabled")?.asBoolean ?: false
+                val damageMultiplier = obj.get("damageMultiplier")?.asDouble ?: 0.6
+                DamageTypeConfig(enabled = enabled, damageMultiplier = damageMultiplier)
+            }
+            else -> {
+                // Fallback to default
+                DamageTypeConfig()
+            }
+        }
+    }
+}
+
 data class DownedConfig(
     val downedTimerSeconds: Int = 180,
     val reviveTimerSeconds: Int = 10,
@@ -47,7 +76,10 @@ data class DownedConfig(
     val allowedDownedDamage: AllowedDownedDamage = AllowedDownedDamage() // Fine-grained damage control
 ) {
     companion object {
-        private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
+        private val gson: Gson = GsonBuilder()
+            .setPrettyPrinting()
+            .registerTypeAdapter(DamageTypeConfig::class.java, DamageTypeConfigDeserializer())
+            .create()
 
         fun load(dataFolder: File): DownedConfig {
             val configFile = File(dataFolder, "config.json")
