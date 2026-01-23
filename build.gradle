@@ -11,7 +11,7 @@ plugins {
 }
 
 group = 'com.hydowned'
-version = '1.1.0'
+version = '1.1.1'
 
 repositories {
   mavenCentral()
@@ -1089,9 +1089,13 @@ tasks.register('updateManifestVersion') {
     // Update version
     manifest.Version = newVersion
 
-    // Write back to file with pretty formatting
+    // Write back to file with pretty formatting (2 space indentation)
     def json = JsonOutput.toJson(manifest)
     def prettyJson = JsonOutput.prettyPrint(json)
+    // Convert 4-space indentation to 2-space indentation
+    prettyJson = prettyJson.replaceAll(/(?m)^(    )+/) { match ->
+      '  ' * (match[0].length() / 4)
+    }
     manifestFile.text = prettyJson
 
     logger.lifecycle('=' * 80)
