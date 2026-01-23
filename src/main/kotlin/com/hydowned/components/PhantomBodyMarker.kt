@@ -14,8 +14,8 @@ import com.hydowned.HyDownedPlugin
  */
 class PhantomBodyMarker(
     var playerRef: Ref<EntityStore>? = null,  // Reference to the downed player
-    var equipment: Equipment? = null,          // Equipment to display on phantom body
-    var playerSkin: PlayerSkin? = null         // Cosmetic skin/outfit to display on phantom body
+    var equipment: Equipment? = null,         // Equipment to display on phantom body
+    var playerSkin: PlayerSkin? = null        // Cosmetic skin/outfit to display on phantom body
 ) : Component<EntityStore> {
 
     companion object {

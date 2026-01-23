@@ -87,20 +87,37 @@ With `FIRST_ONLY` mode:
 ```
 {
   "allowedDownedDamage": {
-    "player": false,       // Allow player damage (PvP)
-    "mob": false,          // Allow mob damage
-    "environment": false,  // Allow environmental damage (fall, fire, drowning, etc.)
-    "lava": true           // Allow lava damage (prevents being stuck)
+    "player": {
+      "enabled": false,
+      "damageMultiplier": 0.6
+    },
+    "mob": {
+      "enabled": false,
+      "damageMultiplier": 0.6
+    },
+    "environment": {
+      "enabled": false,
+      "damageMultiplier": 0.6
+    },
+    "lava": {
+      "enabled": true,
+      "damageMultiplier": 0.6
+    }
   }
 }
 ```
 
 Fine-grained damage control while knocked out:
 
-*   `player` - When `true`, enemy players can finish off knocked out players with attacks (melee/projectile)
-*   `mob` - When `true`, mobs can damage and kill knocked out players
-*   `environment` - When `true`, environmental damage (fall, drowning, fire, suffocation) can kill knocked out players
-*   `lava` - When `true` (default), lava damage kills knocked out players (prevents being stuck in lava)
+*   `enabled` - When `true`, this damage type can affect knocked out players
+*   `damageMultiplier` - Multiplier applied to damage (default 0.6 = 40% reduction, 1.0 = full damage, 0.5 = 50% reduction)
+
+**Damage types:**
+
+*   `player` - Player damage (PvP melee/projectile attacks)
+*   `mob` - Mob damage (hostile mob attacks)
+*   `environment` - Environmental damage (fall, drowning, fire, suffocation)
+*   `lava` - Lava damage (enabled by default to prevent being stuck in lava)
 
 **Death/Respawn Handling:**
 
@@ -189,8 +206,8 @@ INVISIBLE uses a visibility component to make you invisible. SCALE shrinks you t
 *   No components exist for controlling mob aggro or targeting behavior
 *   Intangible and RespondToHit removal only prevent collision/knockback, not AI targeting
 *   Invisibility components would prevent targeting but cause client crashes in PLAYER mode
-*   You remain immune to mob damage, so their attacks won't kill you
-*   Note: Player damage can be optionally enabled via config for PvP scenarios
+*   Mob damage is disabled by default but can be enabled via config with damage multipliers
+*   Note: Player damage can also be enabled via config for PvP scenarios
 
 **PHANTOM Mode with INVISIBLE/SCALE**: More effective at preventing mob targeting
 
@@ -204,9 +221,13 @@ INVISIBLE uses a visibility component to make you invisible. SCALE shrinks you t
 
 *   Knocked out players are immune to most damage sources by default
 *   Lava damage is enabled by default (prevents being stuck in lava indefinitely)
-*   Player damage (PvP) can be enabled via `allowedDownedDamage.player` config
-*   Mob damage can be enabled via `allowedDownedDamage.mob` config
-*   Environmental damage (fall, drowning, fire) can be enabled via `allowedDownedDamage.environment` config
+*   Each damage type can be individually enabled with configurable damage reduction:
+    *   Player damage (PvP) via `allowedDownedDamage.player.enabled` with damage multiplier
+    *   Mob damage via `allowedDownedDamage.mob.enabled` with damage multiplier
+    *   Environmental damage via `allowedDownedDamage.environment.enabled` with damage multiplier
+    *   Lava damage via `allowedDownedDamage.lava.enabled` with damage multiplier
+*   Default damage multiplier is 0.6 (40% damage reduction) for all enabled damage types
+*   Set `damageMultiplier` to 1.0 for full damage, 0.5 for 50% reduction, etc.
 *   Timer expiry damage is always allowed (for timeout death)
 
 **Other Notes:**

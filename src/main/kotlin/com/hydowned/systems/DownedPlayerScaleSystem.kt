@@ -14,6 +14,8 @@ import com.hydowned.config.DownedConfig
 import com.hydowned.util.ComponentUtils
 import com.hydowned.util.DisplayNameUtils
 import com.hydowned.util.Log
+import com.hypixel.hytale.server.core.modules.entity.component.ModelComponent
+import com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent
 
 
 /**
@@ -50,8 +52,8 @@ class DownedPlayerScaleSystem(
         Log.finer("PlayerScale", "BEFORE SCALING:")
 
         // Check what components exist BEFORE we do anything
-        val modelBefore = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType())
-        val skinBefore = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
+        val modelBefore = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
+        val skinBefore = commandBuffer.getComponent(ref, PlayerSkinComponent.getComponentType())
         Log.finer("PlayerScale", "  ModelComponent exists: ${modelBefore != null}")
         Log.finer("PlayerScale", "  PlayerSkinComponent exists: ${skinBefore != null}")
 
@@ -71,8 +73,8 @@ class DownedPlayerScaleSystem(
         Log.finer("PlayerScale", "  New scale value: ${scaleComponent.scale}")
 
         // Check what components exist AFTER we change scale
-        val modelAfter = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType())
-        val skinAfter = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
+        val modelAfter = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
+        val skinAfter = commandBuffer.getComponent(ref, PlayerSkinComponent.getComponentType())
         Log.finer("PlayerScale", "AFTER SCALING:")
         Log.finer("PlayerScale", "  ModelComponent exists: ${modelAfter != null}")
         Log.finer("PlayerScale", "  PlayerSkinComponent exists: ${skinAfter != null}")
@@ -110,8 +112,8 @@ class DownedPlayerScaleSystem(
         Log.finer("PlayerScale", "BEFORE RESTORING SCALE:")
 
         // Check what components exist BEFORE we restore
-        val modelBefore = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType())
-        val skinBefore = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
+        val modelBefore = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
+        val skinBefore = commandBuffer.getComponent(ref, PlayerSkinComponent.getComponentType())
         Log.finer("PlayerScale", "  ModelComponent exists: ${modelBefore != null}")
         Log.finer("PlayerScale", "  PlayerSkinComponent exists: ${skinBefore != null}")
 
@@ -128,8 +130,8 @@ class DownedPlayerScaleSystem(
         }
 
         // Check what components exist AFTER we restore
-        val modelAfter = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType())
-        val skinAfter = commandBuffer.getComponent(ref, com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType())
+        val modelAfter = commandBuffer.getComponent(ref, ModelComponent.getComponentType())
+        val skinAfter = commandBuffer.getComponent(ref, PlayerSkinComponent.getComponentType())
         Log.finer("PlayerScale", "AFTER RESTORING SCALE:")
         Log.finer("PlayerScale", "  ModelComponent exists: ${modelAfter != null}")
         Log.finer("PlayerScale", "  PlayerSkinComponent exists: ${skinAfter != null}")
@@ -138,7 +140,7 @@ class DownedPlayerScaleSystem(
         // Remove and re-add PlayerSkinComponent to trigger client sync
         ComponentUtils.refreshComponent(
             ref, commandBuffer,
-            com.hypixel.hytale.server.core.modules.entity.player.PlayerSkinComponent.getComponentType(),
+            PlayerSkinComponent.getComponentType(),
             "PlayerSkinComponent",
             "PlayerScale"
         )
@@ -146,7 +148,7 @@ class DownedPlayerScaleSystem(
         // Try to refresh ModelComponent
         ComponentUtils.refreshComponent(
             ref, commandBuffer,
-            com.hypixel.hytale.server.core.modules.entity.component.ModelComponent.getComponentType(),
+            ModelComponent.getComponentType(),
             "ModelComponent",
             "PlayerScale"
         )

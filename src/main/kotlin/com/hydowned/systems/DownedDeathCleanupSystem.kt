@@ -12,6 +12,7 @@ import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.util.DownedCleanupHelper
 import com.hydowned.util.Log
+import com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId
 
 /**
  * Handles cleanup when a downed player dies and respawns.
@@ -65,7 +66,7 @@ class DownedDeathCleanupSystem(
         val phantomBodyRef = downedComponent.phantomBodyRef
         if (phantomBodyRef != null && phantomBodyRef.isValid) {
             try {
-                val phantomNetworkId = commandBuffer.getComponent(phantomBodyRef, com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId.getComponentType())
+                val phantomNetworkId = commandBuffer.getComponent(phantomBodyRef, NetworkId.getComponentType())
                 commandBuffer.removeEntity(phantomBodyRef, com.hypixel.hytale.component.RemoveReason.UNLOAD)
 
                 if (phantomNetworkId != null) {

@@ -39,6 +39,7 @@ import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.util.Log
 import com.hydowned.network.DownedStateTracker
+import com.hydowned.util.ItemsUtil
 import com.hypixel.hytale.math.vector.Vector3d
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
 
@@ -85,7 +86,7 @@ class DownedPlayerModeSystem(
             val hasWeaponOrToolInHand = if (playerComponent != null) {
                 val inventory = playerComponent.inventory
                 val itemInHand = inventory.itemInHand
-                com.hydowned.util.ItemsUtil.isWeaponOrTool(itemInHand)
+                ItemsUtil.isWeaponOrTool(itemInHand)
             } else {
                 false
             }
@@ -219,7 +220,7 @@ class DownedPlayerModeSystem(
             AnimationUtils.stopAnimation(ref, AnimationSlot.Movement, commandBuffer)
 
             // Remove ActiveAnimationComponent if present
-            commandBuffer.tryRemoveComponent(ref, com.hypixel.hytale.server.core.modules.entity.component.ActiveAnimationComponent.getComponentType())
+            commandBuffer.tryRemoveComponent(ref, ActiveAnimationComponent.getComponentType())
 
         } catch (e: Exception) {
             Log.warning("PlayerMode", "Failed to reset player mode: ${e.message}")
@@ -320,7 +321,7 @@ class DownedPlayerModeSystem(
         component.phantomBodyRef = phantomBodyRef
 
         // Register phantom body in state tracker so ChannelHandler can identify it
-        com.hydowned.network.DownedStateTracker.setPhantomBody(nextNetworkId, ref)
+        DownedStateTracker.setPhantomBody(nextNetworkId, ref)
 
         Log.finer("PlayerMode", "Phantom body spawned (NetworkId: $nextNetworkId) - ChannelHandler will control visibility")
 
@@ -528,7 +529,7 @@ class DownedPlayerModeSyncSystem(
 
         // CRITICAL: Check state tracker - if player is not downed anymore, don't force sleeping
         // This prevents forcing sleeping during revive after state tracker is cleared
-        if (!com.hydowned.network.DownedStateTracker.isDowned(ref)) {
+        if (!DownedStateTracker.isDowned(ref)) {
             Log.fine("SyncSystem", "Player not in state tracker - skipping")
             return
         }
@@ -549,7 +550,8 @@ class DownedPlayerModeSyncSystem(
                          sentStates.walking || sentStates.running || sentStates.sprinting
 
         if (needsReset) {
-            Log.finer("SyncSystem", "States need reset - forcing sleeping state (sleeping=${states.sleeping}, idle=${states.idle})")
+            Log.finer("SyncSystem",
+                "States need reset - forcing sleeping state (sleeping=${states.sleeping}, idle=${states.idle})")
             // CRITICAL: Preserve actual falling/onGround states to prevent hovering
             // When we force sleeping, we must preserve physics-related states
             val actualFalling = states.falling

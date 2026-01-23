@@ -44,7 +44,6 @@ class ReviveInteractionSystem(
         TransformComponent.getComponentType()
     )
 
-    
     override fun getQuery(): Query<EntityStore> = query
 
     override fun tick(

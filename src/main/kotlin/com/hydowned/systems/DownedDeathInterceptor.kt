@@ -22,7 +22,7 @@ import com.hydowned.components.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.network.DownedStateTracker
 import com.hydowned.util.Log
-import java.util.logging.Level
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Intercepts damage that would kill a player and puts them in downed state instead
@@ -40,7 +40,7 @@ class DownedDeathInterceptor(
         // Track players being downed RIGHT NOW to prevent race conditions from spam attacks
         // This set is used by DamageImmunitySystem to block damage during initial downing
         // Thread-safe set in case damage systems run concurrently
-        val downedThisTick = java.util.concurrent.ConcurrentHashMap.newKeySet<com.hypixel.hytale.component.Ref<EntityStore>>()
+        val downedThisTick = ConcurrentHashMap.newKeySet<com.hypixel.hytale.component.Ref<EntityStore>>()!!
     }
 
     // CRITICAL: Query ONLY requires Player component!

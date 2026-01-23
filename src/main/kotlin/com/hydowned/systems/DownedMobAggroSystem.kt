@@ -93,10 +93,12 @@ class DownedMobAggroSystem(
 
         // Restore 1: Remove Intangible component if we added it
         if (component.wasTargetable) { // If they were targetable before, remove Intangible
-            ComponentUtils.removeComponentSafely(ref, commandBuffer, Intangible.getComponentType(), "Intangible", "MobAggro")
+            ComponentUtils.removeComponentSafely(ref, commandBuffer,
+                Intangible.getComponentType(), "Intangible", "MobAggro")
         }
 
         // Restore 2: Re-add RespondToHit
-        ComponentUtils.ensureComponentSafely(ref, commandBuffer, RespondToHit.getComponentType(), "RespondToHit", "MobAggro")
+        ComponentUtils.ensureComponentSafely(ref, commandBuffer,
+            RespondToHit.getComponentType(), "RespondToHit", "MobAggro")
     }
 }

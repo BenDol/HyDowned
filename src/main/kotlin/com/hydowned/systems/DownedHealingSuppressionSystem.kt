@@ -38,7 +38,6 @@ class DownedHealingSuppressionSystem(
         EntityStatMap.getComponentType()
     )
 
-
     override fun getQuery(): Query<EntityStore> = query
 
     override fun tick(

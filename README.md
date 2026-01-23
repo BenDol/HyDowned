@@ -111,22 +111,38 @@ The `downedHealthPercent` setting controls what health level players are **resto
 ```json
 {
   "allowedDownedDamage": {
-    "player": false,       // Allow player damage (PvP)
-    "mob": false,          // Allow mob damage
-    "environment": false,  // Allow environmental damage (fall, fire, drowning, etc.)
-    "lava": true           // Allow lava damage (prevents being stuck in lava)
+    "player": {
+      "enabled": false,
+      "damageMultiplier": 0.6
+    },
+    "mob": {
+      "enabled": false,
+      "damageMultiplier": 0.6
+    },
+    "environment": {
+      "enabled": false,
+      "damageMultiplier": 0.6
+    },
+    "lava": {
+      "enabled": true,
+      "damageMultiplier": 0.6
+    }
   }
 }
 ```
 
 **How it works:**
 
-By default, downed players are immune to ALL damage. The `allowedDownedDamage` config allows you to specify which damage categories can kill downed players:
+By default, downed players are immune to ALL damage. The `allowedDownedDamage` config allows you to specify which damage categories can affect downed players and by how much:
 
-- **player**: When `true`, enemy players can finish off downed players with attacks (melee/projectile)
-- **mob**: When `true`, mobs can damage and kill downed players
-- **environment**: When `true`, environmental damage (fall, drowning, fire, suffocation, etc.) can kill downed players
-- **lava**: When `true` (default), lava damage kills downed players to prevent being stuck indefinitely
+- **enabled**: When `true`, this damage type can affect downed players
+- **damageMultiplier**: Multiplier applied to damage (default 0.6 = 40% reduction, 1.0 = full damage, 0.5 = 50% reduction)
+
+**Damage types:**
+- **player**: Player damage (PvP melee/projectile attacks)
+- **mob**: Mob damage (hostile mob attacks)
+- **environment**: Environmental damage (fall, drowning, fire, suffocation, etc.)
+- **lava**: Lava damage (enabled by default to prevent being stuck indefinitely)
 
 **Death/Respawn behavior:**
 

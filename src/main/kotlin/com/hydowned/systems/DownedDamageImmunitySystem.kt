@@ -22,16 +22,17 @@ import com.hydowned.util.Log
 
 
 /**
- * Makes downed players immune to all damage
+ * Manages damage immunity and damage reduction for downed players
  *
  * This system runs in the FilterDamageGroup BEFORE ApplyDamage, so we can:
  * 1. Check if the player is already downed
- * 2. Cancel all incoming damage by setting amount to 0
+ * 2. Apply damage multipliers for enabled damage types
+ * 3. Block all other damage by setting amount to 0
  *
- * This prevents:
- * - Taking additional damage while downed
- * - Being "killed" multiple times
- * - Damage affecting the downed state
+ * Features:
+ * - Fine-grained control per damage type (player, mob, environment, lava)
+ * - Configurable damage multipliers (e.g., 0.6 = 40% damage reduction)
+ * - Complete immunity for disabled damage types
  */
 class DownedDamageImmunitySystem(
     private val config: DownedConfig
@@ -88,7 +89,7 @@ class DownedDamageImmunitySystem(
             return
         }
 
-        // Check damage source and config to determine if damage should be allowed
+        // Check damage source and config to determine if damage should be allowed and apply multiplier
         val damageSource = damage.source
         try {
             // Check if damage is from an entity (player or mob)
@@ -100,25 +101,33 @@ class DownedDamageImmunitySystem(
                 val sourcePlayerComponent = store.getComponent(sourceEntityRef, Player.getComponentType())
                 if (sourcePlayerComponent != null) {
                     // Player damage (PvP)
-                    if (config.allowedDownedDamage.player) {
-                        return // Allow player damage through
+                    val playerDamageConfig = config.allowedDownedDamage.player
+                    if (playerDamageConfig.enabled) {
+                        damage.amount *= playerDamageConfig.damageMultiplier.toFloat()
+                        return // Allow player damage through with multiplier
                     }
                 } else {
                     // Entity damage but not from a player (mob damage)
-                    if (config.allowedDownedDamage.mob) {
-                        return // Allow mob damage through
+                    val mobDamageConfig = config.allowedDownedDamage.mob
+                    if (mobDamageConfig.enabled) {
+                        damage.amount *= mobDamageConfig.damageMultiplier.toFloat()
+                        return // Allow mob damage through with multiplier
                     }
                 }
             } else if (damageSource is Damage.EnvironmentSource) {
                 // Check if it's specifically lava damage
                 if (damageSource.type.contains("lava", ignoreCase = true)) {
-                    if (config.allowedDownedDamage.lava) {
-                        return // Allow lava damage through
+                    val lavaDamageConfig = config.allowedDownedDamage.lava
+                    if (lavaDamageConfig.enabled) {
+                        damage.amount *= lavaDamageConfig.damageMultiplier.toFloat()
+                        return // Allow lava damage through with multiplier
                     }
                 } else {
                     // Other environmental damage (fall, drowning, fire, etc.)
-                    if (config.allowedDownedDamage.environment) {
-                        return // Allow environmental damage through
+                    val envDamageConfig = config.allowedDownedDamage.environment
+                    if (envDamageConfig.enabled) {
+                        damage.amount *= envDamageConfig.damageMultiplier.toFloat()
+                        return // Allow environmental damage through with multiplier
                     }
                 }
             }

@@ -38,7 +38,8 @@ object ComponentUtils {
                 Log.finer(systemName, "Restored $propertyName")
                 true
             } else {
-                Log.warning(systemName, "${componentType.javaClass.simpleName} not found, cannot restore $propertyName")
+                Log.warning(systemName,
+                    "${componentType.javaClass.simpleName} not found, cannot restore $propertyName")
                 false
             }
         } catch (e: Exception) {

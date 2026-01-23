@@ -123,6 +123,7 @@ class DownedPacketChannelHandler(
         return DownedStateTracker.isDowned(playerRef)
     }
 
+    @Deprecated("Deprecated in Java")
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
         Log.warning("ChannelHandler", "Exception in packet channel handler: ${cause.message}")
         cause.printStackTrace()

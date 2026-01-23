@@ -2,7 +2,7 @@
   "downedTimerSeconds": 180,
   "reviveTimerSeconds": 10,
   "downedSpeedMultiplier": 0.1,
-  "downedHealthPercent": 0.01,
+  "downedHealthPercent": 0.2,
   "reviveHealthPercent": 0.2,
   "reviveRange": 2.0,
   "multipleReviversMode": "SPEEDUP",
@@ -14,9 +14,21 @@
   "downedMode": "PLAYER",
   "logLevel": "FINER",
   "allowedDownedDamage": {
-    "player": false,
-    "mob": false,
-    "environment": false,
-    "lava": true
+    "player": {
+      "enabled": true,
+      "damageMultiplier": 0.6
+    },
+    "mob": {
+      "enabled": true,
+      "damageMultiplier": 0.6
+    },
+    "environment": {
+      "enabled": false,
+      "damageMultiplier": 0.6
+    },
+    "lava": {
+      "enabled": true,
+      "damageMultiplier": 1.0
+    }
   }
 }

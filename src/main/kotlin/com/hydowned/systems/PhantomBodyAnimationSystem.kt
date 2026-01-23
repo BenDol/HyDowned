@@ -91,11 +91,13 @@ class PhantomBodyAnimationSystem(
                             try {
                                 viewer.queueUpdate(ref, update)
                             } catch (e: Exception) {
-                                Log.error("PhantomAnimation", "Failed to queue equipment update for viewer: ${e.message}")
+                                Log.error("PhantomAnimation",
+                                    "Failed to queue equipment update for viewer: ${e.message}")
                             }
                         }
 
-                        Log.finer("PhantomAnimation", "Queued equipment update to ${visible.visibleTo.size} viewers")
+                        Log.finer("PhantomAnimation",
+                            "Queued equipment update to ${visible.visibleTo.size} viewers")
                         // PERFORMANCE: Commented out expensive string operations (joinToString on every phantom body spawn)
                         // Log.verbose("PhantomAnimation", "  - Armor: ${equipmentData.armorIds?.joinToString(", ")}")
                         // Log.verbose("PhantomAnimation", "  - Right hand: ${equipmentData.rightHandItemId}")

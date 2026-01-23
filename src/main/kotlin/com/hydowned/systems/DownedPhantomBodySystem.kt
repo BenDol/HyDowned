@@ -138,7 +138,7 @@ class DownedPhantomBodySystem(
         // Set phantom body position and rotation
         holder.addComponent(
             TransformComponent.getComponentType(),
-            TransformComponent(downedLocation, playerTransform.getRotation())
+            TransformComponent(downedLocation, playerTransform.rotation)
         )
         Log.finer("PhantomBody", "Added TransformComponent to phantom body")
 
