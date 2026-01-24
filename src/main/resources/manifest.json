@@ -1,7 +1,7 @@
 {
   "Group": "com.hydowned",
   "Name": "HyDowned",
-  "Version": "1.1.1",
+  "Version": "1.1.2",
   "Main": "com.hydowned.HyDownedPlugin",
   "Description": "Replaces player death with a downed state that can be revived by other players",
   "Authors": [
