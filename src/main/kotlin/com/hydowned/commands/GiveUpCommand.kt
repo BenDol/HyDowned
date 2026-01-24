@@ -51,7 +51,7 @@ class GiveUpCommand(
         // Check if player is downed
         val downedComponent = store.getComponent(ref, DownedComponent.getComponentType())
         if (downedComponent == null) {
-            playerRef.sendMessage(Message.raw("You are not knocked out!"))
+            playerRef.sendMessage(Message.translation("hydowned.command.not_knocked_out"))
             return
         }
 
@@ -64,6 +64,6 @@ class GiveUpCommand(
         Log.finer("GiveUpCommand", "Queued give-up in pendingGiveUps map")
 
         // Send message immediately
-        playerRef.sendMessage(Message.raw("Giving up... You will respawn shortly."))
+        playerRef.sendMessage(Message.translation("hydowned.command.giving_up"))
     }
 }

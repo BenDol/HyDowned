@@ -59,7 +59,10 @@
       "WebFetch(domain:hytale-docs.com)",
       "Bash(git ls-tree:*)",
       "Bash(.gradlew.bat build)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(if [ -f \"build/libs/HyDowned-1.1.1.jar\" ])",
+      "Bash(then jar tf \"build/libs/HyDowned-1.1.1.jar\")",
+      "Bash(else echo \"JAR not found, need to build\")"
     ]
   }
 }

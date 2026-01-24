@@ -9,5 +9,6 @@
       "Name": "BenDol (Bonfyre)"
     }
   ],
-  "DisabledByDefault": false
+  "DisabledByDefault": false,
+  "IncludesAssetPack": true
 }

@@ -1,0 +1,30 @@
+# HyDowned Mod - 한국어
+
+# 상태 알림
+state.knocked_out = 쓰러졌습니다! 팀원이 웅크려서 소생시켜 주기를 기다리거나, /giveup을 사용하여 리스폰하세요.
+state.player_knocked_out = {playerName}님이 쓰러졌습니다 - 시체 근처에서 웅크려 소생시키세요
+
+# 타이머 메시지
+timer.knocked_out_remaining = 쓰러짐 - {time}초 남음
+timer.remaining_short = {time}초 남음
+timer.reviving_countdown = 소생 중 - {time}초
+timer.player_reviving_single = {reviverName}님이 소생 중 - {time}초
+timer.player_reviving_multiple = {count}명의 플레이어가 소생 중 - {time}초
+timer.revived = 소생되었습니다!
+timer.revived_player = {playerName}님을 소생시켰습니다
+
+# 소생 상호작용
+revive.starting = {playerName}님 소생 중 - 웅크린 자세를 유지하세요
+revive.player_reviving_you = {reviverName}님이 당신을 소생시키고 있습니다
+revive.cancelled = 소생이 취소되었습니다
+
+# 명령어
+command.not_knocked_out = 당신은 쓰러진 상태가 아닙니다!
+command.giving_up = 포기 중... 곧 리스폰됩니다.
+
+# HUD 메시지
+hud.reviving_progress = 소생 중: {playerName} [{progressBar}] {percent}% ({time}초 남음)
+hud.reviving_progress_team = 소생 중: {playerName} [{progressBar}] {percent}% ({time}초 남음) ({count}명 도움)
+hud.downed_timer = 쓰러짐: {time} [{progressBar}] {percent}%
+hud.revive_secondary = 소생 중: [{progressBar}] {percent}%
+hud.revive_secondary_team = 소생 중: [{progressBar}] {percent}% ({count}명 도움)

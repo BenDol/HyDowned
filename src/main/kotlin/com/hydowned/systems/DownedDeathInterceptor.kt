@@ -188,7 +188,7 @@ class DownedDeathInterceptor(
 
             // Notify the downed player
             val downedPlayer = archetypeChunk.getComponent(index, Player.getComponentType())
-            downedPlayer?.sendMessage(Message.raw("You've been knocked out! Wait for a teammate to revive you by crouching next to you, or use /giveup to respawn."))
+            downedPlayer?.sendMessage(Message.translation("hydowned.state.knocked_out"))
 
             // Notify nearby players (use current position even though we're not storing it yet)
             val downedPlayerName = downedPlayer?.displayName ?: "A player"
@@ -220,7 +220,10 @@ class DownedDeathInterceptor(
 
                     // Send message if within range
                     if (distanceSquared <= notifyRangeSquared) {
-                        nearbyPlayer.sendMessage(Message.raw("$downedPlayerName is knocked out - crouch near their body to revive"))
+                        nearbyPlayer.sendMessage(
+                            Message.translation("hydowned.state.player_knocked_out")
+                                .param("playerName", downedPlayerName)
+                        )
                         notifiedCount++
                     }
                 }

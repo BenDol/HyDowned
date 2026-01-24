@@ -1,0 +1,30 @@
+# HyDowned Mod - English (US) Translations
+
+# State notifications
+state.knocked_out = You've been knocked out! Wait for a teammate to revive you by crouching next to you, or use /giveup to respawn.
+state.player_knocked_out = {playerName} is knocked out - crouch near their body to revive
+
+# Timer messages
+timer.knocked_out_remaining = Knocked out - {time}s remaining
+timer.remaining_short = {time}s remaining
+timer.reviving_countdown = Reviving - {time}s
+timer.player_reviving_single = {reviverName} reviving - {time}s
+timer.player_reviving_multiple = {count} players reviving - {time}s
+timer.revived = Revived!
+timer.revived_player = Revived {playerName}
+
+# Revive interactions
+revive.starting = Reviving {playerName} - stay crouched
+revive.player_reviving_you = {reviverName} is reviving you
+revive.cancelled = Revive cancelled
+
+# Commands
+command.not_knocked_out = You are not knocked out!
+command.giving_up = Giving up... You will respawn shortly.
+
+# HUD messages
+hud.reviving_progress = REVIVING: {playerName} [{progressBar}] {percent}% ({time}s remaining)
+hud.reviving_progress_team = REVIVING: {playerName} [{progressBar}] {percent}% ({time}s remaining) ({count} helpers)
+hud.downed_timer = DOWNED: {time} [{progressBar}] {percent}%
+hud.revive_secondary = REVIVING: [{progressBar}] {percent}%
+hud.revive_secondary_team = REVIVING: [{progressBar}] {percent}% ({count} helpers)

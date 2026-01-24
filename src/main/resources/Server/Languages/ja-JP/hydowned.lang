@@ -1,0 +1,30 @@
+# HyDowned Mod - 日本語
+
+# 状態通知
+state.knocked_out = ダウンしました！仲間がしゃがんで蘇生してくれるのを待つか、/giveupでリスポーンしてください。
+state.player_knocked_out = {playerName}がダウンしました - 体の近くでしゃがんで蘇生してください
+
+# タイマーメッセージ
+timer.knocked_out_remaining = ダウン中 - 残り{time}秒
+timer.remaining_short = 残り{time}秒
+timer.reviving_countdown = 蘇生中 - {time}秒
+timer.player_reviving_single = {reviverName}が蘇生中 - {time}秒
+timer.player_reviving_multiple = {count}人のプレイヤーが蘇生中 - {time}秒
+timer.revived = 蘇生されました！
+timer.revived_player = {playerName}を蘇生しました
+
+# 蘇生インタラクション
+revive.starting = {playerName}を蘇生中 - しゃがみ続けてください
+revive.player_reviving_you = {reviverName}があなたを蘇生しています
+revive.cancelled = 蘇生がキャンセルされました
+
+# コマンド
+command.not_knocked_out = あなたはダウンしていません！
+command.giving_up = ギブアップ中...まもなくリスポーンします。
+
+# HUDメッセージ
+hud.reviving_progress = 蘇生中: {playerName} [{progressBar}] {percent}% (残り{time}秒)
+hud.reviving_progress_team = 蘇生中: {playerName} [{progressBar}] {percent}% (残り{time}秒) ({count}人のヘルパー)
+hud.downed_timer = ダウン中: {time} [{progressBar}] {percent}%
+hud.revive_secondary = 蘇生中: [{progressBar}] {percent}%
+hud.revive_secondary_team = 蘇生中: [{progressBar}] {percent}% ({count}人のヘルパー)

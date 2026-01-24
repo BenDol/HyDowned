@@ -102,9 +102,17 @@ class DownedReviverHudSystem(
     }
 
     /**
-     * Build the HUD text for a reviver
+     * Data class for HUD translation data
      */
-    private fun buildReviverHudText(downedPlayer: Player, downedComponent: DownedComponent): String {
+    private data class HudData(
+        val key: String,
+        val params: Map<String, Any>
+    )
+
+    /**
+     * Build the HUD data for a reviver
+     */
+    private fun buildReviverHudText(downedPlayer: Player, downedComponent: DownedComponent): HudData {
         // Calculate revive progress
         val reviveProgress = 1.0f - (downedComponent.reviveTimeRemaining.toFloat() / config.reviveTimerSeconds.toFloat())
         val revivePercent = (reviveProgress * 100).toInt().coerceIn(0, 100)
@@ -115,21 +123,41 @@ class DownedReviverHudSystem(
         val emptyBars = barLength - filledBars
         val progressBar = "=".repeat(filledBars) + "-".repeat(emptyBars)
 
-        // Format remaining time
-        val timeStr = String.format("%.1fs", downedComponent.reviveTimeRemaining)
+        // Format remaining time (remove 's' suffix as it's in the translation)
+        val timeStr = String.format("%.1f", downedComponent.reviveTimeRemaining)
 
-        // HUD text for revivers (NO COLOR CODES)
         val reviverCount = downedComponent.reviverPlayerIds.size
-        val teamText = if (reviverCount > 1) " (${reviverCount} helpers)" else ""
         val playerName = downedPlayer.displayName ?: "Player"
-        return "REVIVING: ${playerName} [$progressBar] $revivePercent% ($timeStr remaining)$teamText"
+
+        return if (reviverCount > 1) {
+            HudData(
+                "hydowned.hud.reviving_progress_team",
+                mapOf(
+                    "playerName" to playerName,
+                    "progressBar" to progressBar,
+                    "percent" to revivePercent,
+                    "time" to timeStr,
+                    "count" to reviverCount
+                )
+            )
+        } else {
+            HudData(
+                "hydowned.hud.reviving_progress",
+                mapOf(
+                    "playerName" to playerName,
+                    "progressBar" to progressBar,
+                    "percent" to revivePercent,
+                    "time" to timeStr
+                )
+            )
+        }
     }
 
-    private fun sendReviverHud(playerRef: PlayerRef, hudText: String) {
-        HudPacketBuilder.sendEventTitle(
+    private fun sendReviverHud(playerRef: PlayerRef, hudData: HudData) {
+        HudPacketBuilder.sendTranslatedEventTitle(
             playerRef,
-            hudText,
-            secondaryText = null,
+            hudData.key,
+            hudData.params,
             duration = 1.0f,
             isMajor = false,
             systemName = "ReviverHud"

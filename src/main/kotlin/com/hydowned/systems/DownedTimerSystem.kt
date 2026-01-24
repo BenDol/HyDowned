@@ -73,13 +73,17 @@ class DownedTimerSystem(
         // Send chat messages at specific intervals (only if not being revived)
         if (playerComponent != null && downedComponent.reviverPlayerIds.isEmpty()) {
             when (timeRemaining) {
-                60 -> playerComponent.sendMessage(Message.raw("Knocked out - 60s remaining"))
-                30 -> playerComponent.sendMessage(Message.raw("30s remaining"))
-                10 -> playerComponent.sendMessage(Message.raw("10s remaining"))
+                60, 30, 10 -> playerComponent.sendMessage(
+                    Message.translation("hydowned.timer.remaining_short")
+                        .param("time", timeRemaining)
+                )
                 else -> {
                     // Every 30 seconds for longer timers
                     if (timeRemaining > 60 && timeRemaining % 30 == 0) {
-                        playerComponent.sendMessage(Message.raw("Knocked out - ${timeRemaining}s remaining"))
+                        playerComponent.sendMessage(
+                            Message.translation("hydowned.timer.knocked_out_remaining")
+                                .param("time", timeRemaining)
+                        )
                     }
                 }
             }
@@ -118,21 +122,30 @@ class DownedTimerSystem(
 
                         // Send countdown to reviver every second
                         if (newSeconds <= 10 || newSeconds % 2 == 0) {
-                            player.sendMessage(Message.raw("Reviving - ${newSeconds}s"))
+                            player.sendMessage(
+                                Message.translation("hydowned.timer.reviving_countdown")
+                                    .param("time", newSeconds)
+                            )
                         }
                     }
                 }
 
                 // Send countdown to downed player
                 if (playerComponent != null) {
-                    val reviverText = if (reviverNames.size == 1) {
-                        reviverNames[0]
-                    } else {
-                        "${reviverNames.size} players"
-                    }
-
                     if (newSeconds <= 10 || newSeconds % 2 == 0) {
-                        playerComponent.sendMessage(Message.raw("$reviverText reviving - ${newSeconds}s"))
+                        if (reviverNames.size == 1) {
+                            playerComponent.sendMessage(
+                                Message.translation("hydowned.timer.player_reviving_single")
+                                    .param("reviverName", reviverNames[0])
+                                    .param("time", newSeconds)
+                            )
+                        } else {
+                            playerComponent.sendMessage(
+                                Message.translation("hydowned.timer.player_reviving_multiple")
+                                    .param("count", reviverNames.size)
+                                    .param("time", newSeconds)
+                            )
+                        }
                     }
                 }
             }
@@ -153,14 +166,17 @@ class DownedTimerSystem(
 
                 if (reviveSuccess) {
                     // Send success message to downed player
-                    playerComponent?.sendMessage(Message.raw("Revived!"))
+                    playerComponent?.sendMessage(Message.translation("hydowned.timer.revived"))
 
                     // Notify revivers of success
                     val allPlayers = com.hypixel.hytale.server.core.universe.Universe.get().players
                     for (player in allPlayers) {
                         if (downedComponent.reviverPlayerIds.contains(player.uuid.toString())) {
                             val downedPlayerName = playerComponent?.displayName ?: "Player"
-                            player.sendMessage(Message.raw("Revived $downedPlayerName"))
+                            player.sendMessage(
+                                Message.translation("hydowned.timer.revived_player")
+                                    .param("playerName", downedPlayerName)
+                            )
                         }
                     }
 

@@ -121,8 +121,14 @@ class ReviveInteractionSystem(
                     }
 
                     // Send feedback
-                    alivePlayerRef.sendMessage(Message.raw("Reviving $downedPlayerName - stay crouched"))
-                    downedPlayer.sendMessage(Message.raw("${alivePlayerRef.username} is reviving you"))
+                    alivePlayerRef.sendMessage(
+                        Message.translation("hydowned.revive.starting")
+                            .param("playerName", downedPlayerName)
+                    )
+                    downedPlayer.sendMessage(
+                        Message.translation("hydowned.revive.player_reviving_you")
+                            .param("reviverName", alivePlayerRef.username)
+                    )
                 }
             }
         }
@@ -139,7 +145,7 @@ class ReviveInteractionSystem(
                 // Try to send message to the reviver if they're still online
                 for (player in allPlayers) {
                     if (player.uuid.toString() == reviverUUID) {
-                        player.sendMessage(Message.raw("Revive cancelled"))
+                        player.sendMessage(Message.translation("hydowned.revive.cancelled"))
                         break
                     }
                 }
