@@ -1,34 +1,47 @@
 {
-  "downedTimerSeconds": 180,
-  "reviveTimerSeconds": 10,
-  "downedSpeedMultiplier": 0.1,
-  "downedHealthPercent": 0.2,
-  "reviveHealthPercent": 0.2,
-  "reviveRange": 2.0,
-  "multipleReviversMode": "SPEEDUP",
-  "reviveSpeedupPerPlayer": 0.5,
-  "enableParticles": true,
-  "enableSounds": true,
-  "enableActionBar": true,
-  "invisibilityMode": "INVISIBLE",
-  "downedMode": "PLAYER",
-  "logLevel": "FINER",
-  "allowedDownedDamage": {
-    "player": {
-      "enabled": true,
-      "damageMultiplier": 0.6
-    },
-    "mob": {
-      "enabled": true,
-      "damageMultiplier": 0.6
-    },
-    "environment": {
-      "enabled": false,
-      "damageMultiplier": 0.6
-    },
-    "lava": {
-      "enabled": true,
-      "damageMultiplier": 1.0
+  "downedState": {
+    "timerSeconds": 180,
+    "deathOnTimeout": true,
+    "healthWhenDowned": 0.30,
+    "allowMovement": true,
+    "applySlow": true,
+    "allowedDownedDamage": {
+      "player": {
+        "enabled": true,
+        "damageMultiplier": 0.6
+      },
+      "mob": {
+        "enabled": true,
+        "damageMultiplier": 0.6
+      },
+      "environment": {
+        "enabled": false,
+        "damageMultiplier": 0.6
+      },
+      "lava": {
+        "enabled": true,
+        "damageMultiplier": 1.0
+      }
     }
-  }
+  },
+  "revive": {
+    "reviveTimerSeconds": 10,
+    "reviveMaxRange": 2.0,
+    "healOnReviveEnabled": false,
+    "healOnReviveHealth": 0.30
+  },
+  "camera": {
+    "defaultCustomCamera": true,
+    "customCameraEnabled": false,
+    "customCameraFirstPerson": false,
+    "customCameraPositionX": 0.0,
+    "customCameraPositionY": 0.8,
+    "customCameraPositionZ": 0.0
+  },
+  "ui": {
+    "enableParticles": true,
+    "enableSounds": true,
+    "enableProgressBar": true
+  },
+  "logLevel": "INFO"
 }

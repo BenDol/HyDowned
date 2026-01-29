@@ -1,8 +1,8 @@
 {
   "Group": "com.hydowned",
   "Name": "HyDowned",
-  "Version": "1.1.2",
-  "Main": "com.hydowned.HyDownedPlugin",
+  "Version": "1.2.0",
+  "Main": "com.hydowned.ModPlugin",
   "Description": "Replaces player death with a downed state that can be revived by other players",
   "Authors": [
     {
@@ -10,5 +10,11 @@
     }
   ],
   "DisabledByDefault": false,
-  "IncludesAssetPack": true
+  "IncludesAssetPack": true,
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:EntityModule": "*",
+    "Hytale:AssetModule": "*",
+    "Hytale:DamageModule": "*"
+  }
 }

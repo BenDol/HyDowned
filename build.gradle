@@ -11,7 +11,7 @@ plugins {
 }
 
 group = 'com.hydowned'
-version = '1.1.2'
+version = '1.2.0'
 
 repositories {
   mavenCentral()
@@ -125,9 +125,14 @@ tasks.withType(KotlinCompile).configureEach {
 }
 
 jar {
+  // Include compiled classes (Kotlin + Java)
+  from sourceSets.main.output
+
+  // Include runtime dependencies
   from {
     configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
   }
+
   duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 

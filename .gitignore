@@ -5,7 +5,7 @@
 /hytale-server/
 
 # Hytale Server JAR (auto-downloaded by Gradle task)
-/libs/HytaleServer.jar
+/libs
 
 # Dev server directory (created by gradle startDevServer task)
 /dev-server/

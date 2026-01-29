@@ -156,7 +156,6 @@ When a downed player takes lethal damage from an allowed damage type:
 
 ```json
 {
-  "enableParticles": true,     // NOT IMPLEMENTED - FeedbackManager has placeholders
   "enableSounds": true,        // NOT IMPLEMENTED - FeedbackManager has placeholders
   "enableActionBar": true      // NOT IMPLEMENTED - FeedbackManager has placeholders
 }
