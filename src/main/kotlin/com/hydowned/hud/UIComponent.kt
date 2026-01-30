@@ -8,7 +8,7 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
  * Components implement this interface to define how they should be built
  * and added to the HUD using the UICommandBuilder.
  */
-interface InfoValue {
+interface UIComponent {
 
     /**
      * Builds this UI component and adds it to the HUD.
@@ -24,7 +24,7 @@ interface InfoValue {
          * Empty placeholder component that does nothing.
          * Used as a default value to indicate "no component".
          */
-        val EMPTY: InfoValue = object : InfoValue {
+        val EMPTY: UIComponent = object : UIComponent {
             override fun build(ui: UICommandBuilder, anchor: AnchorBuilder, selector: String) {
                 // No-op
             }

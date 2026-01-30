@@ -3,7 +3,7 @@ package com.hydowned
 import com.hydowned.command.GiveUpCommand
 import com.hydowned.component.DownedComponent
 import com.hydowned.config.ModConfig
-import com.hydowned.network.DownedPlayerPacketFilter
+import com.hydowned.player.network.DownedPlayerPacketFilter
 import com.hydowned.manager.Managers
 import com.hydowned.player.PlayerInit
 import com.hypixel.hytale.component.ComponentType

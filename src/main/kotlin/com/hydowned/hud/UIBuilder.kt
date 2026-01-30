@@ -6,10 +6,10 @@ package com.hydowned.hud
  * Uses a LinkedHashMap to maintain insertion order of components.
  * Components are created using factory functions and stored by ID.
  */
-class InfoBuilder {
+class UIBuilder {
 
-    private var icon: InfoValue = InfoValue.EMPTY
-    private val infos: MutableMap<String, InfoValue> = linkedMapOf()
+    private var icon: UIComponent = UIComponent.EMPTY
+    private val components: MutableMap<String, UIComponent> = linkedMapOf()
 
     /**
      * Sets a component using a factory function.
@@ -20,8 +20,8 @@ class InfoBuilder {
      * @param id Unique identifier for this component
      * @param factory Function that creates the component given the ID
      */
-    fun <T : InfoValue> set(id: String, factory: (String) -> T) {
-        infos[id] = factory(id)
+    fun <T : UIComponent> set(id: String, factory: (String) -> T) {
+        components[id] = factory(id)
     }
 
     /**
@@ -31,8 +31,8 @@ class InfoBuilder {
      * @return The component, or null if not found
      */
     @Suppress("UNCHECKED_CAST")
-    fun <T : InfoValue> get(id: String): T? {
-        return infos[id] as? T
+    fun <T : UIComponent> get(id: String): T? {
+        return components[id] as? T
     }
 
     /**
@@ -40,8 +40,8 @@ class InfoBuilder {
      *
      * @return Map of component ID to InfoValue
      */
-    fun infos(): Map<String, InfoValue> {
-        return infos
+    fun componentMap(): Map<String, UIComponent> {
+        return components
     }
 
     /**
@@ -49,8 +49,8 @@ class InfoBuilder {
      *
      * @return Sequence of all InfoValue components
      */
-    fun values(): Sequence<InfoValue> {
-        return infos.values.asSequence()
+    fun components(): Sequence<UIComponent> {
+        return components.values.asSequence()
     }
 
     /**
@@ -58,7 +58,7 @@ class InfoBuilder {
      *
      * @return The icon component, or EMPTY if not set
      */
-    fun getIcon(): InfoValue {
+    fun getIcon(): UIComponent {
         return icon
     }
 
@@ -67,7 +67,7 @@ class InfoBuilder {
      *
      * @param icon The icon component to display
      */
-    fun setIcon(icon: InfoValue) {
+    fun setIcon(icon: UIComponent) {
         this.icon = icon
     }
 
@@ -79,6 +79,6 @@ class InfoBuilder {
      * @return true if there's content to display
      */
     fun canDisplay(): Boolean {
-        return getIcon() != InfoValue.EMPTY || infos.values.any { it != InfoValue.EMPTY }
+        return getIcon() != UIComponent.EMPTY || components.values.any { it != UIComponent.EMPTY }
     }
 }

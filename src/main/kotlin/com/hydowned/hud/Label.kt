@@ -12,11 +12,11 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
  * - Optional background color
  * - Height
  */
-class LabelValue(
+class Label(
     private val id: String,
     private val value: Message,
-    private var fontSize: Int = 18
-) : InfoValue {
+    private var fontSize: Int = 15
+) : UIComponent {
 
     private var height: Int = fontSize * 2
     private var backgroundColor: String? = null
@@ -27,7 +27,7 @@ class LabelValue(
      * @param fontSize The font size in pixels
      * @return This instance for chaining
      */
-    fun fontSize(fontSize: Int): LabelValue {
+    fun fontSize(fontSize: Int): Label {
         this.fontSize = fontSize
         return this
     }
@@ -38,7 +38,7 @@ class LabelValue(
      * @param height The height in pixels
      * @return This instance for chaining
      */
-    fun setHeight(height: Int): LabelValue {
+    fun setHeight(height: Int): Label {
         this.height = height
         return this
     }
@@ -49,7 +49,7 @@ class LabelValue(
      * @param backgroundColor Color string (e.g., "#000000(0.1)" for semi-transparent black)
      * @return This instance for chaining
      */
-    fun setBackgroundColor(backgroundColor: String): LabelValue {
+    fun setBackgroundColor(backgroundColor: String): Label {
         this.backgroundColor = backgroundColor
         return this
     }

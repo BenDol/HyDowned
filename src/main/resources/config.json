@@ -1,16 +1,18 @@
 {
-  "downedState": {
-    "timerSeconds": 180,
+  "downed": {
+    "timerSeconds": 300,
     "deathOnTimeout": true,
     "healthWhenDowned": 0.30,
     "allowMovement": true,
     "applySlow": true,
-    "allowedDownedDamage": {
+    "jumpForce": 0.0,
+    "aiRetargetRange": 16.0,
+    "allowedDamage": {
       "player": {
         "enabled": true,
         "damageMultiplier": 0.6
       },
-      "mob": {
+      "ai": {
         "enabled": true,
         "damageMultiplier": 0.6
       },
@@ -25,23 +27,23 @@
     }
   },
   "revive": {
-    "reviveTimerSeconds": 10,
-    "reviveMaxRange": 2.0,
+    "timerSeconds": 10,
+    "maxRange": 2.0,
     "healOnReviveEnabled": false,
     "healOnReviveHealth": 0.30
   },
   "camera": {
-    "defaultCustomCamera": true,
-    "customCameraEnabled": false,
-    "customCameraFirstPerson": false,
-    "customCameraPositionX": 0.0,
-    "customCameraPositionY": 0.8,
-    "customCameraPositionZ": 0.0
+    "enabled": false,
+    "defaultCamera": true,
+    "firstPerson": false,
+    "positionX": 0.0,
+    "positionY": 0.8,
+    "positionZ": 0.0
   },
   "ui": {
-    "enableParticles": true,
     "enableSounds": true,
-    "enableProgressBar": true
+    "enableProgressBar": true,
+    "showChatMessages": false
   },
   "logLevel": "INFO"
 }

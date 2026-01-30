@@ -26,7 +26,7 @@ import com.hydowned.manager.Managers
  * Runs BEFORE ApplyDamage to intercept lethal damage and put player in downed state.
  * Also handles damage from/to downed players.
  */
-class DamageInterceptorSystem(val managers: Managers) : DamageSystems.ApplyDamage() {
+class ApplyDamageSystem(val managers: Managers) : DamageSystems.ApplyDamage() {
 
     companion object {
         private val DEPENDENCIES: Set<Dependency<EntityStore>> = setOf(
@@ -83,14 +83,14 @@ class DamageInterceptorSystem(val managers: Managers) : DamageSystems.ApplyDamag
         // Handle damage TO downed players
         if (downable.isDowned()) {
             // Check if we should pass damage through
-            if (downable.passDamage) {
-                downable.passDamage = false
+            if (downable.allowDamage) {
+                downable.allowDamage = false
                 return
             }
 
             // Check config for allowing damage
-            val receivePlayerDamage = config.downed.allowedDamage.player.enabled
-            val receiveEntityDamage = config.downed.allowedDamage.mob.enabled
+            val allowPlayerDamage = config.downed.allowedDamage.player.enabled
+            val allowAIDamage = config.downed.allowedDamage.ai.enabled
 
             val attacker = if (source is Damage.EntitySource) {
                 val attackerRef = source.ref
@@ -99,13 +99,13 @@ class DamageInterceptorSystem(val managers: Managers) : DamageSystems.ApplyDamag
                 } else null
             } else null
 
-            if (attacker != null && receivePlayerDamage) {
-                downable.passDamage = true
+            if (attacker != null && allowPlayerDamage) {
+                downable.allowDamage = true
                 return
             }
 
-            if (attacker == null && receiveEntityDamage) {
-                downable.passDamage = true
+            if (attacker == null && allowAIDamage) {
+                downable.allowDamage = true
                 return
             }
 
@@ -149,7 +149,7 @@ class DamageInterceptorSystem(val managers: Managers) : DamageSystems.ApplyDamag
                         "${player.displayName} would die from ${damage.amount} damage - downing instead")
 
                     managers.downManager.down(downable, aggressor)
-                    entityStatMap.setStatValue(healthStat, 10.0f)
+                    entityStatMap.setStatValue(healthStat, 1.0f)
                     damage.isCancelled = true
                 }
             }

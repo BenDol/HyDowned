@@ -19,17 +19,15 @@ revive.player_reviving_you = {reviverName} is reviving you
 revive.cancelled = Revive cancelled
 
 # Commands
+commands.giveup.desc = Give up and respawn when downed
 command.not_knocked_out = You are not knocked out!
 command.giving_up = Giving up... You will respawn shortly.
 
-# HUD messages (old event title system - deprecated)
-hud.reviving_progress = REVIVING: {playerName} [{progressBar}] {percent}% ({time}s remaining)
-hud.reviving_progress_team = REVIVING: {playerName} [{progressBar}] {percent}% ({time}s remaining) ({count} helpers)
-hud.downed_timer = DOWNED: {time} [{progressBar}] {percent}%
-hud.revive_secondary = REVIVING: [{progressBar}] {percent}%
-hud.revive_secondary_team = REVIVING: [{progressBar}] {percent}% ({count} helpers)
-
-# HUD messages (new CustomUIHud system)
-hud.downed_time = Time remaining: {time}
-hud.reviving = {reviverName} is reviving you...
-hud.reviving_player = Reviving {playerName}...
+# HUD messages (CustomUIHud system)
+hud.press_to_revive = Press {key} to revive {user}
+hud.downed_time = {time}
+hud.reviver_time = {time} remaining
+hud.reviving = {user} is reviving you...
+hud.reviver_reviving = Reviving {user}...
+hud.giving_up = Giving up...
+hud.giveup_press = Hold {key} to give up

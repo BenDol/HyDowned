@@ -1,4 +1,4 @@
-package com.hydowned.network
+package com.hydowned.player.network
 
 import com.hydowned.ModPlugin
 import com.hypixel.hytale.protocol.InteractionType

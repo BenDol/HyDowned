@@ -19,12 +19,15 @@ revive.player_reviving_you = {reviverName}があなたを蘇生しています
 revive.cancelled = 蘇生がキャンセルされました
 
 # コマンド
+commands.giveup.desc = ダウン時にギブアップしてリスポーン
 command.not_knocked_out = あなたはダウンしていません！
 command.giving_up = ギブアップ中...まもなくリスポーンします。
 
 # HUDメッセージ
-hud.reviving_progress = 蘇生中: {playerName} [{progressBar}] {percent}% (残り{time}秒)
-hud.reviving_progress_team = 蘇生中: {playerName} [{progressBar}] {percent}% (残り{time}秒) ({count}人のヘルパー)
-hud.downed_timer = ダウン中: {time} [{progressBar}] {percent}%
-hud.revive_secondary = 蘇生中: [{progressBar}] {percent}%
-hud.revive_secondary_team = 蘇生中: [{progressBar}] {percent}% ({count}人のヘルパー)
+hud.press_to_revive = {key}を押して{user}を蘇生
+hud.downed_time = {time}
+hud.reviver_time = 残り{time}
+hud.reviving = {user}があなたを蘇生しています...
+hud.reviver_reviving = {user}を蘇生中...
+hud.giving_up = ギブアップ中...
+hud.giveup_press = {key}を長押ししてギブアップ

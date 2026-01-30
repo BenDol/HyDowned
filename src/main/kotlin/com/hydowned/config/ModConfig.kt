@@ -4,7 +4,6 @@ import com.google.gson.*
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
-import java.lang.reflect.Type
 
 /**
  * Configuration for a specific damage type affecting downed players.
@@ -24,7 +23,7 @@ data class DamageTypeConfig(
  */
 data class AllowedDamage(
     val player: DamageTypeConfig = DamageTypeConfig(true),  // Player damage (PvP)
-    val mob: DamageTypeConfig = DamageTypeConfig(true),     // Mob damage
+    val ai: DamageTypeConfig = DamageTypeConfig(true),      // AI damage
     val environment: DamageTypeConfig = DamageTypeConfig(),          // Environmental damage (fall, fire, etc.)
     val lava: DamageTypeConfig = DamageTypeConfig(enabled = true, damageMultiplier = 1.0) // Lava damage (prevents being stuck)
 )
@@ -38,6 +37,8 @@ data class DownedSettings(
     val healthWhenDowned: Float = 0.30f,
     val allowMovement: Boolean = true,
     val applySlow: Boolean = true,
+    val jumpForce: Float = 0.0f,
+    val aiRetargetRange: Double = 16.0,
     val allowedDamage: AllowedDamage = AllowedDamage()
 )
 
@@ -68,7 +69,8 @@ data class CameraSettings(
  */
 data class UISettings(
     val enableSounds: Boolean = true,
-    val enableProgressBar: Boolean = true
+    val enableProgressBar: Boolean = true,
+    val showChatMessages: Boolean = false
 )
 
 /**

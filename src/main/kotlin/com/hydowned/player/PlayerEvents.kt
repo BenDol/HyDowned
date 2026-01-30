@@ -5,6 +5,8 @@ import com.hydowned.component.DownedComponent
 import com.hydowned.player.aspect.OtherAspect
 import com.hydowned.logging.Log
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /**
  * Main event handler and system registration for HyDowned.
@@ -39,11 +41,18 @@ class PlayerEvents(val plugin: ModPlugin) {
         val modPlayer = managers.playerManager.get(event.player)
         if (downedComponent != null && downedComponent.time > 0) {
             val downable = modPlayer!!.asDownable
-            managers.downManager.down(downable, OtherAspect.create("reconnected"))
-            managers.downManager.setTime(downable, downedComponent.time)
 
-            Log.info("PlayerEvents",
-                "${event.player.displayName} reconnected while downed (${downedComponent.time} ticks remaining)")
+            // Delay the down state application to ensure player is fully loaded for other clients
+            val world = event.player.world
+            Executors.newSingleThreadScheduledExecutor().schedule({
+                world?.execute {
+                    managers.downManager.down(downable, OtherAspect.create("reconnected"))
+                    managers.downManager.setTime(downable, downedComponent.time)
+
+                    Log.info("PlayerEvents",
+                        "${event.player.displayName} reconnected while downed (${downedComponent.time} ticks remaining)")
+                }
+            }, 250, TimeUnit.MILLISECONDS)
         }
     }
 }

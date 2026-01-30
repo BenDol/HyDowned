@@ -67,6 +67,7 @@ class ModConfigDeserializer : JsonDeserializer<ModConfig> {
         val allowMovement = true  // Match current default in DownedSettings
         val applySlow = true
         val healOnReviveEnabled = false  // Match current default in ReviveSettings
+        val showChatMessages = false
 
         // Camera settings (all new)
         val camera = CameraSettings(
@@ -129,7 +130,8 @@ class ModConfigDeserializer : JsonDeserializer<ModConfig> {
             camera = camera,
             ui = UISettings(
                 enableSounds = enableSounds,
-                enableProgressBar = enableProgressBar
+                enableProgressBar = enableProgressBar,
+                showChatMessages = showChatMessages
             ),
             logLevel = logLevel
         )

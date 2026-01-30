@@ -59,7 +59,7 @@ class CrouchDetectionSystem(val managers: Managers) : EntityTickingSystem<Entity
                     val downableNearest = playerRef.getNearestDownable()
                     if (downableNearest != null && playerRef.getDistance(downableNearest.playerRef) <= 5.0) {
                         managers.reviveManager.start(reviver, downableNearest)
-                        Log.info("CrouchDetection",
+                        Log.finer("CrouchDetection",
                             "${player.displayName} started reviving ${downableNearest.getDisplayName()}")
                     }
                 }
@@ -72,7 +72,7 @@ class CrouchDetectionSystem(val managers: Managers) : EntityTickingSystem<Entity
                 }
                 if (managers.reviveManager.isReviving(reviver)) {
                     managers.reviveManager.cancel(reviver)
-                    Log.info("CrouchDetection", "${player.displayName} canceled revive")
+                    Log.finer("CrouchDetection", "${player.displayName} canceled revive")
                 }
             }
         }

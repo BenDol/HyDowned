@@ -19,12 +19,15 @@ revive.player_reviving_you = {reviverName} está revivendo você
 revive.cancelled = Reviver cancelado
 
 # Comandos
+commands.giveup.desc = Desistir e renascer quando nocauteado
 command.not_knocked_out = Você não está nocauteado!
 command.giving_up = Desistindo... Você vai renascer em breve.
 
 # Mensagens HUD
-hud.reviving_progress = REVIVENDO: {playerName} [{progressBar}] {percent}% ({time}s restantes)
-hud.reviving_progress_team = REVIVENDO: {playerName} [{progressBar}] {percent}% ({time}s restantes) ({count} ajudantes)
-hud.downed_timer = NOCAUTEADO: {time} [{progressBar}] {percent}%
-hud.revive_secondary = REVIVENDO: [{progressBar}] {percent}%
-hud.revive_secondary_team = REVIVENDO: [{progressBar}] {percent}% ({count} ajudantes)
+hud.press_to_revive = Pressione {key} para reviver {user}
+hud.downed_time = {time}
+hud.reviver_time = {time} restante
+hud.reviving = {user} está revivendo você...
+hud.reviver_reviving = Revivendo {user}...
+hud.giving_up = Desistindo...
+hud.giveup_press = Segure {key} para desistir

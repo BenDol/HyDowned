@@ -19,12 +19,15 @@ revive.player_reviving_you = {reviverName} belebt dich wieder
 revive.cancelled = Wiederbelebung abgebrochen
 
 # Befehle
+commands.giveup.desc = Aufgeben und respawnen wenn niedergeschlagen
 command.not_knocked_out = Du bist nicht niedergeschlagen!
 command.giving_up = Aufgeben... Du wirst in Kürze respawnen.
 
 # HUD-Nachrichten
-hud.reviving_progress = WIEDERBELEBUNG: {playerName} [{progressBar}] {percent}% ({time}s verbleibend)
-hud.reviving_progress_team = WIEDERBELEBUNG: {playerName} [{progressBar}] {percent}% ({time}s verbleibend) ({count} Helfer)
-hud.downed_timer = NIEDERGESCHLAGEN: {time} [{progressBar}] {percent}%
-hud.revive_secondary = WIEDERBELEBUNG: [{progressBar}] {percent}%
-hud.revive_secondary_team = WIEDERBELEBUNG: [{progressBar}] {percent}% ({count} Helfer)
+hud.press_to_revive = Drücke {key}, um {user} wiederzubeleben
+hud.downed_time = {time}
+hud.reviver_time = {time} verbleibend
+hud.reviving = {user} belebt dich wieder...
+hud.reviver_reviving = {user} wird wiederbelebt...
+hud.giving_up = Gibt auf...
+hud.giveup_press = Halte {key} zum Aufgeben

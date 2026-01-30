@@ -305,7 +305,6 @@ Default config values:
   "downedAnimationType": "LAYING",     // or "CRAWLING"
   "multipleReviversMode": "SPEEDUP",   // or "FIRST_ONLY"
   "reviveSpeedupPerPlayer": 0.5,       // 50% faster per reviver
-  "enableParticles": true,
   "enableSounds": true,
   "enableActionBar": true
 }

@@ -19,7 +19,7 @@ import kotlin.math.roundToInt
  */
 class DownedHud(playerRef: PlayerRef) : CustomUIHud(playerRef) {
 
-    private var info: InfoBuilder? = null
+    private var ui: UIBuilder? = null
     private var visible: Boolean = true
 
     /**
@@ -35,22 +35,22 @@ class DownedHud(playerRef: PlayerRef) : CustomUIHud(playerRef) {
     /**
      * Internal build method that constructs the HUD UI.
      *
-     * Loads the base UI file and adds all InfoValue components.
+     * Loads the base UI file and adds all UiComponent components.
      */
     private fun customBuild(ui: UICommandBuilder) {
-        val currentInfo = info
-        if (currentInfo != null && currentInfo.canDisplay()) {
+        val currentUi = this@DownedHud.ui
+        if (currentUi != null && currentUi.canDisplay()) {
             // Load base UI structure
             ui.append("Hud/Downed.ui")
 
             // Create anchor for positioning (bottom-center of screen)
             val anchorBuilder = AnchorBuilder()
-                .setBottom(180)  // 180px from bottom
-                .setHorizontal(0)  // Centered horizontally
+                .setTop(150)
+                .setHorizontal(0)  // centered horizontally
 
             // Build all non-empty components
-            currentInfo.values()
-                .filter { it != InfoValue.EMPTY }
+            currentUi.components()
+                .filter { it != UIComponent.EMPTY }
                 .forEach { it.build(ui, anchorBuilder, "#DownedInfo") }
 
             // Set the final anchor position
@@ -65,7 +65,7 @@ class DownedHud(playerRef: PlayerRef) : CustomUIHud(playerRef) {
      * @param player The viewer seeing this HUD
      */
     fun updateHud(downed: ModPlayer, player: ModPlayer) {
-        this.info = InfoBuilder()
+        this.ui = UIBuilder()
 
         if (!visible) {
             return
@@ -95,10 +95,24 @@ class DownedHud(playerRef: PlayerRef) : CustomUIHud(playerRef) {
                 .param("user", downable.getDisplayName())
                 .param("key", Message.translation("client.settings.bindings.Crouch"))
 
-            info!!.set("Message") { id ->
-                val labelValue = LabelValue(id, press, 20)
-                labelValue.setBackgroundColor("#000000(0.1)")
-                labelValue
+            // Create a custom component positioned at bottom of screen (separate from main HUD)
+            ui?.set("PressToRevive") { id ->
+                object : UIComponent {
+                    override fun build(ui: UICommandBuilder, anchor: AnchorBuilder, selector: String) {
+                        // Position at bottom center of screen
+                        val dsl = """
+                            Label #${id} {
+                              Anchor: (Bottom: 0, Horizontal: 0);
+                              Style: LabelStyle(FontSize: 15, Alignment: Center);
+                            }
+                        """.trimIndent()
+
+                        // Append directly to #Downed (root), not #DownedInfo
+                        ui.appendInline("#Downed", dsl)
+                        ui.set("#Downed #${id}.TextSpans", press)
+                        // Don't modify the anchor - this is positioned absolutely
+                    }
+                }
             }
             return
         }
@@ -139,43 +153,65 @@ class DownedHud(playerRef: PlayerRef) : CustomUIHud(playerRef) {
             }
         }
 
-        // Show giveup progress if active
-        if (downable.giveUpTicks != -1) {
-            info!!.set("GiveUpGroup") { id ->
-                val values = mutableListOf<InfoValue>()
-                val giveupProgress = if (downable.giveUpTicks == -1) 0.0f
-                    else (downable.giveUpTicks.toFloat() / downable.getMaxGiveUpTicks().toFloat()).coerceIn(0.0f, 1.0f)
+        // Add progress bar with message label overlaid on top
+        ui?.set("Others") { id ->
+            val values = mutableListOf<UIComponent>()
 
-                values.add(LabelValue(id + "GiveUpMessage",
-                    Message.translation("hydowned.hud.giving_up"), 12))
+            // Add combined progress bar + overlaid message as single component
+            values.add(object : UIComponent {
+                override fun build(ui: UICommandBuilder, anchor: AnchorBuilder, selector: String) {
+                    val dsl = """
+                        Group {
+                          Anchor: (Width: 450, Height: 20);
+                          Background: "Hud/DownedBar.png";
 
-                val giveupBar = ProgressBarValue(id + "GiveUp",
-                    1.0f - giveupProgress, "Hud/GiveUpBar.png", "Hud/GiveUpBarFill.png")
-                giveupBar.setBarEffect("Hud/GiveUpBarEffect.png")
-                giveupBar.setHeight(12)
-                giveupBar.setWidth(250)
-                values.add(giveupBar)
+                          ProgressBar #${id}Progress {
+                            Value: ${(finalProgress * 1000.0f).roundToInt() / 1000.0f};
+                            BarTexturePath: "$barFill";
+                            EffectTexturePath: "Hud/ProcessingBarEffect.png";
+                            EffectWidth: 200;
+                            EffectHeight: 58;
+                            EffectOffset: 74;
+                          }
 
-                values.add(LabelValue(id + "Space", Message.raw("  "), 10))
-                GroupValue(id, values)
-            }
-        }
+                          Label #${id}Message {
+                            Anchor: (Top: 0, Left: 0, Right: 0);
+                            Style: LabelStyle(FontSize: 15, Alignment: Center);
+                          }
+                        }
+                    """.trimIndent()
 
-        // Add main message
-        info!!.set("Message") { id -> LabelValue(id, message, 17) }
-
-        // Add progress bar and giveup press message
-        info!!.set("Others") { id ->
-            val values = mutableListOf<InfoValue>()
-            values.add(ProgressBarValue(id + "Progress",
-                (finalProgress * 1000.0f).roundToInt() / 1000.0f, "Hud/DownedBar.png", barFill))
+                    ui.appendInline(selector, dsl)
+                    ui.set("$selector #${id}Message.TextSpans", message)
+                    anchor.addHeight(10)
+                }
+            })
 
             val reviver = managers.reviveManager.getReviverOf(downable)
-            if (downable.giveUpTicks == -1 && reviver == null) {
-                values.add(LabelValue(id + "GiveUpPress",
+
+            // Add spacing below progress bar
+            values.add(Label(id + "Spacer", Message.raw(""), 3))
+
+            // Show give up progress if active, otherwise show give up press message
+            if (downable.giveUpTicks != -1) {
+                // Player is giving up - show progress
+                val giveUpProgress = (downable.giveUpTicks.toFloat() / downable.getMaxGiveUpTicks().toFloat()).coerceIn(0.0f, 1.0f)
+
+                values.add(Label(id + "GiveUpMessage",
+                    Message.translation("hydowned.hud.giving_up"), 12))
+
+                val giveUpBar = ProgressBar(id + "GiveUp",
+                    1.0f - giveUpProgress, "Hud/GiveUpBar.png", "Hud/GiveUpBarFill.png")
+                giveUpBar.setBarEffect("Hud/GiveUpBarEffect.png")
+                giveUpBar.setHeight(12)
+                giveUpBar.setWidth(180)
+                values.add(giveUpBar)
+            } else if (reviver == null) {
+                // Not giving up and not being revived - show give up press message
+                values.add(Label(id + "GiveUpPress",
                     Message.translation("hydowned.hud.giveup_press")
                         .param("key", Message.translation("client.settings.bindings.Crouch")),
-                    15))
+                    12))
             }
             GroupValue(id, values)
         }
@@ -186,10 +222,10 @@ class DownedHud(playerRef: PlayerRef) : CustomUIHud(playerRef) {
     }
 
     /**
-     * Updates the HUD with an InfoBuilder (old method).
+     * Updates the HUD with an UiBuilder (old method).
      */
-    fun updateHud(builder: InfoBuilder) {
-        this.info = builder
+    fun updateHud(builder: UIBuilder) {
+        this.ui = builder
         if (visible) {
             show()
         }

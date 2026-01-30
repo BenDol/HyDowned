@@ -5,6 +5,7 @@ import com.hydowned.manager.Managers
 import com.hydowned.player.aspect.PlayerDownable
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent
 import com.hypixel.hytale.server.core.universe.PlayerRef
+import com.hypixel.hytale.server.core.Message
 import kotlin.math.sqrt
 
 fun PlayerRef.getDistance(targetRef: PlayerRef): Double {
@@ -49,4 +50,25 @@ fun PlayerRef.getNearestDownable(
     }
 
     return nearest
+}
+
+/**
+ * Sends a message to the player if chat messages are enabled in config.
+ *
+ * This convenience method checks the `ui.showChatMessages` config flag
+ * before sending the message, allowing server admins to disable chat
+ * notifications while keeping other features enabled.
+ *
+ * @param message The message to send to the player
+ * @return true if the message was sent, false if blocked by config
+ */
+fun PlayerRef.sendModMessage(message: Message): Boolean {
+    val config = ModPlugin.instance?.config ?: return false
+
+    if (!config.ui.showChatMessages) {
+        return false
+    }
+
+    this.sendMessage(message)
+    return true
 }

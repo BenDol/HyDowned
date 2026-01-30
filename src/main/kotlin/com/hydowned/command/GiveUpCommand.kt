@@ -10,6 +10,7 @@ import com.hypixel.hytale.server.core.universe.world.World
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 import com.hydowned.config.ModConfig
 import com.hydowned.ModPlugin
+import com.hydowned.extension.sendModMessage
 import java.util.concurrent.ConcurrentHashMap
 import com.hydowned.logging.Log
 import com.hypixel.hytale.protocol.GameMode
@@ -53,7 +54,7 @@ class GiveUpCommand(
         val modPlayer = managers.playerManager.get(playerRef)
 
         if (modPlayer == null || !modPlayer.asDownable.isDowned()) {
-            playerRef.sendMessage(Message.translation("hydowned.command.not_knocked_out"))
+            playerRef.sendModMessage(Message.translation("hydowned.command.not_knocked_out"))
             return
         }
 
@@ -65,6 +66,6 @@ class GiveUpCommand(
         Log.finer("GiveUpCommand", "Player gave up and died")
 
         // Send message
-        playerRef.sendMessage(Message.translation("hydowned.command.giving_up"))
+        playerRef.sendModMessage(Message.translation("hydowned.command.giving_up"))
     }
 }

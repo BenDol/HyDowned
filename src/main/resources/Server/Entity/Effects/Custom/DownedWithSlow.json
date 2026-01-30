@@ -1,0 +1,9 @@
+{
+  "ApplicationEffects": {
+    "HorizontalSpeedMultiplier": 0.2
+  },
+  "Duration": 1200,
+  "OverlapBehavior": "Overwrite",
+  "Debuff": true,
+  "StatusEffectIcon": "UI/Custom/StatusEffects/Downed.png"
+}

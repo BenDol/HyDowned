@@ -20,8 +20,12 @@ import com.hydowned.aspect.Aspect
 import com.hydowned.aspect.Downable
 import com.hydowned.aspect.Reviver
 import com.hydowned.logging.Log
+import com.hypixel.hytale.component.Ref
+import com.hypixel.hytale.component.Store
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes
+import com.hypixel.hytale.server.core.universe.world.World
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
 
 /**
  * Implementation of Downable for players.
@@ -41,11 +45,11 @@ class PlayerDownable(
     private val managers = ModPlugin.instance!!.managers
     private var aggressor: Aspect? = null
 
-    var passDamage: Boolean = false
+    var allowDamage: Boolean = false
     var giveUpTicks: Int = -1
 
     // Original movement values for restoration
-    private var jumpForce: Float = 7.5f
+    private var jumpForce: Float = 11.8f
     private var speedBase: Float = 5.5f
 
     override fun getDisplayName(): String {
@@ -57,11 +61,15 @@ class PlayerDownable(
     }
 
     override fun isDead(): Boolean {
-        return false
+        // Check if player has DeathComponent
+        val reference = playerRef.reference ?: return false
+        val store = reference.store
+        return store.getComponent(reference, DeathComponent.getComponentType()) != null
     }
 
     override fun isAlive(): Boolean {
-        return true
+        // Player is alive if they don't have DeathComponent
+        return !isDead()
     }
 
     override fun getDownProgress(): Float {
@@ -103,7 +111,10 @@ class PlayerDownable(
 
         // Apply slowness effect
         setDownedEffect(getDownDuration().toFloat(), config.downed.applySlow,
-            "on down: ${getDownDuration()}")
+            "downed: ${getDownDuration()}")
+
+        // Reduce jump force (always)
+        reduceJumpForce()
 
         // Block movement if configured
         if (!config.downed.allowMovement) {
@@ -179,29 +190,33 @@ class PlayerDownable(
                 }
             }
 
-            // Restore movement
+            // Restore movement settings
             val config = ModPlugin.instance!!.config
-            if (!config.downed.allowMovement) {
-                val movementManager = store.getComponent(
-                    reference,
-                    MovementManager.getComponentType()
-                )
+            val movementManager = store.getComponent(
+                reference,
+                MovementManager.getComponentType()
+            )
 
-                if (movementManager != null) {
+            if (movementManager != null) {
+                // Always restore jump force (since we always reduce it)
+                movementManager.settings.jumpForce = if (jumpForce == 0.0f) 11.8f else jumpForce
+
+                // Only restore base speed if movement was disabled
+                if (!config.downed.allowMovement) {
                     movementManager.settings.baseSpeed = if (speedBase == 0.0f) 5.5f else speedBase
-                    movementManager.settings.jumpForce = if (jumpForce == 0.0f) 11.8f else jumpForce
-                    movementManager.update(playerRef.packetHandler)
                 }
+
+                movementManager.update(playerRef.packetHandler)
             }
         }
 
         // Heal on revive if configured
-        val config = ModPlugin.instance!!.config
+        val config = managers.config
         if (config.revive.healOnReviveEnabled) {
             setHealthPercent(config.revive.healOnReviveHealth)
         }
 
-        passDamage = false
+        allowDamage = false
     }
 
     override fun canBeRevivedBy(reviver: Reviver): Boolean {
@@ -251,7 +266,7 @@ class PlayerDownable(
             }
 
             val duration = time / 20.0f
-            Log.info("PlayerDownable",
+            Log.debug("PlayerDownable",
                 "Applying downed effect to ${getDisplayName()}: duration=${duration}s, reason=$reason")
 
             effectController.addEffect(
@@ -312,26 +327,42 @@ class PlayerDownable(
         }
     }
 
-    private fun disableMovement() {
+    private fun reduceJumpForce() {
         player.world?.execute {
-            val worldObj = player.world ?: return@execute
-            val reference = playerRef.reference ?: return@execute
-            val store = worldObj.entityStore.store
+            val movementManager = getMovementManager() ?: return@execute
 
-            val movementManager = store.getComponent(
-                reference,
-                MovementManager.getComponentType()
-            ) ?: return@execute
-
-            // Save original values
+            // Save original jump force
             jumpForce = movementManager.settings.jumpForce
-            speedBase = movementManager.settings.baseSpeed
 
-            // Set to zero
-            movementManager.settings.baseSpeed = 0.0f
-            movementManager.settings.jumpForce = 0.0f
+            // Set jump force to configured value (default 0.0 = disable jumping while downed)
+            val config = managers.config
+            movementManager.settings.jumpForce = config.downed.jumpForce
             movementManager.update(playerRef.packetHandler)
         }
+    }
+
+    private fun disableMovement() {
+        player.world?.execute {
+            val movementManager = getMovementManager() ?: return@execute
+
+            // Save original base speed (jump force already saved in reduceJumpForce)
+            speedBase = movementManager.settings.baseSpeed
+
+            // Set base speed to zero (disable horizontal movement)
+            movementManager.settings.baseSpeed = 0.0f
+            movementManager.update(playerRef.packetHandler)
+        }
+    }
+
+    private fun getMovementManager(): MovementManager? {
+        val worldObj = player.world ?: return null
+        val reference = playerRef.reference ?: return null
+        val store = worldObj.entityStore.store
+
+        return store.getComponent(
+            reference,
+            MovementManager.getComponentType()
+        )
     }
 
     private fun setHealthPercent(healthPercent: Float) {

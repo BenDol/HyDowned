@@ -12,16 +12,16 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder
  * - Optional effect texture
  * - Width and height
  */
-class ProgressBarValue(
+class ProgressBar(
     private val id: String,
     value: Float,
     private val bar: String,
     private val barFill: String
-) : InfoValue {
+) : UIComponent {
 
     private val value: Float = value.coerceIn(0.0f, 1.0f)
-    private var width: Int = 600
-    private var height: Int = 24
+    private var width: Int = 450
+    private var height: Int = 20
     private var barEffect: String = "Hud/ProcessingBarEffect.png"
 
     /**
@@ -30,7 +30,7 @@ class ProgressBarValue(
      * @param width The width in pixels
      * @return This instance for chaining
      */
-    fun setWidth(width: Int): ProgressBarValue {
+    fun setWidth(width: Int): ProgressBar {
         this.width = width
         return this
     }
@@ -41,7 +41,7 @@ class ProgressBarValue(
      * @param height The height in pixels
      * @return This instance for chaining
      */
-    fun setHeight(height: Int): ProgressBarValue {
+    fun setHeight(height: Int): ProgressBar {
         this.height = height
         return this
     }
@@ -52,7 +52,7 @@ class ProgressBarValue(
      * @param barEffect Path to the effect texture
      * @return This instance for chaining
      */
-    fun setBarEffect(barEffect: String): ProgressBarValue {
+    fun setBarEffect(barEffect: String): ProgressBar {
         this.barEffect = barEffect
         return this
     }

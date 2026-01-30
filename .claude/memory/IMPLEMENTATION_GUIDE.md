@@ -53,7 +53,7 @@ This ECS component marks a player as being in the downed state.
 **File**: `src/main/kotlin/com/hydowned/components/DownedComponent.kt`
 
 ```kotlin
-package com.hydowned.components
+package com.hydowned.component
 
 import com.hypixel.hytale.component.Component
 import com.hypixel.hytale.component.ComponentType
@@ -66,28 +66,28 @@ import com.hydowned.HyDownedPlugin
  * This replaces death - player stays alive at 1 HP and can be revived
  */
 class DownedComponent(
-    var downedTimeRemaining: Int,
-    var reviverPlayerIds: MutableSet<String> = mutableSetOf(),
-    var reviveTimeRemaining: Double = 0.0,
-    val downedAt: Long = System.currentTimeMillis(),
-    var downedLocation: Vector3d? = null
+   var downedTimeRemaining: Int,
+   var reviverPlayerIds: MutableSet<String> = mutableSetOf(),
+   var reviveTimeRemaining: Double = 0.0,
+   val downedAt: Long = System.currentTimeMillis(),
+   var downedLocation: Vector3d? = null
 ) : Component<EntityStore> {
 
-    companion object {
-        fun getComponentType(): ComponentType<EntityStore, DownedComponent> {
-            return HyDownedPlugin.instance!!.getDownedComponentType()
-        }
-    }
+   companion object {
+      fun getComponentType(): ComponentType<EntityStore, DownedComponent> {
+         return HyDownedPlugin.instance!!.getDownedComponentType()
+      }
+   }
 
-    override fun clone(): Component<EntityStore> {
-        return DownedComponent(
-            downedTimeRemaining,
-            reviverPlayerIds.toMutableSet(),
-            reviveTimeRemaining,
-            downedAt,
-            downedLocation?.clone()
-        )
-    }
+   override fun clone(): Component<EntityStore> {
+      return DownedComponent(
+         downedTimeRemaining,
+         reviverPlayerIds.toMutableSet(),
+         reviveTimeRemaining,
+         downedAt,
+         downedLocation?.clone()
+      )
+   }
 }
 ```
 
@@ -98,7 +98,7 @@ This system intercepts damage that would kill the player and puts them in downed
 **File**: `src/main/kotlin/com/hydowned/systems/DownedDeathInterceptor.kt`
 
 ```kotlin
-package com.hydowned.systems
+package com.hydowned.system
 
 import com.hypixel.hytale.component.ArchetypeChunk
 import com.hypixel.hytale.component.CommandBuffer
@@ -117,7 +117,7 @@ import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageSystems
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes
-import com.hydowned.components.DownedComponent
+import com.hydowned.component.DownedComponent
 import com.hydowned.config.DownedConfig
 import java.util.Set
 import javax.annotation.Nonnull
@@ -132,84 +132,84 @@ import javax.annotation.Nullable
  * 3. Add DownedComponent instead of letting DeathComponent be added
  */
 class DownedDeathInterceptor(
-    private val config: DownedConfig
+   private val config: DownedConfig
 ) : DamageEventSystem() {
 
-    private val query = Query.and(
-        Player.getComponentType(),
-        EntityStatMap.getComponentType(),
-        TransformComponent.getComponentType()
-    )
+   private val query = Query.and(
+      Player.getComponentType(),
+      EntityStatMap.getComponentType(),
+      TransformComponent.getComponentType()
+   )
 
-    // Run in FilterDamageGroup, BEFORE ApplyDamage
-    private val dependencies = setOf(
-        SystemDependency<EntityStore>(Order.BEFORE, DamageSystems.ApplyDamage::class.java)
-    )
+   // Run in FilterDamageGroup, BEFORE ApplyDamage
+   private val dependencies = setOf(
+      SystemDependency<EntityStore>(Order.BEFORE, DamageSystems.ApplyDamage::class.java)
+   )
 
-    @Nonnull
-    override fun getQuery(): Query<EntityStore> = query
+   @Nonnull
+   override fun getQuery(): Query<EntityStore> = query
 
-    @Nullable
-    override fun getGroup(): SystemGroup<EntityStore> {
-        return DamageModule.get().getFilterDamageGroup()
-    }
+   @Nullable
+   override fun getGroup(): SystemGroup<EntityStore> {
+      return DamageModule.get().getFilterDamageGroup()
+   }
 
-    @Nonnull
-    override fun getDependencies(): Set<Dependency<EntityStore>> = dependencies
+   @Nonnull
+   override fun getDependencies(): Set<Dependency<EntityStore>> = dependencies
 
-    override fun handle(
-        index: Int,
-        archetypeChunk: ArchetypeChunk<EntityStore>,
-        store: Store<EntityStore>,
-        commandBuffer: CommandBuffer<EntityStore>,
-        damage: Damage
-    ) {
-        val ref = archetypeChunk.getReferenceTo(index)
+   override fun handle(
+      index: Int,
+      archetypeChunk: ArchetypeChunk<EntityStore>,
+      store: Store<EntityStore>,
+      commandBuffer: CommandBuffer<EntityStore>,
+      damage: Damage
+   ) {
+      val ref = archetypeChunk.getReferenceTo(index)
 
-        // Skip if player already downed
-        if (commandBuffer.getArchetype(ref).contains(DownedComponent.getComponentType())) {
-            return
-        }
+      // Skip if player already downed
+      if (commandBuffer.getArchetype(ref).contains(DownedComponent.getComponentType())) {
+         return
+      }
 
-        // Get health stats
-        val entityStatMap = archetypeChunk.getComponent(index, EntityStatMap.getComponentType())
-            ?: return
-        val healthStat = entityStatMap.get(DefaultEntityStatTypes.getHealth()) ?: return
-        val currentHealth = healthStat.get()
+      // Get health stats
+      val entityStatMap = archetypeChunk.getComponent(index, EntityStatMap.getComponentType())
+         ?: return
+      val healthStat = entityStatMap.get(DefaultEntityStatTypes.getHealth()) ?: return
+      val currentHealth = healthStat.get()
 
-        // Calculate if this damage would be lethal
-        val newHealth = currentHealth - damage.amount
+      // Calculate if this damage would be lethal
+      val newHealth = currentHealth - damage.amount
 
-        if (newHealth <= healthStat.min) {
-            // This damage would kill the player - intercept it!
+      if (newHealth <= healthStat.min) {
+         // This damage would kill the player - intercept it!
 
-            // Modify damage to leave player at 1 HP instead of 0
-            val modifiedDamage = currentHealth - 1.0f
-            damage.amount = modifiedDamage
+         // Modify damage to leave player at 1 HP instead of 0
+         val modifiedDamage = currentHealth - 1.0f
+         damage.amount = modifiedDamage
 
-            // Get location for downed state
-            val transform = archetypeChunk.getComponent(index, TransformComponent.getComponentType())
-            val location = transform?.position?.clone()
+         // Get location for downed state
+         val transform = archetypeChunk.getComponent(index, TransformComponent.getComponentType())
+         val location = transform?.position?.clone()
 
-            // Add downed component instead of letting death happen
-            val downedComponent = DownedComponent(
-                downedTimeRemaining = config.downedTimerSeconds,
-                reviverPlayerIds = mutableSetOf(),
-                reviveTimeRemaining = 0.0,
-                downedAt = System.currentTimeMillis(),
-                downedLocation = location
-            )
+         // Add downed component instead of letting death happen
+         val downedComponent = DownedComponent(
+            downedTimeRemaining = config.downedTimerSeconds,
+            reviverPlayerIds = mutableSetOf(),
+            reviveTimeRemaining = 0.0,
+            downedAt = System.currentTimeMillis(),
+            downedLocation = location
+         )
 
-            commandBuffer.addComponent(ref, DownedComponent.getComponentType(), downedComponent)
+         commandBuffer.addComponent(ref, DownedComponent.getComponentType(), downedComponent)
 
-            // Log for debugging
-            println("[HyDowned] Player entered downed state (intercepted lethal damage)")
+         // Log for debugging
+         println("[HyDowned] Player entered downed state (intercepted lethal damage)")
 
-            // TODO: Apply visual effects (animation, particles, etc.)
-            // TODO: Apply movement speed reduction
-            // TODO: Send feedback message to player
-        }
-    }
+         // TODO: Apply visual effects (animation, particles, etc.)
+         // TODO: Apply movement speed reduction
+         // TODO: Send feedback message to player
+      }
+   }
 }
 ```
 
@@ -226,10 +226,10 @@ import com.hypixel.hytale.component.ComponentType
 import com.hypixel.hytale.server.core.plugin.JavaPlugin
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore
-import com.hydowned.components.DownedComponent
+import com.hydowned.component.DownedComponent
 import com.hydowned.config.DownedConfig
 import com.hydowned.state.DownedStateManager
-import com.hydowned.systems.DownedDeathInterceptor
+import com.hydowned.system.DownedDeathInterceptor
 import com.hydowned.timers.DownedTimerTask
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit

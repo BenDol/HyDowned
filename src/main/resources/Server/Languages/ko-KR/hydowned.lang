@@ -19,12 +19,15 @@ revive.player_reviving_you = {reviverName}님이 당신을 소생시키고 있�
 revive.cancelled = 소생이 취소되었습니다
 
 # 명령어
+commands.giveup.desc = 쓰러졌을 때 포기하고 리스폰
 command.not_knocked_out = 당신은 쓰러진 상태가 아닙니다!
 command.giving_up = 포기 중... 곧 리스폰됩니다.
 
 # HUD 메시지
-hud.reviving_progress = 소생 중: {playerName} [{progressBar}] {percent}% ({time}초 남음)
-hud.reviving_progress_team = 소생 중: {playerName} [{progressBar}] {percent}% ({time}초 남음) ({count}명 도움)
-hud.downed_timer = 쓰러짐: {time} [{progressBar}] {percent}%
-hud.revive_secondary = 소생 중: [{progressBar}] {percent}%
-hud.revive_secondary_team = 소생 중: [{progressBar}] {percent}% ({count}명 도움)
+hud.press_to_revive = {key}를 눌러 {user}님을 소생
+hud.downed_time = {time}
+hud.reviver_time = {time} 남음
+hud.reviving = {user}님이 당신을 소생시키고 있습니다...
+hud.reviver_reviving = {user}님을 소생 중...
+hud.giving_up = 포기 중...
+hud.giveup_press = {key}를 길게 눌러 포기
