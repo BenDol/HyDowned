@@ -285,7 +285,7 @@ class PlayerDownable(
         player.world?.execute {
             AnimationUtils.playAnimation(
                 reference,
-                AnimationSlot.Movement,
+                AnimationSlot.Status,
                 "Sleep",
                 true, // looping
                 store
@@ -299,7 +299,7 @@ class PlayerDownable(
         player.world?.execute {
             AnimationUtils.stopAnimation(
                 reference,
-                AnimationSlot.Movement,
+                AnimationSlot.Status,
                 store
             )
         }
