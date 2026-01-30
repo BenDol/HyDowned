@@ -11,8 +11,8 @@ When you take fatal damage:
 * You fall into a sleep animation while downed
 * Teammates can revive you by crouching nearby for 10 seconds (configurable)
 * If the timer runs out, you die normally
-* You can use `/giveup` command to respawn immediately
 * You can hold crouch to give up after 5 seconds
+* You can use `/giveup` command to respawn immediately
 
 ## Configuration
 

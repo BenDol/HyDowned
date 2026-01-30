@@ -142,6 +142,7 @@ class PlayerDownable(
 
     override fun onRevived() {
         Log.finer("PlayerDownable", "${getDisplayName()} was saved/revived")
+
         stopDown()
     }
 
@@ -215,6 +216,9 @@ class PlayerDownable(
         if (config.revive.healOnReviveEnabled) {
             setHealthPercent(config.revive.healOnReviveHealth)
         }
+
+        // Restore oxygen (in case player drowned)
+        restoreOxygen()
 
         allowDamage = false
     }
@@ -395,6 +399,23 @@ class PlayerDownable(
                 DefaultEntityStatTypes.getHealth(),
                 health.toFloat()
             )
+        }
+    }
+
+    private fun restoreOxygen() {
+        player.world?.execute {
+            val reference = playerRef.reference ?: return@execute
+            val store = reference.store
+
+            val entityStatMap = store.getComponent(
+                reference,
+                EntityStatMap.getComponentType()
+            ) ?: return@execute
+
+            // Restore oxygen to max (in case player drowned)
+            val oxygenStat = DefaultEntityStatTypes.getOxygen()
+            val oxygenValue = entityStatMap.get(oxygenStat) ?: return@execute
+            entityStatMap.setStatValue(oxygenStat, oxygenValue.max)
         }
     }
 }

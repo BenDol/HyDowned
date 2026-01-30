@@ -88,23 +88,33 @@ class ApplyDamageSystem(val managers: Managers) : DamageSystems.ApplyDamage() {
                 return
             }
 
-            // Check config for allowing damage
-            val allowPlayerDamage = config.downed.allowedDamage.player.enabled
-            val allowAIDamage = config.downed.allowedDamage.ai.enabled
-
-            val attacker = if (source is Damage.EntitySource) {
-                val attackerRef = source.ref
-                if (attackerRef.isValid) {
-                    store.getComponent(attackerRef, Player.getComponentType())
-                } else null
-            } else null
-
-            if (attacker != null && allowPlayerDamage) {
-                downable.allowDamage = true
-                return
+            // Determine damage type and get appropriate config
+            val damageCause = DamageCause.getAssetMap().getAsset(damage.damageCauseIndex)
+            val damageConfig = when {
+                // Check if it's player damage
+                source is Damage.EntitySource && source.ref.isValid -> {
+                    val attackerPlayer = store.getComponent(source.ref, Player.getComponentType())
+                    if (attackerPlayer != null) {
+                        config.downed.allowedDamage.player
+                    } else {
+                        // Non-player entity source (AI/mob)
+                        config.downed.allowedDamage.ai
+                    }
+                }
+                // Check if it's lava damage
+                damageCause?.id?.contains("LAVA", ignoreCase = true) == true -> {
+                    config.downed.allowedDamage.lava
+                }
+                // Everything else is environmental damage
+                else -> {
+                    config.downed.allowedDamage.environment
+                }
             }
 
-            if (attacker == null && allowAIDamage) {
+            // Check if this damage type is enabled
+            if (damageConfig.enabled) {
+                // Apply damage multiplier
+                damage.amount *= damageConfig.damageMultiplier.toFloat()
                 downable.allowDamage = true
                 return
             }
