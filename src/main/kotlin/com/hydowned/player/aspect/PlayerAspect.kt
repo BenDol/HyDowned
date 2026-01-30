@@ -8,9 +8,6 @@ import com.hydowned.extension.getDistance
 import com.hydowned.extension.getNearestDownable
 import com.hypixel.hytale.server.core.universe.PlayerRef
 
-/**
- * Aggressor when a player causes another player to be downed.
- */
 open class PlayerAspect(
     val player: Player,
     val playerRef: PlayerRef

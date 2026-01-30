@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Main event handler and system registration for HyDowned.
  *
- * Registers all ECS systems and event listeners needed for the downed mechanic.
+ * Registers event listeners needed for the downed mechanic.
  */
 class PlayerEvents(val plugin: ModPlugin) {
 

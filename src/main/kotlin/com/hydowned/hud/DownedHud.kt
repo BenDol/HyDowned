@@ -195,7 +195,8 @@ class DownedHud(playerRef: PlayerRef) : CustomUIHud(playerRef) {
             // Show give up progress if active, otherwise show give up press message
             if (downable.giveUpTicks != -1) {
                 // Player is giving up - show progress
-                val giveUpProgress = (downable.giveUpTicks.toFloat() / downable.getMaxGiveUpTicks().toFloat()).coerceIn(0.0f, 1.0f)
+                val maxGiveUpTicks = managers.config.downed.giveUpTicks
+                val giveUpProgress = (downable.giveUpTicks.toFloat() / maxGiveUpTicks.toFloat()).coerceIn(0.0f, 1.0f)
 
                 values.add(Label(id + "GiveUpMessage",
                     Message.translation("hydowned.hud.giving_up"), 12))

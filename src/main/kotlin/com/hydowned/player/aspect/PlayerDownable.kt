@@ -233,10 +233,6 @@ class PlayerDownable(
         // Can be used for custom logic if needed
     }
 
-    fun getMaxGiveUpTicks(): Int {
-        return 100
-    }
-
     fun setDownedEffect(time: Float, applySlow: Boolean, reason: String) {
         player.world?.execute {
             val reference = playerRef.reference

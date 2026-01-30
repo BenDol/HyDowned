@@ -6,6 +6,7 @@
     "allowMovement": true,
     "applySlow": true,
     "jumpForce": 0.0,
+    "giveUpTicks": 80,
     "aiRetargetRange": 16.0,
     "allowedDamage": {
       "player": {

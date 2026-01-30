@@ -51,7 +51,7 @@ class CrouchDetectionSystem(val managers: Managers) : EntityTickingSystem<Entity
                 // Started crouching
                 if (downable.isDowned()) {
                     // Downed player - start giveup countdown
-                    downable.giveUpTicks = downable.getMaxGiveUpTicks()
+                    downable.giveUpTicks = managers.config.downed.giveUpTicks
                     Log.finer("CrouchDetection",
                         "${player.displayName} started giving up (${downable.giveUpTicks} ticks)")
                 } else {

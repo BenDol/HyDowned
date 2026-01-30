@@ -38,6 +38,7 @@ data class DownedSettings(
     val allowMovement: Boolean = true,
     val applySlow: Boolean = true,
     val jumpForce: Float = 0.0f,
+    val giveUpTicks: Int = 80,
     val aiRetargetRange: Double = 16.0,
     val allowedDamage: AllowedDamage = AllowedDamage()
 )
